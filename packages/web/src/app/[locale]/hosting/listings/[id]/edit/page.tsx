@@ -205,7 +205,7 @@ export default function EditListingPage() {
     setMonthlyDiscount(property.monthlyDiscount ?? 0);
     setNewListingPromoEnabled(property.newListingPromotionEnabled ?? false);
     setLastMinuteDiscountPercent(property.lastMinuteDiscountPercent ?? 0);
-    setBookingMode(property.bookingMode ?? 'approve_first_three');
+    setBookingMode((property.bookingMode ?? 'approve_first_three') as 'instant_book' | 'approve_first_three');
     setCleaningFee(property.cleaningFee ?? 0);
     setMinNights(property.minNights ?? 1);
     setMaxNights(property.maxNights ?? 365);
@@ -253,7 +253,6 @@ export default function EditListingPage() {
       newListingPromotionEnabled: newListingPromoEnabled,
       lastMinuteDiscountPercent,
       bookingMode,
-      instantBook: bookingMode === 'instant_book',
       cleaningFee,
       minNights,
       maxNights,

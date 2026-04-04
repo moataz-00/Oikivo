@@ -37,7 +37,7 @@ export default function AdminConsultantPayoutsPage() {
   });
 
   const processMutation = useMutation({
-    mutationFn: ({ id, ...body }: { id: number; status: string; note?: string }) =>
+    mutationFn: ({ id, ...body }: { id: number; status: 'processing' | 'completed' | 'failed'; note?: string }) =>
       adminApi.processConsultantPayout(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-consultant-payouts'] });

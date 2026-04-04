@@ -836,12 +836,12 @@ function AccountPageContent() {
                   <div>
                     <p className="text-sm font-medium text-neutral-900">{t('passwordLabel')}</p>
                     <p className="text-sm text-neutral-500 mt-0.5">
-                      {profile?.googleId && !profile?.passwordHash ? 'Not set' : '••••••••••'}
+                      {profile?.googleId && !(profile as any)?.passwordHash ? 'Not set' : '••••••••••'}
                     </p>
                   </div>
                   <button onClick={() => setPasswordModalOpen(true)}
                     className="text-sm font-semibold text-neutral-900 underline hover:text-neutral-700 transition-colors">
-                    {profile?.googleId && !profile?.passwordHash ? 'Add password' : t('update')}
+                    {profile?.googleId && !(profile as any)?.passwordHash ? 'Add password' : t('update')}
                   </button>
                 </div>
               </div>

@@ -72,7 +72,7 @@ export interface Amenity {
 // ─── Property ────────────────────────────────────────────────────────────────
 export type PropertyType = 'short_term_rental' | 'hotel' | 'for_sale';
 export type SpaceType = 'entire_place' | 'private_room' | 'shared_room';
-export type PropertyStatus = 'draft' | 'published' | 'archived';
+export type PropertyStatus = 'draft' | 'published' | 'archived' | 'pending_review';
 export type PropertyKind =
   | 'apartment'
   | 'house'
@@ -137,6 +137,9 @@ export interface Property {
   checkOutTime?: string;
   cancellationPolicy?: string;
   currency?: string;
+  newListingPromotionEnabled?: boolean;
+  lastMinuteDiscountPercent?: number;
+  bookingMode?: string;
   createdAt: string;
   archivedAt?: string | null;
 }
@@ -303,6 +306,7 @@ export interface CreateReviewPayload {
   valueRating?: number;
   checkinRating?: number;
   comment?: string;
+  photos?: string[];
 }
 
 export interface ReviewStats {
@@ -331,6 +335,7 @@ export interface Wishlist {
 // ─── Message & Conversation ───────────────────────────────────────────────────
 export interface Message {
   id: number;
+  conversationId?: number;
   content: string;
   messageType: 'text' | 'image';
   imageUrl?: string | null;

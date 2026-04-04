@@ -18,7 +18,7 @@ export default function BookingExportPage() {
 
   const { data: booking, isLoading } = useQuery<Booking>({
     queryKey: ['bookingDetail', ref],
-    queryFn: () => bookingsApi.getBooking(ref),
+    queryFn: () => bookingsApi.getBookingByRef(ref),
     enabled: !!ref,
     staleTime: 60_000,
   });
