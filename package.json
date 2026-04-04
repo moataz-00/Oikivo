@@ -1,0 +1,27 @@
+{
+  "name": "sakan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sakan — Find Your Perfect Stay | ابحث عن مكانك المثالي",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=packages/backend",
+    "dev:web": "npm run dev --workspace=packages/web",
+    "dev:admin": "npm run dev --workspace=packages/admin",
+    "dev:mobile": "npm run start --workspace=packages/mobile",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:web\" \"npm run dev:admin\"",
+    "build:backend": "npm run build --workspace=packages/backend",
+    "build:web": "npm run build --workspace=packages/web",
+    "build:admin": "npm run build --workspace=packages/admin",
+    "build": "npm run build:backend && npm run build:web && npm run build:admin",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@nestjs/schedule": "^6.1.1"
+  }
+}

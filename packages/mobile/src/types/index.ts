@@ -1,0 +1,200 @@
+export type Language = 'en' | 'ar';
+export type SpaceType = 'entire_place' | 'private_room' | 'shared_room';
+export type PropertyStatus = 'draft' | 'published' | 'archived';
+export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'declined';
+export type PaymentStatus = 'pending' | 'paid' | 'refunded';
+export type AmenityCategory = 'essential' | 'standout' | 'safety';
+
+export interface User {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string;
+  phone?: string;
+  bio?: string;
+  isHost: boolean;
+  isSuperhost: boolean;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  isIdVerified: boolean;
+  isAdmin: boolean;
+  preferredLanguage: Language;
+  createdAt: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  nameAr: string;
+  icon: string;
+}
+
+export interface Amenity {
+  id: number;
+  name: string;
+  nameAr: string;
+  icon: string;
+  category: AmenityCategory;
+}
+
+export interface PropertyPhoto {
+  id: number;
+  url: string;
+  caption?: string;
+  displayOrder: number;
+  isCover: boolean;
+}
+
+export interface PropertyListItem {
+  id: number;
+  title: string;
+  city: string;
+  country: string;
+  pricePerNight: number;
+  currency: string;
+  avgRating: number;
+  reviewCount: number;
+  coverPhoto?: string;
+  instantBook: boolean;
+  isSuperhost: boolean;
+  latitude?: number;
+  longitude?: number;
+  spaceType: SpaceType;
+  maxGuests: number;
+  bedrooms: number;
+  beds: number;
+}
+
+export interface Property extends PropertyListItem {
+  hostId: number;
+  host: Pick<
+    User,
+    'id' | 'firstName' | 'lastName' | 'avatarUrl' | 'isSuperhost' | 'createdAt'
+  >;
+  description?: string;
+  propertyKind: string;
+  cleaningFee: number;
+  serviceFeePercent: number;
+  minNights: number;
+  maxNights: number;
+  bathrooms: number;
+  address?: string;
+  state?: string;
+  countryCode?: string;
+  checkInAfter: string;
+  checkOutBefore: string;
+  allowsPets: boolean;
+  allowsSmoking: boolean;
+  allowsParties: boolean;
+  allowsChildren: boolean;
+  status: PropertyStatus;
+  photos: PropertyPhoto[];
+  amenities: Amenity[];
+}
+
+export interface Booking {
+  id: number;
+  propertyId: number;
+  property: {
+    id: number;
+    title: string;
+    city: string;
+    country: string;
+    photos: PropertyPhoto[];
+    host: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatarUrl'>;
+  };
+  guestId: number;
+  guest: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatarUrl'>;
+  checkIn: string;
+  checkOut: string;
+  guestsCount: number;
+  nights: number;
+  baseAmount: number;
+  cleaningFee: number;
+  serviceFee: number;
+  taxes: number;
+  totalAmount: number;
+  currency: string;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+}
+
+export interface Review {
+  id: number;
+  reviewerId: number;
+  reviewer: Pick<
+    User,
+    'id' | 'firstName' | 'lastName' | 'avatarUrl' | 'createdAt'
+  >;
+  propertyId: number;
+  overallRating: number;
+  cleanlinessRating?: number;
+  accuracyRating?: number;
+  communicationRating?: number;
+  locationRating?: number;
+  valueRating?: number;
+  checkinRating?: number;
+  comment?: string;
+  hostReply?: string;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: number;
+  property?: {
+    id: number;
+    title: string;
+    photos: PropertyPhoto[];
+  };
+  otherUser: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatarUrl'>;
+  lastMessage?: Message;
+  unreadCount: number;
+  createdAt: string;
+}
+
+export interface Message {
+  id: number;
+  conversationId: number;
+  senderId: number;
+  body: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface Wishlist {
+  id: number;
+  name: string;
+  coverPhoto?: string;
+  itemCount: number;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PriceBreakdown {
+  nights: number;
+  pricePerNight: number;
+  baseAmount: number;
+  cleaningFee: number;
+  serviceFee: number;
+  taxes: number;
+  total: number;
+  currency: string;
+}

@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.npm
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Uploads (user-generated content)
+packages/backend/uploads/*
+!packages/backend/uploads/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript
+*.tsbuildinfo
+
+# Expo
+.expo/
+packages/mobile/.expo/
+packages/mobile/dist/
+packages/mobile/web-build/
+
+# Misc
+.cache/
+*.local
+
+# Google OAuth client secrets (must NEVER be committed)
+client_secret_*.json
+*.apps.googleusercontent.com.json

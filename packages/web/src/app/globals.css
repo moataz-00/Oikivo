@@ -1,0 +1,229 @@
+@import url('https://fonts.cdnfonts.com/css/magnolia-script');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand: 4f46e5;
+    --brand-dark: #3730a3;
+    --brand-light: #818cf8;
+    --brand-50: #eef2ff;
+    --brand-100: #e0e7ff;
+    --radius-card: 1rem;
+    --shadow-soft: 0 2px 16px 0 rgba(0,0,0,0.07);
+    --shadow-card: 0 4px 24px 0 rgba(0,0,0,0.10);
+    --shadow-float: 0 8px 40px 0 rgba(79,70,229,0.18);
+  }
+
+  html {
+    font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Arabic locale — use Cairo for crisp Arabic rendering */
+  [lang="ar"] {
+    font-family: 'Cairo', var(--font-sans, system-ui, sans-serif);
+  }
+  [lang="ar"] * {
+    letter-spacing: 0 !important; /* Arabic script doesn't use letter-spacing */
+    word-spacing: 0.05em;
+  }
+
+  body {
+    @apply text-neutral-900 bg-white antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Custom focus ring */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Scrollbar hide utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom thin scrollbar for desktop */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+    border-radius: 999px;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Gradient brand background */
+  .gradient-brand {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #7c3aed 100%);
+  }
+
+  /* Gradient brand text */
+  .gradient-brand-text {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glass morphism card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  /* Hero search bar — white inputs on dark background */
+  .hero-search-input {
+    @apply bg-white/10 border border-white/20 text-white placeholder:text-white/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-white/40 transition;
+  }
+
+  /* Shimmer loading skeleton */
+  .skeleton {
+    @apply bg-neutral-200 rounded-lg overflow-hidden relative;
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
+    animation: shimmer 1.4s infinite;
+    transform: translateX(-100%);
+  }
+
+  /* Smooth card */
+  .card-smooth {
+    @apply rounded-2xl bg-white border border-neutral-100;
+    box-shadow: var(--shadow-soft);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .card-smooth:hover {
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+
+  /* Brand button */
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #7c3aed 100%);
+    box-shadow: 0 2px 12px rgba(79,70,229,0.25);
+  }
+  .btn-brand:hover {
+    box-shadow: 0 4px 20px rgba(79,70,229,0.4);
+    filter: brightness(1.1);
+  }
+  .btn-brand:active {
+    transform: scale(0.98);
+  }
+}
+
+@layer utilities {
+  /* Text balance for headings */
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes blob-move {
+  0%, 100% { border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%; }
+  33% { border-radius: 40% 60% 30% 70% / 60% 40% 70% 30%; }
+  66% { border-radius: 70% 30% 50% 50% / 30% 70% 40% 60%; }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-blob {
+  animation: blob-move 10s ease-in-out infinite;
+}
+
+/* react-day-picker overrides */
+.rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: #f5f5f5 !important;
+}
+
+/* Swiper overrides */
+.swiper-pagination-bullet-active {
+  background: white !important;
+}
+
+.swiper-pagination-bullet {
+  background: rgba(255,255,255,0.6) !important;
+  opacity: 1 !important;
+}
+
+/* ─── RTL overrides ─────────────────────────────────────────────────────────
+   The html[dir="rtl"] attribute is set automatically when locale = 'ar'.
+   These rules handle cases that can't be flipped by Tailwind's rtl: variant
+   or by CSS logical properties alone.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Shimmer skeleton — reverse sweep direction */
+[dir="rtl"] .skeleton::after {
+  background: linear-gradient(270deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
+}
+
+/* Back-arrow icons (ChevronLeft/ChevronRight used as directional cues) */
+[dir="rtl"] .icon-back {
+  transform: scaleX(-1);
+}
+
+/* Scrollable rows — reverse scroll arrow intent */
+[dir="rtl"] .scroll-snap-x {
+  direction: rtl;
+}
+
+/* Input text alignment */
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: right;
+}
+
+/* Radix dropdown — ensure text is right-aligned in Arabic */
+[dir="rtl"] [data-radix-popper-content-wrapper] {
+  direction: rtl;
+}
+
+/* react-day-picker in RTL — flip navigation arrows */
+[dir="rtl"] .rdp-nav_button_previous svg,
+[dir="rtl"] .rdp-nav_button_next svg {
+  transform: scaleX(-1);
+}
