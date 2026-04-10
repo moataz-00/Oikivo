@@ -66,6 +66,15 @@ export class ReviewEntity {
   @Column({ name: 'host_replied_at', type: 'datetime', nullable: true })
   hostRepliedAt: Date;
 
+  @Column({ name: 'is_deleted', type: 'boolean', default: false, comment: 'Soft delete flag for reviews', select: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', type: 'datetime', nullable: true, select: false })
+  deletedAt: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'enum', enum: ['admin', 'guest', 'host'], nullable: true, select: false })
+  deletedBy: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

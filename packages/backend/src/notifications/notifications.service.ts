@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
@@ -72,7 +72,10 @@ export class NotificationsService {
   }
 
   async markRead(id: number, userId: number): Promise<{ message: string }> {
-    await this.notificationsRepo.update({ id, userId }, { isRead: true });
+    const result = await this.notificationsRepo.update({ id, userId }, { isRead: true });
+    if ((result.affected ?? 0) === 0) {
+      throw new NotFoundException('Notification not found');
+    }
     return { message: 'Notification marked as read' };
   }
 

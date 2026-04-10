@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { DataSource, Repository, MoreThanOrEqual, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { BookingEntity } from '../entities/booking.entity';
@@ -22,6 +22,8 @@ import { CoHostEntity } from '../entities/cohost.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { toZonedTime, format as formatTz } from 'date-fns-tz';
+import { startOfDay } from 'date-fns';
 
 // ─── Egyptian public holiday data ────────────────────────────────────────────
 // Fixed Gregorian dates [month (1-based), day]
@@ -82,8 +84,14 @@ export class BookingsService {
     private mail: MailService,
     private paymentsService: PaymentsService,
     private auditLog: AuditLogService,
+    private dataSource: DataSource,
   ) {
+    // FIX BUG-GC2: Fail fast in production if Stripe key is missing
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+    if (!secretKey && nodeEnv === 'production') {
+      throw new Error('STRIPE_SECRET_KEY is required in production mode');
+    }
     this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
       apiVersion: '2024-04-10' as any,
     });
@@ -101,15 +109,29 @@ export class BookingsService {
   }
 
   async create(guestId: number, dto: CreateBookingDto): Promise<BookingEntity> {
-    // Idempotency: return existing booking if same guest/property/dates within 5 minutes
-    const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+    // FIX BUG-GC1: Prevent abuse - limit concurrent active bookings per guest
+    const MAX_CONCURRENT_BOOKINGS = 10;
+    const activeBookingsCount = await this.bookingsRepo.count({
+      where: {
+        guestId,
+        status: In(['pending', 'confirmed', 'in_progress'] as any),
+      },
+    });
+    if (activeBookingsCount >= MAX_CONCURRENT_BOOKINGS) {
+      throw new BadRequestException(
+        `You have reached the maximum of ${MAX_CONCURRENT_BOOKINGS} active bookings. Please complete or cancel existing bookings before creating new ones.`,
+      );
+    }
+
+    // Idempotency: return existing booking if same guest/property/dates within 15 minutes
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
     const existing = await this.bookingsRepo.findOne({
       where: {
         guestId,
         propertyId: dto.propertyId,
         checkIn: dto.checkIn,
         checkOut: dto.checkOut,
-        createdAt: MoreThanOrEqual(fiveMinsAgo),
+        createdAt: MoreThanOrEqual(fifteenMinsAgo),
       },
     });
     if (existing) return this.findOne(existing.id);
@@ -138,6 +160,13 @@ export class BookingsService {
     today.setHours(0, 0, 0, 0);
     if (checkInDate < today) {
       throw new BadRequestException('Check-in date cannot be in the past');
+    }
+
+    // Limit future bookings to 12 months
+    const maxFutureDate = new Date(today);
+    maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 1);
+    if (checkInDate >= maxFutureDate) {
+      throw new BadRequestException('Bookings cannot be made more than 12 months in advance');
     }
 
     if (checkOutDate <= checkInDate) {
@@ -314,8 +343,8 @@ export class BookingsService {
 
     // Send email to host
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const reservationsUrl = `${fe.replace(/\/+$/, '')}/en/hosting/reservations`;
+      const feBase = this.getFrontendBaseUrl();
+      const reservationsUrl = `${feBase}/en/hosting/reservations`;
       await this.mail.send(
         property.host.email,
         'New booking request — Journey Stay',
@@ -329,6 +358,7 @@ export class BookingsService {
           Number(saved.totalAmount).toFixed(2),
           saved.currency ?? 'EGP',
           reservationsUrl,
+          saved.specialRequests, // Include special requests in host email
         ),
       );
     } catch (e) {
@@ -337,8 +367,8 @@ export class BookingsService {
 
     // Send acknowledgment/confirmation email to guest
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+      const feBase = this.getFrontendBaseUrl();
+      const tripsUrl = `${feBase}/en/trips`;
       if (property.instantBook) {
         // Instant-book: booking is already confirmed — send the booking confirmed email
         await this.mail.send(
@@ -389,18 +419,83 @@ export class BookingsService {
       throw new BadRequestException('Booking is not in pending state');
     }
 
-    await this.bookingsRepo.update(bookingId, { status: 'confirmed' });
+    await this.dataSource.transaction(async (manager) => {
+      const txBookingsRepo = manager.getRepository(BookingEntity);
+      const txPropertiesRepo = manager.getRepository(PropertyEntity);
+      const txAvailabilityRepo = manager.getRepository(AvailabilityEntity);
 
-    // If property is in approve_first_three mode, increment the approved count
-    // so the property can graduate to instant book after 3 approvals
-    try {
-      const prop = await this.propertiesRepo.findOne({ where: { id: booking.propertyId } });
-      if (prop && prop.bookingMode === 'approve_first_three' && prop.approvedBookingsCount < 3) {
-        await this.propertiesRepo.increment({ id: booking.propertyId }, 'approvedBookingsCount', 1);
+      const bookingForUpdate = await txBookingsRepo
+        .createQueryBuilder('b')
+        .leftJoinAndSelect('b.property', 'property')
+        .leftJoinAndSelect('b.guest', 'guest')
+        .where('b.id = :id', { id: bookingId })
+        .setLock('pessimistic_write')
+        .getOne();
+
+      if (!bookingForUpdate) throw new NotFoundException('Booking not found');
+      if (bookingForUpdate.hostId !== hostId) throw new ForbiddenException('Not your booking');
+      if (bookingForUpdate.status !== 'pending') {
+        throw new BadRequestException('Booking is not in pending state');
       }
-    } catch (e) {
-      this.logger.warn(`Could not update approvedBookingsCount: ${(e as Error).message}`);
-    }
+
+      const overlapping = await txBookingsRepo
+        .createQueryBuilder('b')
+        .where('b.property_id = :propertyId', { propertyId: bookingForUpdate.propertyId })
+        .andWhere('b.id != :bookingId', { bookingId })
+        .andWhere('b.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'in_progress'] })
+        .andWhere('b.check_in < :checkOut', { checkOut: bookingForUpdate.checkOut })
+        .andWhere('b.check_out > :checkIn', { checkIn: bookingForUpdate.checkIn })
+        .setLock('pessimistic_write')
+        .getMany();
+
+      const hardConflict = overlapping.some((b) => b.status === 'confirmed' || b.status === 'in_progress');
+      if (hardConflict) {
+        throw new ConflictException('Dates are no longer available for this booking.');
+      }
+
+      await txBookingsRepo.update(bookingId, { status: 'confirmed' });
+
+      const pendingToReject = overlapping.filter((b) => b.status === 'pending').map((b) => b.id);
+      if (pendingToReject.length > 0) {
+        await txBookingsRepo
+          .createQueryBuilder()
+          .update(BookingEntity)
+          .set({
+            status: 'declined',
+            cancellationReason: 'Auto-declined: another overlapping booking was confirmed first.',
+          } as any)
+          .whereInIds(pendingToReject)
+          .execute();
+      }
+
+      const prop = await txPropertiesRepo.findOne({ where: { id: bookingForUpdate.propertyId } });
+      if (prop && prop.bookingMode === 'approve_first_three') {
+        const nextApprovedCount = Math.min(3, Number(prop.approvedBookingsCount ?? 0) + 1);
+        const graduationUpdate = nextApprovedCount >= 3
+          ? { approvedBookingsCount: nextApprovedCount, bookingMode: 'instant_book', instantBook: true }
+          : { approvedBookingsCount: nextApprovedCount };
+        await txPropertiesRepo.update({ id: bookingForUpdate.propertyId }, graduationUpdate as any);
+      }
+
+      const checkInDate = new Date(bookingForUpdate.checkIn);
+      const checkOutDate = new Date(bookingForUpdate.checkOut);
+      for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
+        const date = d.toISOString().split('T')[0];
+        let av = await txAvailabilityRepo.findOne({ where: { propertyId: bookingForUpdate.propertyId, date } });
+        if (av) {
+          av.isBlocked = true;
+          av.source = 'booking';
+        } else {
+          av = txAvailabilityRepo.create({
+            propertyId: bookingForUpdate.propertyId,
+            date,
+            isBlocked: true,
+            source: 'booking',
+          });
+        }
+        await txAvailabilityRepo.save(av);
+      }
+    });
 
     await this.notificationsService.create(
       booking.guestId,
@@ -434,8 +529,8 @@ export class BookingsService {
 
     // Send confirmation email to guest
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+      const feBase = this.getFrontendBaseUrl();
+      const tripsUrl = `${feBase}/en/trips`;
       await this.mail.send(
         booking.guest.email,
         'Your booking is confirmed — Journey Stay',
@@ -499,12 +594,13 @@ export class BookingsService {
     const cancelledBy = booking.guestId === userId ? 'guest' : 'host';
 
     // Guests cannot cancel after check-in has started
+    // FIX BUG-GM2: Use timezone-aware comparison
     if (cancelledBy === 'guest') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const propertyTimezone = booking.property?.timezone || null;
       const checkInDate = new Date(booking.checkIn);
-      checkInDate.setHours(0, 0, 0, 0);
-      if (today >= checkInDate) {
+      const daysUntilCheckIn = this.calculateDaysUntilCheckIn(checkInDate, propertyTimezone);
+      
+      if (daysUntilCheckIn <= 0) {
         throw new BadRequestException('Cancellations are not allowed on or after the check-in date');
       }
     }
@@ -516,6 +612,7 @@ export class BookingsService {
 
     // If paid via Stripe, trigger automatic refund before updating DB status
     let stripeRefundTriggered = false;
+    let stripeRefundFailed = false; // FIX BUG-GH2: Track refund failures
     if (booking.stripePaymentIntentId && booking.paymentStatus === 'paid' && refundInfo.refundAmount > 0) {
       try {
         const currency = (booking.currency ?? 'EGP').toLowerCase();
@@ -530,12 +627,13 @@ export class BookingsService {
         stripeRefundTriggered = true;
       } catch (err) {
         this.logger.error(`Stripe refund failed for booking #${bookingId}: ${(err as Error).message}`);
-        // Do not block cancellation if Stripe call fails — admin can handle manually
+        stripeRefundFailed = true; // FIX BUG-GH2: Mark refund as failed
       }
     }
 
     // If paid via OPay, trigger OPay refund before updating DB status
     let opayRefundTriggered = false;
+    let opayRefundFailed = false;
     if (
       booking.opayOrderReference &&
       booking.paymentMethod === 'opay-card' &&
@@ -551,7 +649,7 @@ export class BookingsService {
         opayRefundTriggered = true;
       } catch (err) {
         this.logger.error(`OPay refund failed for booking #${bookingId}: ${(err as Error).message}`);
-        // Do not block cancellation if OPay call fails — admin can handle manually
+        opayRefundFailed = true;
       }
     }
 
@@ -559,9 +657,16 @@ export class BookingsService {
     // InstaPay refunds are manual — keep paymentStatus as 'paid' so admin knows to act.
     // If Stripe/OPay API call failed (opayRefundTriggered/stripeRefundTriggered still false),
     // also keep 'paid' so admin can retry rather than falsely marking it refunded.
-    const newPaymentStatus = (stripeRefundTriggered || opayRefundTriggered)
-      ? 'refunded'
-      : booking.paymentStatus;
+    const needsManualRefundQueue =
+      booking.paymentStatus === 'paid' &&
+      refundInfo.refundAmount > 0 &&
+      (stripeRefundFailed || opayRefundFailed);
+
+    const newPaymentStatus = needsManualRefundQueue
+      ? 'refund_pending'
+      : (stripeRefundTriggered || opayRefundTriggered)
+        ? 'refunded'
+        : booking.paymentStatus;
 
     await this.bookingsRepo.update(bookingId, {
       status: 'cancelled',
@@ -572,6 +677,27 @@ export class BookingsService {
       cancellationFee: refundInfo.cancellationFee,
       paymentStatus: newPaymentStatus,
     });
+
+    if (needsManualRefundQueue) {
+      try {
+        const admins = await this.usersRepo.find({ where: { isAdmin: true, isActive: true } });
+        await Promise.all(
+          admins.map((admin) =>
+            this.notificationsService.create(
+              admin.id,
+              'refund_pending',
+              'Refund Requires Manual Action',
+              'الاسترداد يحتاج تدخل يدوي',
+              `Refund for booking #${bookingId} could not be completed automatically. Amount: ${(booking.currency ?? 'EGP')} ${refundInfo.refundAmount.toFixed(2)}.`,
+              `تعذر إتمام استرداد الحجز #${bookingId} تلقائياً. المبلغ: ${(booking.currency ?? 'EGP')} ${refundInfo.refundAmount.toFixed(2)}.`,
+              { bookingId },
+            ),
+          ),
+        );
+      } catch (e) {
+        this.logger.error(`Failed to notify admins about refund pending for booking #${bookingId}: ${(e as Error).message}`);
+      }
+    }
 
     // Audit log
     this.auditLog.log({
@@ -633,7 +759,7 @@ export class BookingsService {
 
     // Send cancellation emails to both parties
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
+      const feBase = this.getFrontendBaseUrl();
       const curr = booking.currency ?? 'EGP';
       const ref = `#${bookingId}`;
       const refundStr = refundInfo.refundAmount > 0 ? refundInfo.refundAmount.toFixed(2) : undefined;
@@ -657,8 +783,8 @@ export class BookingsService {
     // If Stripe refund was triggered, send a dedicated refund notification to the guest
     if (stripeRefundTriggered && cancelledBy === 'guest') {
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+        const feBase = this.getFrontendBaseUrl();
+        const tripsUrl = `${feBase}/en/trips`;
         await this.mail.send(
           booking.guest.email,
           'Your Stripe refund is being processed — Journey Stay',
@@ -681,8 +807,8 @@ export class BookingsService {
     // If OPay refund was triggered, send a dedicated refund notification to the guest
     if (opayRefundTriggered && cancelledBy === 'guest') {
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+        const feBase = this.getFrontendBaseUrl();
+        const tripsUrl = `${feBase}/en/trips`;
         await this.mail.send(
           booking.guest.email,
           'Your OPay refund is being processed — Journey Stay',
@@ -709,8 +835,8 @@ export class BookingsService {
       refundInfo.refundAmount > 0
     ) {
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+        const feBase = this.getFrontendBaseUrl();
+        const tripsUrl = `${feBase}/en/trips`;
         await this.mail.send(
           booking.guest.email,
           'Your InstaPay refund is being arranged — Journey Stay',
@@ -749,9 +875,68 @@ export class BookingsService {
 
     // H12 — When host cancels: send follow-up rebooking email to guest
     if (cancelledBy === 'host') {
+      // HM1: Host cancellation penalty tracking
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const propertyUrl = `${fe.replace(/\/+$/, '')}/en/properties/${booking.propertyId}`;
+        const host = await this.usersRepo.findOne({ where: { id: booking.hostId } });
+        if (host) {
+          const nextCount = Number((host as any).hostCancelledBookingsCount ?? 0) + 1;
+          await this.usersRepo.update(host.id, {
+            hostCancelledBookingsCount: nextCount,
+            lastHostCancellationAt: new Date(),
+            isSuperhost: false,
+          } as any);
+
+          if (nextCount === 3) {
+            await this.notificationsService.create(
+              host.id,
+              'host_penalty_warning',
+              'Cancellation Warning',
+              'تحذير بسبب الإلغاء',
+              'You have reached 3 host-initiated cancellations. Further cancellations may affect account standing.',
+              'لقد وصلت إلى 3 إلغاءات من جانب المضيف. الإلغاءات الإضافية قد تؤثر على حالة الحساب.',
+              { hostCancelledBookingsCount: nextCount },
+            );
+          }
+
+          if (nextCount >= 5) {
+            await this.notificationsService.create(
+              host.id,
+              'host_penalty_escalation',
+              'Account Review Triggered',
+              'تم تصعيد مراجعة الحساب',
+              'Your account has reached 5 host-initiated cancellations and is now under review.',
+              'وصل حسابك إلى 5 إلغاءات من جانب المضيف وهو الآن قيد المراجعة.',
+              { hostCancelledBookingsCount: nextCount },
+            );
+          }
+
+          if (nextCount >= 8) {
+            await this.notificationsService.create(
+              host.id,
+              'host_penalty_suspension',
+              'Publishing Restricted',
+              'تقييد النشر',
+              'Your account reached the cancellation suspension threshold. New listing publishing is temporarily restricted pending review.',
+              'وصل حسابك لحد التعليق بسبب الإلغاءات. تم تقييد نشر القوائم الجديدة مؤقتًا لحين المراجعة.',
+              { hostCancelledBookingsCount: nextCount },
+            );
+          }
+
+          // Apply search demotion by reducing listing impression weight after host-initiated cancellations.
+          await this.propertiesRepo
+            .createQueryBuilder()
+            .update(PropertyEntity)
+            .set({ impressionCount: () => 'GREATEST(FLOOR(impression_count * 0.7), 0)' })
+            .where('host_id = :hostId', { hostId: host.id })
+            .execute();
+        }
+      } catch (e) {
+        this.logger.error(`Failed to apply host cancellation penalty for booking #${bookingId}: ${(e as Error).message}`);
+      }
+
+      try {
+        const feBase = this.getFrontendBaseUrl();
+        const propertyUrl = `${feBase}/en/properties/${booking.propertyId}`;
         await this.mail.send(
           booking.guest.email,
           `Your stay at ${booking.property.title} was cancelled — Journey Stay`,
@@ -771,6 +956,8 @@ export class BookingsService {
 
     return this.findOne(bookingId);
   }
+
+  async getCancellationPreview(bookingId: number, userId: number) {
     const booking = await this.findOne(bookingId);
 
     if (booking.guestId !== userId && booking.hostId !== userId) {
@@ -860,6 +1047,30 @@ export class BookingsService {
     };
   }
 
+  /**
+   * Calculate days until check-in using property's timezone.
+   * Fixes BUG-GM2: Cancellation Timezone Sensitivity
+   */
+  private calculateDaysUntilCheckIn(checkInDate: Date, propertyTimezone: string | null): number {
+    // Default to UTC/server time if no timezone specified
+    const timezone = propertyTimezone || 'UTC';
+    
+    // Get current date/time in the property's timezone
+    const nowInPropertyTz = toZonedTime(new Date(), timezone);
+    const todayInPropertyTz = startOfDay(nowInPropertyTz);
+    
+    // Convert check-in date to property timezone
+    const checkInInPropertyTz = toZonedTime(checkInDate, timezone);
+    const checkInDayInPropertyTz = startOfDay(checkInInPropertyTz);
+    
+    // Calculate difference in days
+    const daysUntilCheckIn = Math.ceil(
+      (checkInDayInPropertyTz.getTime() - todayInPropertyTz.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    
+    return daysUntilCheckIn;
+  }
+
   private calculateRefund(
     booking: BookingEntity,
     cancelledBy: 'guest' | 'host',
@@ -909,13 +1120,10 @@ export class BookingsService {
       };
     }
 
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    // FIX BUG-GM2: Use timezone-aware calculation for accurate cancellation policy enforcement
+    const propertyTimezone = booking.property?.timezone || null;
     const checkInDate = new Date(booking.checkIn);
-    checkInDate.setHours(0, 0, 0, 0);
-    const daysUntilCheckIn = Math.ceil(
-      (checkInDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-    );
+    const daysUntilCheckIn = this.calculateDaysUntilCheckIn(checkInDate, propertyTimezone);
 
     const policy = booking.cancellationPolicy ?? 'flexible';
 
@@ -1041,6 +1249,18 @@ export class BookingsService {
     if (booking.paymentStatus === 'paid') {
       throw new BadRequestException('Payment has already been confirmed');
     }
+
+    // FIX BUG-GH5: Validate InstaPay reference format
+    if (dto.method === 'instapay' && dto.reference) {
+      const cleanRef = dto.reference.trim();
+      if (cleanRef.length < 6 || cleanRef.length > 30) {
+        throw new BadRequestException('InstaPay reference must be between 6 and 30 characters');
+      }
+      if (!/^[a-zA-Z0-9-_]+$/.test(cleanRef)) {
+        throw new BadRequestException('InstaPay reference must contain only alphanumeric characters, hyphens, and underscores');
+      }
+    }
+
     await this.bookingsRepo.update(bookingId, {
       paymentMethod: dto.method,
       paymentReference: dto.reference,
@@ -1072,6 +1292,9 @@ export class BookingsService {
 
   async confirmPayment(bookingId: number, userId: number, isAdmin: boolean): Promise<BookingEntity> {
     const booking = await this.findOne(bookingId);
+    if (booking.paymentMethod === 'instapay' && !isAdmin) {
+      throw new ForbiddenException('InstaPay verification is admin-only');
+    }
     if (!isAdmin && booking.hostId !== userId) {
       throw new ForbiddenException('Only the host or an admin can confirm payment');
     }
@@ -1100,8 +1323,8 @@ export class BookingsService {
 
     // Send confirmation email to guest
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+      const feBase = this.getFrontendBaseUrl();
+      const tripsUrl = `${feBase}/en/trips`;
       await this.mail.send(
         booking.guest.email,
         'Your InstaPay payment is confirmed — Journey Stay',
@@ -1125,6 +1348,9 @@ export class BookingsService {
 
   async declinePayment(bookingId: number, userId: number, isAdmin: boolean, reason?: string): Promise<BookingEntity> {
     const booking = await this.findOne(bookingId);
+    if (booking.paymentMethod === 'instapay' && !isAdmin) {
+      throw new ForbiddenException('InstaPay verification is admin-only');
+    }
     if (!isAdmin && booking.hostId !== userId) {
       throw new ForbiddenException('Only the host or an admin can decline payment');
     }
@@ -1132,8 +1358,10 @@ export class BookingsService {
       throw new BadRequestException('Payment is not in submitted state');
     }
 
+    const nextStatus = booking.status === 'confirmed' ? 'pending' : booking.status;
     await this.bookingsRepo.update(bookingId, {
       paymentStatus: 'declined' as any,
+      status: nextStatus as any,
       paymentNote: reason ?? booking.paymentNote,
     });
 
@@ -1149,8 +1377,8 @@ export class BookingsService {
 
     // Send decline email to guest
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+      const feBase = this.getFrontendBaseUrl();
+      const tripsUrl = `${feBase}/en/trips`;
       await this.mail.send(
         booking.guest.email,
         'Payment could not be verified — Journey Stay',
@@ -1165,6 +1393,35 @@ export class BookingsService {
     } catch (e) {
       this.logger.error(`Failed to send InstaPay decline email: ${(e as Error).message}`);
     }
+
+    return this.findOne(bookingId);
+  }
+
+  async updateHostNotes(
+    bookingId: number,
+    hostId: number,
+    body: { hostNote?: string; hostCheckInInstructions?: string },
+  ): Promise<BookingEntity> {
+    const booking = await this.findOne(bookingId);
+    if (booking.hostId !== hostId) throw new ForbiddenException('Not your booking');
+    if (!['confirmed', 'in_progress'].includes(booking.status)) {
+      throw new BadRequestException('Host notes can only be updated for confirmed or in-progress bookings');
+    }
+
+    await this.bookingsRepo.update(bookingId, {
+      hostNote: body.hostNote ?? null,
+      hostCheckInInstructions: body.hostCheckInInstructions ?? null,
+    } as any);
+
+    await this.notificationsService.create(
+      booking.guestId,
+      'booking_host_note_updated',
+      'Host updated your stay details',
+      'قام المضيف بتحديث تفاصيل إقامتك',
+      `Your host updated notes/check-in details for booking #${bookingId}.`,
+      `قام المضيف بتحديث الملاحظات/تفاصيل تسجيل الوصول للحجز #${bookingId}.`,
+      { bookingId },
+    ).catch(() => {});
 
     return this.findOne(bookingId);
   }
@@ -1209,8 +1466,8 @@ export class BookingsService {
     );
 
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+      const feBase = this.getFrontendBaseUrl();
+      const tripsUrl = `${feBase}/en/trips`;
       const refundAmt = (booking.refundAmount != null ? Number(booking.refundAmount) : Number(booking.totalAmount)).toFixed(2);
       await this.mail.send(
         booking.guest.email,
@@ -1294,6 +1551,7 @@ export class BookingsService {
   }
 
   async getHostAnalytics(hostId: number) {
+    const host = await this.usersRepo.findOne({ where: { id: hostId } });
     const allBookings = await this.bookingsRepo.find({
       where: { hostId },
       relations: ['property', 'property.photos'],
@@ -1309,9 +1567,18 @@ export class BookingsService {
     let totalServiceFees = 0;
     let totalNights = 0;
     let confirmedOrCompleted = 0;
+    let responseTimeCount = 0;
+    let responseTimeTotalMinutes = 0;
 
     for (const b of allBookings) {
       byStatus[b.status] = (byStatus[b.status] ?? 0) + 1;
+      if (b.status === 'confirmed' || b.status === 'declined') {
+        const diffMs = new Date(b.updatedAt).getTime() - new Date(b.createdAt).getTime();
+        if (diffMs >= 0) {
+          responseTimeCount += 1;
+          responseTimeTotalMinutes += diffMs / (1000 * 60);
+        }
+      }
       if (b.status === 'completed' || b.status === 'confirmed') {
         totalRevenue += Number(b.totalAmount) - Number(b.serviceFee);
         totalBaseRevenue += Number(b.baseAmount);
@@ -1344,7 +1611,7 @@ export class BookingsService {
     // Per-property breakdown (with view counts and impression counts)
     const hostProperties = await this.propertiesRepo.find({
       where: { hostId },
-      select: ['id', 'viewCount', 'impressionCount'],
+      select: ['id', 'city', 'viewCount', 'impressionCount', 'avgRating', 'reviewCount'],
     });
     const viewCountByPropertyId = Object.fromEntries(
       hostProperties.map((p) => [p.id, p.viewCount ?? 0]),
@@ -1356,6 +1623,7 @@ export class BookingsService {
     const byPropertyMap: Record<number, {
       id: number; title: string; image: string | null;
       bookings: number; revenue: number; nights: number; views: number; impressions: number;
+      avgRating?: number; reviewCount?: number;
     }> = {};
     for (const b of allBookings) {
       if (!b.property) continue;
@@ -1369,6 +1637,8 @@ export class BookingsService {
           bookings: 0, revenue: 0, nights: 0,
           views: viewCountByPropertyId[b.property.id] ?? 0,
           impressions: impressionCountByPropertyId[b.property.id] ?? 0,
+          avgRating: Number((b.property as any).avgRating ?? 0),
+          reviewCount: Number((b.property as any).reviewCount ?? 0),
         };
       }
       byPropertyMap[b.property.id].bookings += 1;
@@ -1384,6 +1654,51 @@ export class BookingsService {
     const avgBookingValue = confirmedOrCompleted > 0
       ? totalRevenue / confirmedOrCompleted
       : 0;
+    const avgResponseMinutes = responseTimeCount > 0
+      ? Math.round((responseTimeTotalMinutes / responseTimeCount) * 10) / 10
+      : 0;
+
+    const satisfactionRows: Array<{ month: string; avgRating: number; reviewCount: number }> =
+      await this.dataSource.query(
+        `
+          SELECT DATE_FORMAT(r.created_at, '%Y-%m') AS month,
+                 ROUND(AVG(r.rating), 2) AS avgRating,
+                 COUNT(*) AS reviewCount
+          FROM reviews r
+          INNER JOIN bookings b ON b.id = r.booking_id
+          WHERE b.host_id = ?
+          GROUP BY DATE_FORMAT(r.created_at, '%Y-%m')
+          ORDER BY month DESC
+          LIMIT 6
+        `,
+        [hostId],
+      );
+
+    const hostCities = Array.from(new Set(hostProperties.map((p: any) => p.city).filter(Boolean)));
+    let areaAverages: Array<{ city: string; areaAvgRating: number; areaAvgPrice: number }> = [];
+    if (hostCities.length) {
+      const placeholders = hostCities.map(() => '?').join(',');
+      areaAverages = await this.dataSource.query(
+        `
+          SELECT city,
+                 ROUND(AVG(avg_rating), 2) AS areaAvgRating,
+                 ROUND(AVG(price_per_night), 2) AS areaAvgPrice
+          FROM properties
+          WHERE city IN (${placeholders}) AND status = 'published'
+          GROUP BY city
+        `,
+        hostCities,
+      );
+    }
+
+    const cancellationCount = Number((host as any)?.hostCancelledBookingsCount ?? 0);
+    const penaltyTier = cancellationCount >= 8
+      ? 'suspended'
+      : cancellationCount >= 5
+      ? 'review'
+      : cancellationCount >= 3
+      ? 'warning'
+      : 'good';
 
     // This month stats
     const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -1400,9 +1715,21 @@ export class BookingsService {
         nights: totalNights,
         avgBookingValue,
         completionRate,
+        avgResponseMinutes,
         thisMonthBookings: thisMonth.bookings,
         thisMonthRevenue: thisMonth.revenue,
       },
+      hostPenalty: {
+        cancellationCount,
+        lastCancellationAt: (host as any)?.lastHostCancellationAt ?? null,
+        tier: penaltyTier,
+      },
+      satisfaction: satisfactionRows.reverse().map((r) => ({
+        month: r.month,
+        avgRating: Number(r.avgRating ?? 0),
+        reviewCount: Number(r.reviewCount ?? 0),
+      })),
+      areaBenchmarks: areaAverages,
       monthly: Object.entries(monthly).map(([month, data]) => ({ month, ...data })),
       byProperty: Object.values(byPropertyMap).sort((a, b) => b.revenue - a.revenue),
     };
@@ -1646,8 +1973,8 @@ export class BookingsService {
     // For InstaPay manual refunds: email guest + notify admins
     if (!refundTriggered && booking.paymentMethod === 'instapay') {
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
+        const feBase = this.getFrontendBaseUrl();
+        const tripsUrl = `${feBase}/en/trips`;
         await this.mail.send(
           booking.guest.email,
           'Your InstaPay refund is being arranged — Journey Stay',
@@ -1733,5 +2060,11 @@ export class BookingsService {
     booking.depositStatus = 'released';
     booking.depositReleasedAt = new Date();
     return this.bookingsRepo.save(booking);
+  }
+
+  /** FE-12: Single source of truth for FRONTEND_URL resolution */
+  private getFrontendBaseUrl(): string {
+    const raw = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    return (raw.split(',')[0]?.trim() || 'http://localhost:3000').replace(/\/+$/, '');
   }
 }

@@ -181,6 +181,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify email address using token (visited from email link)' })
   @ApiResponse({ status: 200, description: 'Email verified' })
   async verifyEmail(@Query('token') token: string) {
+    if (!token) throw new BadRequestException('Token is required');
     return this.authService.verifyEmail(token);
   }
 

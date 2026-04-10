@@ -150,7 +150,32 @@ export class ReviewsService {
       .orderBy('review.createdAt', 'DESC')
       .getMany();
   }
+  // REV-G2: Add photos to a review (reviewer only, max 5 photos)
+  async addPhotos(reviewId: number, reviewerId: number, photoPaths: string[]): Promise<ReviewEntity> {
+    const review = await this.reviewsRepo.findOne({
+      where: { id: reviewId },
+    });
 
+    if (!review) throw new NotFoundException('Review not found');
+    if (review.reviewerId !== reviewerId) {
+      throw new ForbiddenException('You can only add photos to your own reviews');
+    }
+
+    // Merge with existing photos (if any)
+    const existingPhotos = review.photos || [];
+    const allPhotos = [...existingPhotos, ...photoPaths];
+
+    // Enforce max 5 photos
+    if (allPhotos.length > 5) {
+      throw new BadRequestException('Reviews can have a maximum of 5 photos');
+    }
+
+    await this.reviewsRepo.update(reviewId, {
+      photos: allPhotos,
+    });
+
+    return this.reviewsRepo.findOne({ where: { id: reviewId }, relations: ['reviewer', 'property'] });
+  }
   // G21: Delete a review and recalculate the property’s avg rating
   async deleteReview(reviewId: number, requesterId: number, isAdmin: boolean): Promise<void> {
     const review = await this.reviewsRepo.findOne({
@@ -168,17 +193,38 @@ export class ReviewsService {
     }
 
     const { propertyId } = review;
-    await this.reviewsRepo.remove(review);
+    
+    // Soft delete instead of hard delete
+    const deletedBy = isAdmin ? 'admin' : (review.reviewerId === requesterId ? 'guest' : 'host');
+    await this.reviewsRepo.update(reviewId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedBy: deletedBy as any,
+    });
+    
+    // Recalculate property rating excluding soft-deleted reviews
     await this.updatePropertyRating(propertyId);
   }
 
   private async updatePropertyRating(propertyId: number) {
-    const stats = await this.reviewsRepo
-      .createQueryBuilder('review')
-      .select('AVG(review.overallRating)', 'avg')
-      .addSelect('COUNT(review.id)', 'count')
-      .where('review.propertyId = :propertyId', { propertyId })
-      .getRawOne();
+    let stats: { avg: string | null; count: string | null };
+    try {
+      stats = await this.reviewsRepo
+        .createQueryBuilder('review')
+        .select('AVG(review.overallRating)', 'avg')
+        .addSelect('COUNT(review.id)', 'count')
+        .where('review.propertyId = :propertyId', { propertyId })
+        .andWhere('review.isDeleted = :isDeleted', { isDeleted: false }) // Exclude deleted reviews when available
+        .getRawOne();
+    } catch {
+      // Backward compatibility for DBs where soft-delete columns are not migrated yet.
+      stats = await this.reviewsRepo
+        .createQueryBuilder('review')
+        .select('AVG(review.overallRating)', 'avg')
+        .addSelect('COUNT(review.id)', 'count')
+        .where('review.propertyId = :propertyId', { propertyId })
+        .getRawOne();
+    }
 
     await this.propertiesRepo.update(propertyId, {
       avgRating: parseFloat(parseFloat(stats.avg).toFixed(2)) || 0,

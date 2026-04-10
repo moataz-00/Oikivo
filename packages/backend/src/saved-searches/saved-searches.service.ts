@@ -33,7 +33,7 @@ export class SavedSearchesService {
   async delete(id: number, userId: number): Promise<{ message: string }> {
     const saved = await this.savedSearchesRepo.findOne({ where: { id } });
     if (!saved) throw new NotFoundException('Saved search not found');
-    if (saved.userId !== userId)
+    if (Number(saved.userId) !== Number(userId))
       throw new ForbiddenException('Not your saved search');
     await this.savedSearchesRepo.remove(saved);
     return { message: 'Saved search deleted' };
