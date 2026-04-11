@@ -679,7 +679,7 @@ export class SchedulerService {
 
 
   /**
-   * Issue #2 — Every hour at :20: handle confirmed bookings that still have
+   * Issue #2 ï¿½ Every hour at :20: handle confirmed bookings that still have
    * paymentStatus = 'pending':
    *   a) Send a payment reminder email 4 h after confirmedAt (sent once per booking)
    *   b) Auto-cancel bookings that remain unpaid 24 h after confirmedAt
@@ -717,7 +717,7 @@ export class SchedulerService {
           if (booking.guest?.email) {
             await this.mail.send(
               booking.guest.email,
-              'Reminder: complete your payment to keep your booking — Oikivo',
+              'Reminder: complete your payment to keep your booking ï¿½ Oikivo',
               tplPaymentReminder(
                 booking.guest.firstName,
                 booking.property?.title ?? 'your stay',
@@ -780,8 +780,8 @@ export class SchedulerService {
           await this.notificationsService.create(
             booking.guestId,
             'booking_cancelled',
-            'Booking Cancelled — Payment Not Received',
-            '?? ????? ????? — ?? ?????? ?????',
+            'Booking Cancelled ï¿½ Payment Not Received',
+            '?? ????? ????? ï¿½ ?? ?????? ?????',
             `Your booking #${booking.id} at ${booking.property?.title ?? 'the property'} was automatically cancelled because payment was not received within 24 hours.`,
             `?? ????? ???? #${booking.id} ???????? ??? ????? ?? ?????? ???? 24 ????.`,
             { bookingId: booking.id },
@@ -804,7 +804,7 @@ export class SchedulerService {
             const tripsUrl = `${feBase.replace(/\/+$/, '')}/en/trips`;
             await this.mail.send(
               booking.guest.email,
-              'Your booking has been cancelled — Oikivo',
+              'Your booking has been cancelled ï¿½ Oikivo',
               tplBookingCancelled(
                 booking.guest.firstName,
                 'guest',
@@ -829,7 +829,7 @@ export class SchedulerService {
   }
 
   /**
-   * Issue #5 — Reconciliation: every 6 hours, find stay bookings that are paid
+   * Issue #5 ï¿½ Reconciliation: every 6 hours, find stay bookings that are paid
    * but have no EarningEntity and create the missing record.
    */
   @Cron('30 */6 * * *')
