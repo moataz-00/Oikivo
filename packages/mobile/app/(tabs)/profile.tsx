@@ -4,8 +4,9 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  Linking,
 } from 'react-native';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -16,74 +17,65 @@ import {
   LogOut,
   Home,
   Shield,
+  GraduationCap,
+  ExternalLink,
+  Calendar,
 } from 'lucide-react-native';
-import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useAuth } from '@/hooks/useAuth';
-import { usersApi } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { useAlert } from '@/components/ui/AlertModal';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isLoggedIn, isHost } = useAuth();
-  const { logout, toggleHostMode, setUser } = useAuthStore();
+  const { user, isLoggedIn } = useAuth();
+  const { logout } = useAuthStore();
+  const { confirm, alert } = useAlert();
 
   // ---------------------------------------------------------------------------
-  // Become host mutation
+  // Become host mutation (redirects to web platform)
   // ---------------------------------------------------------------------------
-  const becomeHostMutation = useMutation({
-    mutationFn: usersApi.becomeHost,
-    onSuccess: (updatedUser) => {
-      setUser(updatedUser);
-      toggleHostMode();
-      router.push('/hosting/dashboard');
-    },
-    onError: () => {
-      Alert.alert('Error', 'Failed to activate host mode. Please try again.');
-    },
-  });
+  const handleHosting = () => {
+    confirm(
+      'Host on Oikivo',
+      'Hosting tools are available on the Oikivo website for the best experience. Would you like to open the platform?',
+      () => Linking.openURL('https://oikivo.com/hosting'),
+      { confirmText: 'Open Website', cancelText: 'Not Now' },
+    );
+  };
+
+  const handleBecomeConsultant = () => {
+    confirm(
+      'Become a Consultant',
+      'Consultant features are coming soon on the Oikivo website. Would you like to open the website page?',
+      () => Linking.openURL('https://oikivo.com/consultations/apply'),
+      { confirmText: 'Open Website', cancelText: 'Not Now' },
+    );
+  };
+
+  const handleConsultationsComingSoon = () => {
+    confirm(
+      'Consultations Coming Soon',
+      'Consultation features are currently being finalized and will be available on the Oikivo website first. Would you like to open the website?',
+      () => Linking.openURL('https://oikivo.com/consultations'),
+      { confirmText: 'Open Website', cancelText: 'Not Now' },
+    );
+  };
 
   // ---------------------------------------------------------------------------
   // Handle logout
   // ---------------------------------------------------------------------------
   const handleLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Log out',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(tabs)');
-        },
+    confirm(
+      'Log out',
+      'Are you sure you want to log out of your account?',
+      async () => {
+        await logout();
+        router.replace('/(tabs)');
       },
-    ]);
-  };
-
-  // ---------------------------------------------------------------------------
-  // Handle switch to hosting
-  // ---------------------------------------------------------------------------
-  const handleSwitchToHosting = () => {
-    toggleHostMode();
-    router.push('/hosting/dashboard');
-  };
-
-  // ---------------------------------------------------------------------------
-  // Handle become a host
-  // ---------------------------------------------------------------------------
-  const handleBecomeHost = () => {
-    Alert.alert(
-      'Become a Host',
-      'Start hosting on Sakan and earn money by sharing your space.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Start Hosting',
-          onPress: () => becomeHostMutation.mutate(),
-        },
-      ],
+      { confirmText: 'Log out', destructive: true },
     );
   };
 
@@ -93,18 +85,18 @@ export default function ProfileScreen() {
   if (!isLoggedIn) {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-        <View className="px-6 pt-6 pb-4">
+        <View className="px-6 pt-6 pb-4 bg-indigo-50 border-b border-indigo-100">
           <Text className="text-2xl font-bold text-gray-900">Profile</Text>
         </View>
         <View className="flex-1 items-center justify-center px-6">
-          <View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center mb-4">
-            <User size={40} color="#717171" />
+          <View className="w-24 h-24 rounded-full bg-brand-50 items-center justify-center mb-4">
+            <User size={40} color="#4F46E5" />
           </View>
           <Text className="text-lg font-semibold text-gray-900">
             Log in to view your profile
           </Text>
           <Text className="text-sm text-gray-500 mt-2 text-center">
-            Manage your account, view trips, and access hosting tools.
+            Manage your account, view trips, and access website features.
           </Text>
           <Button
             title="Log in"
@@ -166,11 +158,12 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         {/* Header */}
-        <View className="px-6 pt-6 pb-4">
+        <View className="px-6 pt-6 pb-4 bg-indigo-50 border-b border-indigo-100">
           <Text className="text-2xl font-bold text-gray-900">Profile</Text>
         </View>
 
         {/* User info */}
+        <Animated.View entering={FadeInDown.duration(400)}>
         <TouchableOpacity
           onPress={() => router.push(`/profile/${user!.id}`)}
           activeOpacity={0.8}
@@ -185,60 +178,77 @@ export default function ProfileScreen() {
           </View>
           <ChevronRight size={20} color="#717171" />
         </TouchableOpacity>
+        </Animated.View>
 
         {/* Settings sections */}
         <View className="px-6 mt-6">
           <Text className="text-lg font-semibold text-gray-900 mb-2">
             Account settings
           </Text>
+          <View className="bg-white border border-indigo-100 rounded-2xl px-4">
 
           <SettingsRow
             icon={<User size={20} color="#222" />}
             label="Personal information"
-            onPress={() =>
-              Alert.alert('Personal Information', 'Account settings screen.')
-            }
+            onPress={() => router.push('/profile/edit')}
           />
 
           <SettingsRow
             icon={<Bell size={20} color="#222" />}
             label="Notifications"
-            onPress={() =>
-              Alert.alert('Notifications', 'Notification settings screen.')
-            }
+            onPress={() => router.push('/profile/notifications')}
           />
 
           <SettingsRow
             icon={<Shield size={20} color="#222" />}
             label="Privacy and sharing"
             onPress={() =>
-              Alert.alert(
-                'Privacy',
-                'Privacy and sharing settings screen.',
-              )
+              Linking.openURL('https://oikivo.com/privacy')
             }
           />
+          </View>
         </View>
 
-        {/* Hosting section */}
+        {/* Hosting section — redirect to web */}
         <View className="px-6 mt-8">
           <Text className="text-lg font-semibold text-gray-900 mb-2">
             Hosting
           </Text>
+          <View className="bg-white border border-indigo-100 rounded-2xl px-4">
 
-          {isHost ? (
-            <SettingsRow
-              icon={<Home size={20} color="#FF385C" />}
-              label="Switch to hosting"
-              onPress={handleSwitchToHosting}
-            />
-          ) : (
-            <SettingsRow
-              icon={<Home size={20} color="#FF385C" />}
-              label="Become a Host"
-              onPress={handleBecomeHost}
-            />
-          )}
+          <SettingsRow
+            icon={<Home size={20} color="#4F46E5" />}
+            label="Manage on Website"
+            onPress={handleHosting}
+          />
+          </View>
+        </View>
+
+        {/* Consultations section */}
+        <View className="px-6 mt-8">
+          <Text className="text-lg font-semibold text-gray-900 mb-2">
+            Consultations
+          </Text>
+          <View className="bg-white border border-indigo-100 rounded-2xl px-4">
+
+          <SettingsRow
+            icon={<GraduationCap size={20} color="#4F46E5" />}
+            label="Consultations coming soon on Website"
+            onPress={handleConsultationsComingSoon}
+          />
+
+          <SettingsRow
+            icon={<ExternalLink size={20} color="#4F46E5" />}
+            label="Become a consultant on Website"
+            onPress={handleBecomeConsultant}
+          />
+
+          <SettingsRow
+            icon={<Calendar size={20} color="#4F46E5" />}
+            label="Consultation bookings on Website"
+            onPress={handleConsultationsComingSoon}
+          />
+          </View>
         </View>
 
         {/* Support section */}
@@ -246,24 +256,28 @@ export default function ProfileScreen() {
           <Text className="text-lg font-semibold text-gray-900 mb-2">
             Support
           </Text>
+          <View className="bg-white border border-indigo-100 rounded-2xl px-4">
 
           <SettingsRow
             icon={<Settings size={20} color="#222" />}
             label="Get help"
             onPress={() =>
-              Alert.alert('Help', 'Help and support screen.')
+              Linking.openURL('https://oikivo.com/help')
             }
           />
+          </View>
         </View>
 
         {/* Logout */}
         <View className="px-6 mt-8">
+          <View className="bg-white border border-red-100 rounded-2xl px-4">
           <SettingsRow
-            icon={<LogOut size={20} color="#E31C5F" />}
+            icon={<LogOut size={20} color="#EF4444" />}
             label="Log out"
             onPress={handleLogout}
-            textColor="text-brand"
+            textColor="text-red-500"
           />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

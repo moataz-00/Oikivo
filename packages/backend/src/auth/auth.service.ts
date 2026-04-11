@@ -18,6 +18,7 @@ import { AdminActivityLogEntity } from '../entities/admin-activity-log.entity';
 import { UserSessionEntity } from '../entities/user-session.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { authenticator } from 'otplib';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MailService, tplEmailVerification, tplPasswordReset, tplPhoneOtp, tplConfirmEmailChange } from '../mail/mail.service';
@@ -98,7 +99,6 @@ export class AuthService {
         if (!dto.totpCode) {
           return { requiresTotp: true } as any;
         }
-        const { authenticator } = await import('otplib');
         const isValidTotp = authenticator.verify({ token: dto.totpCode, secret: user.totpSecret! });
         if (!isValidTotp) throw new UnauthorizedException('Invalid 2FA code');
       }
@@ -531,7 +531,6 @@ export class AuthService {
   // ─── TOTP 2FA ─────────────────────────────────────────────────────────────
 
   async setupTotp(userId: number): Promise<{ secret: string; qrDataUrl: string }> {
-    const { authenticator } = await import('otplib');
     const QRCode = await import('qrcode');
 
     const user = await this.usersRepo.findOne({ where: { id: userId } });
@@ -547,8 +546,6 @@ export class AuthService {
   }
 
   async enableTotp(userId: number, code: string): Promise<{ message: string }> {
-    const { authenticator } = await import('otplib');
-
     const user = await this.usersRepo.findOne({
       where: { id: userId },
       select: ['id', 'totpSecret', 'isTotpEnabled'],
@@ -564,8 +561,6 @@ export class AuthService {
   }
 
   async disableTotp(userId: number, code: string): Promise<{ message: string }> {
-    const { authenticator } = await import('otplib');
-
     const user = await this.usersRepo.findOne({
       where: { id: userId },
       select: ['id', 'totpSecret', 'isTotpEnabled'],

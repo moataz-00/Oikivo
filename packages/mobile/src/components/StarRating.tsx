@@ -14,7 +14,7 @@ export function StarRating({
   rating,
   maxStars = 5,
   size = 14,
-  color = '#FF385C',
+  color = '#4F46E5',
   emptyColor = '#D1D5DB',
 }: StarRatingProps) {
   return (

@@ -8,10 +8,11 @@ import {
   Image,
   Modal,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Star, Filter, X, Search } from 'lucide-react-native';
 import { searchApi } from '@/lib/api';
 import type { SearchParams } from '@/lib/api';
@@ -46,20 +47,27 @@ export default function SearchScreen() {
   });
 
   // ---------------------------------------------------------------------------
-  // Fetch results
+  // Fetch results (infinite scroll)
   // ---------------------------------------------------------------------------
   const {
-    data: resultsData,
+    data: resultsPages,
     isLoading,
     refetch,
     isRefetching,
-  } = useQuery({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['searchResults', searchParams],
-    queryFn: () => searchApi.searchProperties(searchParams),
+    queryFn: ({ pageParam = 1 }) =>
+      searchApi.searchProperties({ ...searchParams, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
   });
 
-  const results = resultsData?.data ?? [];
-  const totalResults = resultsData?.total ?? 0;
+  const results = resultsPages?.pages.flatMap((p) => p.data) ?? [];
+  const totalResults = resultsPages?.pages[0]?.total ?? 0;
 
   // ---------------------------------------------------------------------------
   // Submit search
@@ -106,12 +114,12 @@ export default function SearchScreen() {
         <TouchableOpacity
           onPress={() => router.push(`/rooms/${item.id}`)}
           activeOpacity={0.95}
-          className="mb-5 mx-6 bg-white rounded-xl overflow-hidden border border-gray-100"
+          className="mb-5 mx-6 bg-white rounded-xl overflow-hidden border border-indigo-100"
           style={{
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 4,
+            shadowColor: '#4338CA',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 10,
             elevation: 2,
           }}
         >
@@ -128,11 +136,11 @@ export default function SearchScreen() {
               >
                 {item.city}, {item.country}
               </Text>
-              {item.avgRating > 0 && (
+              {Number(item.avgRating) > 0 && (
                 <View className="flex-row items-center ml-2">
                   <Star size={13} color="#222" fill="#222" />
                   <Text className="text-sm text-gray-900 ml-1">
-                    {item.avgRating.toFixed(1)}
+                    {Number(item.avgRating).toFixed(1)}
                   </Text>
                 </View>
               )}
@@ -181,13 +189,13 @@ export default function SearchScreen() {
         title="Search"
         rightAction={
           <TouchableOpacity onPress={() => setShowFilters(true)}>
-            <Filter size={20} color="#222" />
+            <Filter size={20} color="#4F46E5" />
           </TouchableOpacity>
         }
       />
 
       {/* Search input */}
-      <View className="px-6 py-3 flex-row items-center border-b border-gray-100">
+      <View className="px-6 py-3 flex-row items-center border-b border-indigo-100 bg-indigo-50">
         <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2.5">
           <Search size={18} color="#717171" />
           <TextInput
@@ -234,11 +242,24 @@ export default function SearchScreen() {
           refreshing={isRefetching}
           ListEmptyComponent={
             <View className="items-center justify-center py-24 px-6">
-              <Search size={48} color="#717171" />
+              <View className="w-16 h-16 rounded-2xl bg-brand-50 items-center justify-center">
+                <Search size={28} color="#4F46E5" />
+              </View>
               <Text className="text-base text-gray-500 mt-4 text-center">
                 No results found. Try adjusting your search or filters.
               </Text>
             </View>
+          }
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View className="py-6">
+                <ActivityIndicator color="#4F46E5" />
+              </View>
+            ) : null
           }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
@@ -256,7 +277,7 @@ export default function SearchScreen() {
       >
         <SafeAreaView className="flex-1 bg-white" edges={['top']}>
           {/* Modal header */}
-          <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
+          <View className="flex-row items-center justify-between px-6 py-4 border-b border-indigo-100 bg-indigo-50">
             <TouchableOpacity onPress={() => setShowFilters(false)}>
               <X size={22} color="#222" />
             </TouchableOpacity>
@@ -319,8 +340,8 @@ export default function SearchScreen() {
                   onPress={() => setSortBy(option.key)}
                   className={`px-4 py-2 rounded-full border ${
                     sortBy === option.key
-                      ? 'bg-gray-900 border-gray-900'
-                      : 'bg-white border-gray-300'
+                      ? 'bg-brand border-brand'
+                      : 'bg-white border-indigo-100'
                   }`}
                 >
                   <Text

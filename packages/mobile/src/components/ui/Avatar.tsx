@@ -27,7 +27,7 @@ function getInitials(name?: string): string {
 
 function colorFromName(name?: string): string {
   const palette = [
-    '#FF385C', '#00A699', '#FC642D', '#484848', '#767676',
+    '#4F46E5', '#00A699', '#FC642D', '#484848', '#767676',
     '#FF5A5F', '#087E8B', '#FF9F1C', '#2EC4B6', '#E71D36',
   ];
   if (!name) return palette[0];

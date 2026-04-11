@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   FlatList,
@@ -16,6 +15,7 @@ import api, { categoriesApi } from '@/lib/api';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useAlert } from '@/components/ui/AlertModal';
 import type { Category, SpaceType } from '@/types';
 
 const SPACE_TYPES: { value: SpaceType; label: string; description: string }[] =
@@ -39,6 +39,7 @@ const SPACE_TYPES: { value: SpaceType; label: string; description: string }[] =
 
 export default function NewListingScreen() {
   const router = useRouter();
+  const { alert, error: showError } = useAlert();
 
   // ---------------------------------------------------------------------------
   // Form state
@@ -81,18 +82,23 @@ export default function NewListingScreen() {
       return res.data;
     },
     onSuccess: () => {
-      Alert.alert('Success', 'Your listing has been created!', [
-        {
-          text: 'View Listings',
-          onPress: () => router.replace('/hosting/listings'),
-        },
-      ]);
+      alert({
+        type: 'success',
+        title: 'Success',
+        message: 'Your listing has been created!',
+        buttons: [
+          {
+            text: 'View Listings',
+            onPress: () => router.replace('/hosting/listings'),
+          },
+        ],
+      });
     },
     onError: (error: any) => {
       const message =
         error?.response?.data?.message ||
         'Failed to create listing. Please try again.';
-      Alert.alert('Error', message);
+      showError('Error', message);
     },
   });
 
@@ -110,10 +116,11 @@ export default function NewListingScreen() {
   // ---------------------------------------------------------------------------
   const handleCreate = () => {
     if (!isValid) {
-      Alert.alert(
-        'Missing Information',
-        'Please fill in at least the title, city, country, and price.',
-      );
+      alert({
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please fill in at least the title, city, country, and price.',
+      });
       return;
     }
 

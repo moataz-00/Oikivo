@@ -3,14 +3,14 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Star, Home, GraduationCap, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Home, GraduationCap, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SearchBar } from '@/components/search/SearchBar';
 import { PropertyCard } from '@/components/property/PropertyCard';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/Motion';
-import { propertiesApi, consultationsApi } from '@/lib/api';
+import { propertiesApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 
@@ -130,13 +130,6 @@ export default function HomePage() {
     })),
   });
 
-  const { data: consultantsData, isLoading: consultantsLoading } = useQuery({
-    queryKey: ['home-consultants'],
-    queryFn: () => consultationsApi.getConsultants({ limit: 8 }),
-    staleTime: 30 * 1000,
-    enabled: activeTab === 'consultations',
-  });
-
   return (
     <div>
       {/* ── Hero ── */}
@@ -237,43 +230,50 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.65, delay: 0.15 }}
-              className="space-y-5"
+              className="mx-auto max-w-2xl rounded-3xl border border-white/10 bg-white/10 p-6 text-center shadow-2xl backdrop-blur-sm"
             >
-              {/* Primary CTA */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link
-                  href={`/${locale}/consultations/become-a-consultant`}
-                  className="flex items-center gap-2 rounded-2xl bg-white px-8 py-4 text-sm font-bold text-neutral-900 shadow-2xl hover:bg-neutral-50 transition-colors whitespace-nowrap"
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
+                <GraduationCap className="h-7 w-7 text-white" />
+              </div>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
+                {isAr ? 'قريباً' : 'Coming Soon'}
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
+                {isAr ? 'الاستشارات قادمة قريباً على موقع Oikivo' : 'Consultations are coming soon on the Oikivo website'}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-indigo-100 sm:text-base">
+                {isAr
+                  ? 'نعمل حالياً على تجهيز تجربة الاستشارات بالكامل. في الوقت الحالي، تصفح الإقامات واستخدم الموقع للحجوزات والاستضافة فقط.'
+                  : 'We are still preparing the full consultations experience. For now, use the website for stays, bookings, and hosting only.'}
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setActiveTab('homes')}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-neutral-900 shadow-lg transition hover:bg-neutral-50"
                 >
-                  <GraduationCap className="h-5 w-5 text-rose-500" />
-                  {isAr ? 'كن مستشاراً' : 'Become a Consultant'}
-                </Link>
+                  <Home className="h-4 w-4" />
+                  {isAr ? 'العودة للإقامات' : 'Back to Stays'}
+                </button>
                 <Link
-                  href={`/${locale}/consultations/become-a-consultant`}
-                  className="flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-8 py-4 text-sm font-bold text-white transition-colors whitespace-nowrap"
+                  href={`/${locale}/hosting`}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/20"
                 >
                   <ArrowRight className="h-4 w-4" />
-                  {isAr ? 'قدّم كمستشار' : 'Become a Consultant'}
+                  {isAr ? 'استكشف الاستضافة' : 'Explore Hosting'}
                 </Link>
               </div>
-
-              {/* Specialty chips */}
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <span className="text-white/40 text-xs font-medium mr-1">{isAr ? 'تخصصات' : 'Browse by'}</span>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                 {[
-                  { label: isAr ? 'تحسين الإيرادات' : 'Revenue Optimization', q: 'revenue' },
-                  { label: isAr ? 'جودة القوائم' : 'Listing Quality', q: 'listing' },
-                  { label: isAr ? 'تجربة النزلاء' : 'Guest Experience', q: 'guest' },
-                  { label: isAr ? 'التسعير الديناميكي' : 'Dynamic Pricing', q: 'pricing' },
-                  { label: isAr ? 'التصوير والتسويق' : 'Photography & Marketing', q: 'marketing' },
-                ].map(({ label, q }) => (
-                  <Link
-                    key={q}
-                    href={`/${locale}/consultations?q=${encodeURIComponent(q)}`}
-                    className="rounded-full border border-white/15 bg-white/10 hover:bg-white/20 px-3.5 py-1.5 text-xs font-medium text-white/80 hover:text-white transition-all"
+                  isAr ? 'الحجوزات' : 'Bookings',
+                  isAr ? 'الاستضافة' : 'Hosting',
+                  isAr ? 'الرسائل' : 'Messaging',
+                ].map((label) => (
+                  <span
+                    key={label}
+                    className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-white/80"
                   >
                     {label}
-                  </Link>
+                  </span>
                 ))}
               </div>
             </motion.div>
@@ -304,79 +304,34 @@ export default function HomePage() {
         })}
         {activeTab === 'consultations' && (
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-neutral-900">{t('topConsultants')}</h2>
-                <p className="text-sm text-neutral-500 mt-1">{t('topConsultantsDesc')}</p>
+            <div className="rounded-3xl border border-neutral-200 bg-neutral-50 px-6 py-16 text-center sm:px-10">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-100">
+                <GraduationCap className="h-8 w-8 text-rose-500" />
               </div>
-              <Link
-                href={`/${locale}/consultations`}
-                className="text-sm font-semibold text-brand hover:underline flex items-center gap-1"
-              >
-                {t('seeAll')} <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            {consultantsLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="animate-pulse rounded-2xl bg-neutral-100 h-64" />
-                ))}
-              </div>
-            ) : (consultantsData?.data ?? []).length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <GraduationCap className="h-12 w-12 text-neutral-300 mb-4" />
-                <p className="text-neutral-500">{t('noConsultantsYet')}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {(consultantsData?.data ?? []).map((c: any) => (
-                  <Link
-                    key={c.id}
-                    href={`/${locale}/consultations/${c.id}`}
-                    className="group rounded-2xl border border-neutral-200 bg-white p-5 hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-bold text-lg">
-                        {c.displayName?.charAt(0) || '?'}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-neutral-900 truncate">{c.displayName}</p>
-                        <div className="flex items-center gap-1 text-xs text-neutral-500">
-                          <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                          <span>{Number(c.avgRating).toFixed(1)}</span>
-                          <span className="text-neutral-300">·</span>
-                          <span>{c.reviewCount} {isAr ? 'تقييم' : 'reviews'}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-neutral-500 line-clamp-2 mb-3">{c.bio}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-brand">
-                        {c.hourlyRate} {c.currency}/{isAr ? 'ساعة' : 'hr'}
-                      </span>
-                      <span className="text-xs text-neutral-400">{c.totalSessions} {isAr ? 'جلسة' : 'sessions'}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-            {/* Become a Consultant CTA */}
-            <div className="mt-10 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 p-8 text-center text-white">
-              <h3 className="text-xl font-bold mb-2">
-                {isAr ? 'عندك خبرة في الضيافة؟' : 'Have Hospitality Experience?'}
-              </h3>
-              <p className="text-rose-100 text-sm mb-5 max-w-md mx-auto">
+              <h2 className="mt-6 text-3xl font-bold text-neutral-900">
+                {isAr ? 'الاستشارات غير متاحة حالياً' : 'Consultations are not live yet'}
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-neutral-600 sm:text-base">
                 {isAr
-                  ? 'انضم كمستشار واكسب 90% من كل جلسة. التسجيل مجاني.'
-                  : 'Join as a consultant and earn 90% of every session. Free to sign up.'}
+                  ? 'تم إيقاف جميع الصفحات المتعلقة بالمستشارين مؤقتاً حتى يتم إطلاق التجربة الكاملة بشكل رسمي على الموقع.'
+                  : 'All consultant-related pages are temporarily held in a coming-soon state until the full experience is ready to launch on the website.'}
               </p>
-              <Link
-                href={`/${locale}/consultations/become-a-consultant`}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-rose-600 shadow-lg transition hover:bg-gray-50"
-              >
-                <GraduationCap className="h-4 w-4" />
-                {isAr ? 'قدّم كمستشار' : 'Become a Consultant'}
-              </Link>
+              <div className="mt-8 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setActiveTab('homes')}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                >
+                  <Home className="h-4 w-4" />
+                  {isAr ? 'تصفح الإقامات' : 'Browse stays'}
+                </button>
+                <Link
+                  href={`/${locale}/hosting`}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-neutral-300 bg-white px-6 py-3 text-sm font-semibold text-neutral-900 transition hover:border-neutral-400"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  {isAr ? 'الانتقال إلى الاستضافة' : 'Go to hosting'}
+                </Link>
+              </div>
             </div>
           </div>
         )}

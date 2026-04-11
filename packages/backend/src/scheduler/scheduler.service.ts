@@ -7,8 +7,10 @@ import { EarningEntity } from '../entities/earning.entity';
 import { PropertyEntity } from '../entities/property.entity';
 import { ConsultationBookingEntity } from '../entities/consultation-booking.entity';
 import { DisputeEntity } from '../entities/dispute.entity';
+import { WishlistItemEntity } from '../entities/wishlist-item.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-import { MailService, tplInstapayPaymentDeclined } from '../mail/mail.service';
+import { MailService, tplInstapayPaymentDeclined, tplPreArrivalReminder } from '../mail/mail.service';
+import { PayoutsService } from '../payouts/payouts.service';
 
 @Injectable()
 export class SchedulerService {
@@ -25,8 +27,11 @@ export class SchedulerService {
     private consultationBookingsRepo: Repository<ConsultationBookingEntity>,
     @InjectRepository(DisputeEntity)
     private disputesRepo: Repository<DisputeEntity>,
+    @InjectRepository(WishlistItemEntity)
+    private wishlistItemsRepo: Repository<WishlistItemEntity>,
     private notificationsService: NotificationsService,
     private mail: MailService,
+    private payoutsService: PayoutsService,
   ) {}
 
   /**
@@ -34,6 +39,7 @@ export class SchedulerService {
    *   a) Transition confirmed bookings whose check-in date has passed → in_progress
    *   b) Auto-complete in_progress bookings whose check-out date has passed
    *   c) Release pending earnings whose availableAt has passed → available
+   *   d) FIX BUG-GH1: Auto-release expired security deposits
    */
   @Cron('0 2 * * *')
   async runDailyJobs(): Promise<void> {
@@ -44,7 +50,15 @@ export class SchedulerService {
     await this.transitionToInProgress(todayStr);
     await this.autoCompleteBookings(todayStr);
     await this.releaseEarnings();
+    await this.runAutoPayouts();
+    await this.sendPreArrivalReminders(todayStr); // FIX BUG-GL1
     await this.purgeExpiredArchivedListings();
+  }
+
+  // Run every 30 minutes to release held deposits promptly after 48h deadline.
+  @Cron('*/30 * * * *')
+  async runDepositReleaseJob(): Promise<void> {
+    await this.autoReleaseExpiredDeposits();
   }
 
   /** a) confirmed → in_progress when checkIn <= today */
@@ -129,6 +143,111 @@ export class SchedulerService {
       }
     } catch (err) {
       this.logger.error(`[CRON] Error releasing earnings: ${(err as Error).message}`);
+    }
+  }
+
+  private async runAutoPayouts(): Promise<void> {
+    try {
+      const result = await this.payoutsService.runScheduledAutoPayouts();
+      if (result.processed > 0) {
+        this.logger.log(`[CRON] ${result.processed} auto payout(s) submitted (${result.skipped} skipped)`);
+      }
+    } catch (err) {
+      this.logger.error(`[CRON] Error running auto payouts: ${(err as Error).message}`);
+    }
+  }
+
+  /** d) FIX BUG-GH1: Auto-release security deposits after 48h claim deadline */
+  private async autoReleaseExpiredDeposits(): Promise<void> {
+    try {
+      const now = new Date();
+      const releasable = await this.bookingsRepo.find({
+        where: {
+          depositStatus: 'held',
+          depositClaimDeadline: LessThanOrEqual(now),
+        },
+        relations: ['guest'],
+      });
+
+      if (!releasable.length) return;
+
+      for (const booking of releasable) {
+        booking.depositStatus = 'released';
+        booking.depositReleasedAt = now;
+        await this.bookingsRepo.save(booking);
+
+        await this.notificationsService.create(
+          booking.guestId,
+          'deposit_released',
+          'Security Deposit Released',
+          'تم الإفراج عن مبلغ التأمين',
+          `Your security deposit for booking #${booking.id} has been released.`,
+          `تم الإفراج عن مبلغ التأمين للحجز #${booking.id}.`,
+          { bookingId: booking.id },
+        ).catch(() => {});
+      }
+
+      this.logger.log(`[CRON] ${releasable.length} security deposit(s) auto-released after claim deadline`);
+    } catch (err) {
+      this.logger.error(`[CRON] Error auto-releasing deposits: ${(err as Error).message}`);
+    }
+  }
+
+  /** e) FIX BUG-GL1: Send pre-arrival reminders 3 days and 1 day before check-in */
+  private async sendPreArrivalReminders(todayStr: string): Promise<void> {
+    try {
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+      const threeDaysStr = threeDaysFromNow.toISOString().split('T')[0];
+
+      const oneDayFromNow = new Date();
+      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
+      const oneDayStr = oneDayFromNow.toISOString().split('T')[0];
+
+      // Find bookings checking in 3 days or 1 day from now
+      const upcomingBookings = await this.bookingsRepo.find({
+        where: [
+          { status: 'confirmed', checkIn: threeDaysStr },
+          { status: 'confirmed', checkIn: oneDayStr },
+        ],
+        relations: ['guest', 'host', 'property'],
+      });
+
+      for (const booking of upcomingBookings) {
+        if (!booking.guest || !booking.property) continue;
+
+        const feBase = process.env.FRONTEND_URL?.split(',')[0]?.trim() || 'http://localhost:3000';
+        const tripsUrl = `${feBase.replace(/\/+$/, '')}/en/trips`;
+
+        const daysUntilCheckIn = booking.checkIn === threeDaysStr ? 3 : 1;
+        const subject = daysUntilCheckIn === 3
+          ? 'Your stay is in 3 days — Journey Stay'
+          : 'Your stay is tomorrow — Journey Stay';
+
+        await this.mail.send(
+          booking.guest.email,
+          subject,
+          tplPreArrivalReminder(
+            booking.guest.firstName,
+            booking.property.title,
+            booking.checkIn,
+            booking.checkOut,
+            booking.property.checkInAfter ?? '15:00',
+            booking.host?.firstName ?? 'Host',
+            booking.host?.phone ?? null,
+            booking.property.checkInInstructions ?? null,
+            booking.property.address ?? 'Property address',
+            `#${booking.id}`,
+            tripsUrl,
+          ),
+        );
+      }
+
+      if (upcomingBookings.length > 0) {
+        this.logger.log(`[CRON] ${upcomingBookings.length} pre-arrival reminder(s) sent`);
+      }
+    } catch (err) {
+      this.logger.error(`[CRON] Error sending pre-arrival reminders: ${(err as Error).message}`);
     }
   }
 
@@ -351,4 +470,5 @@ export class SchedulerService {
       this.logger.error(`[CRON] Error purging archived listings: ${(err as Error).message}`);
     }
   }
+
 }

@@ -24,6 +24,10 @@ export class ConsultantEarningEntity {
   @JoinColumn({ name: 'booking_id' })
   booking: ConsultationBookingEntity;
 
+  /** PAY2: Links earning to the payout request that claimed it (null if unclaimed) */
+  @Column({ name: 'payout_request_id', type: 'bigint', unsigned: true, nullable: true })
+  payoutRequestId: number | null;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: number;
 

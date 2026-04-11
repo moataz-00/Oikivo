@@ -71,6 +71,29 @@ export class DisputeEntity {
   @Column({ name: 'additional_info', type: 'text', nullable: true })
   additionalInfo: string | null;
 
+  // FIX DISP-G1: Evidence upload support
+  @Column({ type: 'json', nullable: true })
+  evidence: string[] | null; // Array of file paths: /uploads/disputes/{id}/evidence-*.jpg
+
+  // FIX DISP-G2: Appeal process support
+  @Column({ name: 'appeal_requested', type: 'boolean', default: false })
+  appealRequested: boolean;
+
+  @Column({ name: 'appeal_reason', type: 'text', nullable: true })
+  appealReason: string | null;
+
+  @Column({ name: 'appealed_at', type: 'datetime', nullable: true })
+  appealedAt: Date | null;
+
+  @Column({ name: 'appeal_reviewed_by_id', type: 'bigint', unsigned: true, nullable: true })
+  appealReviewedById: number | null;
+
+  @Column({ name: 'appeal_resolution', type: 'text', nullable: true })
+  appealResolution: string | null;
+
+  @Column({ name: 'appeal_resolved_at', type: 'datetime', nullable: true })
+  appealResolvedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

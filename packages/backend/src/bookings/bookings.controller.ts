@@ -12,12 +12,16 @@ import {
   ParseIntPipe,
   ForbiddenException,
   BadRequestException,
+  NotFoundException,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler'; // FIX BUG-GC1
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -32,6 +36,7 @@ export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
+  @Throttle({ default: { ttl: 3600000, limit: 5 } }) // FIX BUG-GC1: Max 5 bookings per hour
   @ApiOperation({ summary: 'Create a new booking' })
   create(@CurrentUser() user: UserEntity, @Body() dto: CreateBookingDto) {
     return this.bookingsService.create(user.id, dto);
@@ -123,16 +128,6 @@ export class BookingsController {
     return this.bookingsService.cancel(id, user.id, body.reason);
   }
 
-  @Patch(':id/modify')
-  @ApiOperation({ summary: 'Modify booking dates (guest only)' })
-  modify(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: UserEntity,
-    @Body() body: { checkIn: string; checkOut: string; guestsCount?: number },
-  ) {
-    return this.bookingsService.modify(id, user.id, body);
-  }
-
   @Get(':id/cancellation-preview')
   @ApiOperation({ summary: 'Preview cancellation refund before confirming' })
   getCancellationPreview(
@@ -185,6 +180,36 @@ export class BookingsController {
     return { url: `/uploads/payments/${id}/${file.filename}` };
   }
 
+  @Get(':id/payment-proof/:filename')
+  @ApiOperation({ summary: 'Get payment proof file (authenticated - guest, host, or admin only)' })
+  async getPaymentProof(
+    @Param('id', ParseIntPipe) bookingId: number,
+    @Param('filename') filename: string,
+    @CurrentUser() user: UserEntity,
+    @Res() res: Response,
+  ) {
+    // Verify booking exists and check ownership
+    const booking = await this.bookingsService.findOne(bookingId);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    // Only guest, host, or admin can access payment proof
+    const isGuest = booking.guestId === user.id;
+    const isHost = booking.hostId === user.id;
+    const isAdmin = user.isAdmin;
+
+    if (!isGuest && !isHost && !isAdmin) {
+      throw new ForbiddenException('You do not have permission to view this payment proof');
+    }
+
+    // Serve the file
+    const filePath = join(process.cwd(), 'uploads', 'payments', bookingId.toString(), filename);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('Payment proof file not found');
+    }
+
+    res.sendFile(filePath);
+  }
+
   @Patch(':id/confirm-payment')
   @ApiOperation({ summary: 'Confirm payment received (host or admin)' })
   confirmPayment(
@@ -202,6 +227,16 @@ export class BookingsController {
     @Body() body: { reason?: string },
   ) {
     return this.bookingsService.declinePayment(id, user.id, user.isAdmin, body.reason);
+  }
+
+  @Patch(':id/host-notes')
+  @ApiOperation({ summary: 'Host updates booking-specific notes/check-in instructions' })
+  updateHostNotes(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+    @Body() body: { hostNote?: string; hostCheckInInstructions?: string },
+  ) {
+    return this.bookingsService.updateHostNotes(id, user.id, body);
   }
 
   // ─── Security Deposit ──────────────────────────────────────────────────────

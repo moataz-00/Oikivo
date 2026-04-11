@@ -41,7 +41,12 @@ export class PaymentsService {
     private readonly config: ConfigService,
     private readonly mail: MailService,
   ) {
+    // FIX BUG-GC2: Fail fast in production if Stripe key is missing
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
+    const nodeEnv = this.config.get<string>('NODE_ENV', 'development');
+    if (!secretKey && nodeEnv === 'production') {
+      throw new Error('STRIPE_SECRET_KEY is required in production mode');
+    }
     if (!secretKey) {
       this.logger.warn('STRIPE_SECRET_KEY is not set — Stripe payments disabled.');
     }
@@ -84,6 +89,22 @@ export class PaymentsService {
     }
     if (booking.paymentStatus === 'paid') {
       throw new BadRequestException('Booking is already paid');
+    }
+
+    // FIX BUG-GC3: Prevent duplicate PaymentIntents - return existing if already created
+    if (booking.stripePaymentIntentId) {
+      try {
+        const existingIntent = await this.stripe.paymentIntents.retrieve(booking.stripePaymentIntentId);
+        if (existingIntent && existingIntent.status !== 'canceled') {
+          return {
+            clientSecret: existingIntent.client_secret!,
+            paymentIntentId: existingIntent.id,
+          };
+        }
+      } catch (err) {
+        this.logger.warn(`Could not retrieve existing PaymentIntent ${booking.stripePaymentIntentId}: ${(err as Error).message}`);
+        // If intent doesn't exist or is invalid, create a new one below
+      }
     }
 
     const currency = (booking.currency ?? 'EGP').toLowerCase();
@@ -172,6 +193,7 @@ export class PaymentsService {
     await this.bookingsRepo.update(bookingId, {
       paymentStatus: 'refunded',
       refundReason: reason ?? null,
+      stripeRefundId: refund.id, // Persist refund ID for reconciliation
     } as any);
 
     // Send refund notification email
@@ -357,8 +379,8 @@ export class PaymentsService {
 
   /** Convert decimal amount to Stripe's smallest currency unit (e.g. piasters for EGP) */
   private toSmallestUnit(amount: number, currency: string): number {
-    // Zero-decimal currencies do not need x100
-    const zeroDecimal = ['bif', 'clp', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf'];
+    // Zero-decimal currencies do not need x100 (complete Stripe list)
+    const zeroDecimal = ['bif', 'clp', 'djf', 'gnf', 'idr', 'isk', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf'];
     if (zeroDecimal.includes(currency.toLowerCase())) return Math.round(amount);
     return Math.round(amount * 100);
   }

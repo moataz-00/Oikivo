@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api';
 import { Ticket, CheckCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -31,6 +32,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ExperienceBookingsAdminPage() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -146,7 +148,7 @@ export default function ExperienceBookingsAdminPage() {
                   </tr>
                 )
                 : items.map((b: any) => (
-                  <tr key={b.id} className="hover:bg-gray-800/50 transition-colors">
+                  <tr key={b.id} onClick={() => router.push(`/experience-bookings/${b.id}`)} className="hover:bg-gray-800/50 transition-colors cursor-pointer">
                     <td className="px-4 py-3 font-mono text-xs text-gray-400">#{b.id}</td>
                     <td className="px-4 py-3">
                       <p className="text-white font-medium">{b.guest?.firstName} {b.guest?.lastName}</p>

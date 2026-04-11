@@ -69,6 +69,9 @@ import { ICalSourceEntity } from './entities/ical-source.entity';
 import { UserSessionEntity } from './entities/user-session.entity';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { SavedSearchEntity } from './entities/saved-search.entity';
+import { PlatformSettingEntity } from './entities/platform-setting.entity';
+import { AdminActivityLogEntity } from './entities/admin-activity-log.entity';
+import { ExpenseEntity } from './entities/expense.entity';
 
 @Module({
   imports: [
@@ -124,6 +127,9 @@ import { SavedSearchEntity } from './entities/saved-search.entity';
           UserSessionEntity,
           AuditLogEntity,
           SavedSearchEntity,
+          PlatformSettingEntity,
+          AdminActivityLogEntity,
+          ExpenseEntity,
         ],
         synchronize: false,  // schema managed via schema.sql
         charset: 'utf8mb4',

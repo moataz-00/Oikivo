@@ -96,11 +96,11 @@ export function PropertyCard({
             {property.city}, {property.country}
           </Text>
 
-          {property.avgRating > 0 ? (
+          {Number(property.avgRating) > 0 ? (
             <View className="flex-row items-center gap-0.5">
               <Star size={12} color="#222" fill="#222" />
               <Text className="text-sm text-gray-900">
-                {property.avgRating.toFixed(1)}
+                {Number(property.avgRating).toFixed(1)}
               </Text>
             </View>
           ) : null}

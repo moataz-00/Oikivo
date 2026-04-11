@@ -12,12 +12,18 @@ import {
   UploadedFile,
   ParseIntPipe,
   BadRequestException,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { existsSync } from 'fs';
+import { join } from 'path';
+import { extname } from 'path';
+import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -153,6 +159,39 @@ export class UsersController {
     return this.usersService.submitIdDocument(user.id, docUrl);
   }
 
+  @Get(':id/id-document/:filename')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get ID document file (authenticated - owner or admin only)' })
+  async getIdDocument(
+    @Param('id', ParseIntPipe) userId: number,
+    @Param('filename') filename: string,
+    @CurrentUser() user: UserEntity,
+    @Res() res: Response,
+  ) {
+    // Only the owner or admin can access their ID document
+    const isOwner = userId === user.id;
+    const isAdmin = user.isAdmin;
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('You do not have permission to view this ID document');
+    }
+
+    // Verify user exists and has an ID document
+    const targetUser = await this.usersService.findById(userId);
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Serve the file
+    const filePath = join(process.cwd(), 'uploads', 'id-documents', filename);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('ID document file not found');
+    }
+
+    res.sendFile(filePath);
+  }
+
   @Get('profile/:uuid')
   @ApiOperation({ summary: 'Get public user profile by UUID (secure)' })
   getPublicProfileByUuid(@Param('uuid') uuid: string) {
@@ -218,5 +257,37 @@ export class UsersController {
   @ApiOperation({ summary: 'Export all personal data (GDPR / PDPL data portability)' })
   exportMyData(@CurrentUser() user: UserEntity) {
     return this.usersService.exportUserData(user.id);
+  }
+
+  // MSG-G3: Block User Features
+
+  @Post(':id/block')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Block a user' })
+  blockUser(
+    @Param('id', ParseIntPipe) blockedUserId: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.usersService.blockUser(user.id, blockedUserId);
+  }
+
+  @Delete(':id/block')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unblock a user' })
+  unblockUser(
+    @Param('id', ParseIntPipe) blockedUserId: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.usersService.unblockUser(user.id, blockedUserId);
+  }
+
+  @Get('me/blocked')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get list of blocked users' })
+  getBlockedUsers(@CurrentUser() user: UserEntity) {
+    return this.usersService.getBlockedUsers(user.id);
   }
 }

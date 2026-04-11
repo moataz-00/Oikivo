@@ -1,5 +1,0 @@
--- ============================================================
--- Migration 002 — No schema changes required
--- Currency/timezone are NOT stored per-user.
--- Display currency is auto-detected from the visitor's browser timezone.
--- ============================================================

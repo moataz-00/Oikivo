@@ -8,6 +8,7 @@ import {
   Max,
   IsInt,
   IsPositive,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -77,6 +78,7 @@ export class CreateReviewDto {
   @ApiProperty({ required: false, example: 'Amazing stay! Highly recommended.' })
   @IsOptional()
   @IsString()
+  @MaxLength(5000)
   comment?: string;
 
   /** G4: URLs of photos uploaded by the reviewer */

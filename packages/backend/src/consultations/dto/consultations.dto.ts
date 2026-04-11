@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsNumber, IsEnum, Min, Max, MaxLength, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNumber, IsEnum, Min, Max, MaxLength, IsBoolean, ValidateNested, IsInt, Matches, IsDateString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -33,6 +33,7 @@ export class ApplyAsConsultantDto {
   @ApiProperty({ example: 500 })
   @IsNumber()
   @Min(0)
+  @Max(10000)
   hourlyRate: number;
 
   @ApiPropertyOptional({ example: 'EGP' })
@@ -78,6 +79,7 @@ export class UpdateConsultantProfileDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  @Max(10000)
   hourlyRate?: number;
 }
 
@@ -98,7 +100,7 @@ export class BookConsultationDto {
   deliveryMode?: string;
 
   @ApiProperty({ example: '2026-04-10T14:00:00Z' })
-  @IsString()
+  @IsDateString()
   scheduledAt: string;
 
   @ApiPropertyOptional()
@@ -107,15 +109,11 @@ export class BookConsultationDto {
   @MaxLength(1000)
   clientNote?: string;
 
-  @ApiPropertyOptional({ example: 'card' })
+  @ApiPropertyOptional({ example: 'Africa/Cairo', description: 'Client IANA timezone' })
   @IsOptional()
-  @IsEnum(['card', 'instapay', 'wallet'])
-  paymentMethod?: string;
-
-  @ApiPropertyOptional({ example: 1, description: 'Service ID for per-service pricing (overrides hourly rate)' })
-  @IsOptional()
-  @IsNumber()
-  serviceId?: number;
+  @IsString()
+  @MaxLength(50)
+  clientTimezone?: string;
 }
 
 export class RespondToBookingDto {
@@ -203,146 +201,27 @@ export class AdminReviewConsultantDto {
   rejectionReason?: string;
 }
 
+export class AvailabilitySlotDto {
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  dayOfWeek: number;
+
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/, { message: 'startTime must be HH:mm format' })
+  startTime: string;
+
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/, { message: 'endTime must be HH:mm format' })
+  endTime: string;
+}
+
 export class SetAvailabilityDto {
   @ApiProperty({ example: [{ dayOfWeek: 0, startTime: '09:00', endTime: '17:00' }] })
   @IsArray()
-  slots: { dayOfWeek: number; startTime: string; endTime: string }[];
-}
-
-const CONSULTATION_CATEGORIES = [
-  'listing_optimization', 'pricing_strategy', 'interior_design',
-  'guest_experience', 'photography', 'superhost_coaching',
-  'property_management', 'legal_compliance', 'marketing',
-  'revenue_management', 'general',
-] as const;
-
-const DELIVERY_MODES = ['video_call', 'in_person', 'phone', 'chat'] as const;
-
-export class CreateConsultationServiceDto {
-  @ApiProperty({ example: 'Listing Optimization Session' })
-  @IsString()
-  @MaxLength(200)
-  title: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  titleAr?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  descriptionAr?: string;
-
-  @ApiProperty({ enum: CONSULTATION_CATEGORIES })
-  @IsEnum(CONSULTATION_CATEGORIES)
-  category: string;
-
-  @ApiProperty({ example: 60 })
-  @Type(() => Number)
-  @IsNumber()
-  @Min(15)
-  @Max(480)
-  durationMinutes: number;
-
-  @ApiProperty({ example: 500 })
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  price: number;
-
-  @ApiPropertyOptional({ example: 'EGP' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(3)
-  currency?: string;
-
-  @ApiPropertyOptional({ enum: DELIVERY_MODES })
-  @IsOptional()
-  @IsEnum(DELIVERY_MODES)
-  deliveryMode?: string;
-
-  @ApiPropertyOptional({ example: 5 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(20)
-  maxBookingsPerDay?: number;
-}
-
-export class UpdateConsultationServiceDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  title?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  titleAr?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  descriptionAr?: string;
-
-  @ApiPropertyOptional({ enum: CONSULTATION_CATEGORIES })
-  @IsOptional()
-  @IsEnum(CONSULTATION_CATEGORIES)
-  category?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(15)
-  @Max(480)
-  durationMinutes?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  price?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(3)
-  currency?: string;
-
-  @ApiPropertyOptional({ enum: DELIVERY_MODES })
-  @IsOptional()
-  @IsEnum(DELIVERY_MODES)
-  deliveryMode?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(20)
-  maxBookingsPerDay?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
+  @ValidateNested({ each: true })
+  @Type(() => AvailabilitySlotDto)
+  slots: AvailabilitySlotDto[];
 }
 
 export class BlockVacationDto {
@@ -401,4 +280,35 @@ export class AdminProcessConsultantPayoutDto {
   @IsString()
   @MaxLength(500)
   note?: string;
+}
+
+export class AdminMarkNoShowDto {
+  @ApiProperty({ enum: ['client', 'consultant'], description: 'Who did not show up' })
+  @IsEnum(['client', 'consultant'])
+  noShowParty: 'client' | 'consultant';
+}
+
+export class AdminResolveDisputeDto {
+  @ApiProperty({ enum: ['refund_client', 'pay_consultant', 'split'], description: 'How to resolve the dispute' })
+  @IsEnum(['refund_client', 'pay_consultant', 'split'])
+  resolution: 'refund_client' | 'pay_consultant' | 'split';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
+}
+
+// MISS6: Reschedule a confirmed booking
+export class RescheduleBookingDto {
+  @ApiProperty({ description: 'New scheduled date-time (ISO 8601)' })
+  @IsDateString()
+  scheduledAt: string;
+
+  @ApiPropertyOptional({ description: 'Reason for rescheduling' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }

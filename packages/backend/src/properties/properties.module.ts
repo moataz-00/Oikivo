@@ -8,6 +8,7 @@ import { AmenityEntity } from '../entities/amenity.entity';
 import { HouseRuleEntity } from '../entities/house-rule.entity';
 import { ReviewEntity } from '../entities/review.entity';
 import { UserEntity } from '../entities/user.entity';
+import { BookingEntity } from '../entities/booking.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UserEntity } from '../entities/user.entity';
       HouseRuleEntity,
       ReviewEntity,
       UserEntity,
+      BookingEntity,
     ]),
   ],
   controllers: [PropertiesController],

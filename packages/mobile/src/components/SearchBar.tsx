@@ -30,12 +30,12 @@ export function SearchBar({ location, dates, guests, onPress }: SearchBarProps) 
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.9}
-      className="mx-4 bg-white rounded-full border border-gray-200 shadow-sm flex-row items-center px-4 py-3"
+      className="mx-4 bg-white rounded-full border border-indigo-100 shadow-sm flex-row items-center px-4 py-3"
       style={{
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
+        shadowColor: '#4338CA',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
         elevation: 4,
       }}
     >
@@ -50,7 +50,7 @@ export function SearchBar({ location, dates, guests, onPress }: SearchBarProps) 
 
       {location ? (
         <View className="w-8 h-8 rounded-full border border-gray-200 items-center justify-center">
-          <MapPin size={14} color="#FF385C" />
+          <MapPin size={14} color="#4F46E5" />
         </View>
       ) : null}
     </TouchableOpacity>

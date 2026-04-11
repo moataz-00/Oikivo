@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEnum, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsEnum, IsOptional, IsNumber, Min, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class RequestPayoutDto {
@@ -12,9 +12,11 @@ export class RequestPayoutDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(1000)
   accountDetails: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   note?: string;
 }

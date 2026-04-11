@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { WishlistEntity } from '../entities/wishlist.entity';
 import { WishlistItemEntity } from '../entities/wishlist-item.entity';
 import { PropertyEntity } from '../entities/property.entity';
@@ -127,4 +128,16 @@ export class WishlistsService {
       wishlistId: item ? item.wishlistId : null,
     };
   }
+
+  /** Rotate the share token for a wishlist (security feature for leaked tokens) */
+  async rotateShareToken(id: number, userId: number): Promise<{ shareToken: string }> {
+    const wishlist = await this.wishlistsRepo.findOne({ where: { id } });
+    if (!wishlist) throw new NotFoundException('Wishlist not found');
+    if (wishlist.userId !== userId) throw new ForbiddenException('Not your wishlist');
+
+    const newToken = randomUUID();
+    await this.wishlistsRepo.update(id, { shareToken: newToken });
+    return { shareToken: newToken };
+  }
 }
+

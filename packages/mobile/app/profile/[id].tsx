@@ -14,7 +14,7 @@ import {
   Shield,
   Calendar,
 } from 'lucide-react-native';
-import { usersApi, reviewsApi, searchApi } from '@/lib/api';
+import { usersApi } from '@/lib/api';
 import { getImageUrl, formatDate, formatPrice } from '@/lib/utils';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Avatar } from '@/components/ui/Avatar';
@@ -47,12 +47,11 @@ export default function PublicProfileScreen() {
   // ---------------------------------------------------------------------------
   const { data: listingsData } = useQuery({
     queryKey: ['userListings', userId],
-    queryFn: () =>
-      searchApi.searchProperties({ query: undefined, limit: 10 }),
+    queryFn: () => usersApi.getUserListings(userId),
     enabled: !isNaN(userId) && !!profile?.isHost,
   });
 
-  const listings = listingsData?.data ?? [];
+  const listings = listingsData ?? [];
 
   // ---------------------------------------------------------------------------
   // Loading / Error
@@ -123,11 +122,11 @@ export default function PublicProfileScreen() {
               {item.city}, {item.country}
             </Text>
           </View>
-          {item.avgRating > 0 && (
+          {Number(item.avgRating) > 0 && (
             <View className="flex-row items-center mt-1">
               <Star size={11} color="#222" fill="#222" />
               <Text className="text-xs text-gray-900 ml-1">
-                {item.avgRating.toFixed(1)}
+                {Number(item.avgRating).toFixed(1)}
               </Text>
               <Text className="text-xs text-gray-500 ml-1">
                 ({item.reviewCount})
@@ -227,7 +226,7 @@ export default function PublicProfileScreen() {
         {/* Stats */}
         <View className="flex-row px-6 pb-6 gap-4">
           <View className="flex-1 bg-gray-50 rounded-xl p-4 items-center">
-            <Calendar size={20} color="#FF385C" />
+            <Calendar size={20} color="#4F46E5" />
             <Text className="text-sm text-gray-500 mt-1">Joined</Text>
             <Text className="text-sm font-semibold text-gray-900">
               {formatDate(profile.createdAt, 'yyyy')}
@@ -235,7 +234,7 @@ export default function PublicProfileScreen() {
           </View>
           {profile.isHost && (
             <View className="flex-1 bg-gray-50 rounded-xl p-4 items-center">
-              <Star size={20} color="#FF385C" />
+              <Star size={20} color="#4F46E5" />
               <Text className="text-sm text-gray-500 mt-1">Status</Text>
               <Text className="text-sm font-semibold text-gray-900">
                 {profile.isSuperhost ? 'Superhost' : 'Host'}

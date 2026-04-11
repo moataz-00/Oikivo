@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   Image,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,11 +20,13 @@ import {
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { useAlert } from '@/components/ui/AlertModal';
 import { Minus, Plus } from 'lucide-react-native';
 
 export default function BookingScreen() {
   const router = useRouter();
   const { isLoggedIn } = useAuth();
+  const { alert, error: showError } = useAlert();
   const params = useLocalSearchParams<{
     propertyId: string;
     checkIn?: string;
@@ -83,22 +84,23 @@ export default function BookingScreen() {
   const createBookingMutation = useMutation({
     mutationFn: bookingsApi.createBooking,
     onSuccess: () => {
-      Alert.alert(
-        'Booking Confirmed!',
-        'Your reservation has been successfully created.',
-        [
+      alert({
+        type: 'success',
+        title: 'Booking Confirmed!',
+        message: 'Your reservation has been successfully created.',
+        buttons: [
           {
             text: 'View Trips',
             onPress: () => router.replace('/(tabs)/trips'),
           },
         ],
-      );
+      });
     },
     onError: (error: any) => {
       const message =
         error?.response?.data?.message ||
         'Failed to create booking. Please try again.';
-      Alert.alert('Booking Error', message);
+      showError('Booking Error', message);
     },
   });
 

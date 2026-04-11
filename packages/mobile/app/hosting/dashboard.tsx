@@ -201,7 +201,7 @@ export default function HostingDashboardScreen() {
           className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
         >
           <View className="w-10 h-10 rounded-full bg-brand/10 items-center justify-center">
-            <List size={20} color="#FF385C" />
+            <List size={20} color="#4F46E5" />
           </View>
           <View className="flex-1 ml-3">
             <Text className="text-base font-semibold text-gray-900">
@@ -219,14 +219,14 @@ export default function HostingDashboardScreen() {
           className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
         >
           <View className="w-10 h-10 rounded-full bg-brand/10 items-center justify-center">
-            <Plus size={20} color="#FF385C" />
+            <Plus size={20} color="#4F46E5" />
           </View>
           <View className="flex-1 ml-3">
             <Text className="text-base font-semibold text-gray-900">
               Create Listing
             </Text>
             <Text className="text-sm text-gray-500">
-              List a new property on Sakan
+              List a new property on Oikivo
             </Text>
           </View>
         </TouchableOpacity>

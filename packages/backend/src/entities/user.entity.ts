@@ -112,6 +112,40 @@ export class UserEntity {
   @Column({ name: 'last_profile_edit_at', type: 'datetime', nullable: true })
   lastProfileEditAt: Date | null;
 
+  @Column({ name: 'host_cancelled_bookings_count', type: 'int', unsigned: true, default: 0 })
+  hostCancelledBookingsCount: number;
+
+  @Column({ name: 'last_host_cancellation_at', type: 'datetime', nullable: true })
+  lastHostCancellationAt: Date | null;
+
+  @Column({ name: 'auto_payout_enabled', default: false })
+  autoPayoutEnabled: boolean;
+
+  @Column({
+    name: 'auto_payout_frequency',
+    type: 'enum',
+    enum: ['weekly', 'monthly'],
+    default: 'weekly',
+  })
+  autoPayoutFrequency: 'weekly' | 'monthly';
+
+  @Column({ name: 'auto_payout_day', type: 'tinyint', unsigned: true, nullable: true })
+  autoPayoutDay: number | null;
+
+  @Column({ name: 'auto_payout_min_balance', type: 'decimal', precision: 10, scale: 2, default: 100 })
+  autoPayoutMinBalance: number;
+
+  @Column({
+    name: 'auto_payout_method',
+    type: 'enum',
+    enum: ['instapay', 'bank_transfer', 'cash'],
+    default: 'instapay',
+  })
+  autoPayoutMethod: 'instapay' | 'bank_transfer' | 'cash';
+
+  @Column({ name: 'auto_payout_account_details', type: 'text', nullable: true })
+  autoPayoutAccountDetails: string | null;
+
   /**
    * G7: Per-user email/notification channel preferences.
    * All channels default to enabled (true). Guests can opt-out individually.

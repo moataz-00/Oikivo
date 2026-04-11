@@ -19,9 +19,6 @@ export class ConsultationBookingEntity {
     if (!this.uuid) this.uuid = randomUUID();
   }
 
-  @Column({ name: 'service_id', type: 'bigint', unsigned: true, nullable: true })
-  serviceId: number | null;
-
   @Column({ name: 'consultant_id', type: 'bigint', unsigned: true })
   consultantId: number;
 
@@ -64,7 +61,7 @@ export class ConsultationBookingEntity {
   @Column({ name: 'payment_status', type: 'enum', enum: ['pending', 'submitted', 'paid', 'refunded', 'hold', 'refund_pending'], default: 'pending' })
   paymentStatus: string;
 
-  @Column({ name: 'payment_method', type: 'enum', enum: ['card', 'instapay', 'wallet'], default: 'card' })
+  @Column({ name: 'payment_method', type: 'enum', enum: ['card', 'instapay', 'wallet'], default: 'instapay' })
   paymentMethod: string;
 
   @Column({ name: 'meeting_link', length: 500, nullable: true })
@@ -108,8 +105,24 @@ export class ConsultationBookingEntity {
   @Column({ name: 'completed_at', type: 'datetime', nullable: true })
   completedAt: Date;
 
+  /** When the client confirmed the session took place (BE-4 fix) */
+  @Column({ name: 'client_confirmed_at', type: 'datetime', nullable: true })
+  clientConfirmedAt: Date;
+
+  /** P4: Deadline for client to submit payment (auto-cancel if missed) */
+  @Column({ name: 'payment_deadline', type: 'datetime', nullable: true })
+  paymentDeadline: Date | null;
+
+  /** MISS5: Whether a payment reminder email has been sent */
+  @Column({ name: 'payment_reminder_sent', type: 'tinyint', default: 0 })
+  paymentReminderSent: boolean;
+
+  /** MISS6: Original scheduledAt before reschedule (null if never rescheduled) */
+  @Column({ name: 'original_scheduled_at', type: 'datetime', nullable: true })
+  originalScheduledAt: Date | null;
+
   /** IANA timezone string provided by the client at booking time (D1) */
-  @Column({ name: 'client_timezone', length: 50, default: 'UTC', nullable: true })
+  @Column({ name: 'client_timezone', length: 50, default: 'Africa/Cairo', nullable: true })
   clientTimezone: string;
 
   @CreateDateColumn({ name: 'created_at' })

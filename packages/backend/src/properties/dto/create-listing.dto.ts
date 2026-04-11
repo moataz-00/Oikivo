@@ -1,6 +1,6 @@
 import {
   IsString, IsOptional, IsNumber, IsBoolean, IsIn, IsArray,
-  IsPositive, Min, Max, IsEnum,
+  IsPositive, Min, Max, IsEnum, MaxLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -8,11 +8,13 @@ import { Type } from 'class-transformer';
 export class CreateListingDto {
   @ApiProperty({ example: 'Cozy Studio in Riyadh' })
   @IsString()
+  @MaxLength(120)
   title: string;
 
   @ApiProperty({ required: false, example: 'A beautiful place to stay...' })
   @IsOptional()
   @IsString()
+  @MaxLength(5000)
   description?: string;
 
   @ApiProperty({ required: false, description: 'Category ID' })
@@ -54,7 +56,7 @@ export class CreateListingDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @Max(90)
+  @Max(80)
   weeklyDiscount?: number;
 
   @ApiProperty({ example: 20, required: false, description: 'Discount % for stays of 28+ nights' })
@@ -62,7 +64,7 @@ export class CreateListingDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @Max(90)
+  @Max(80)
   monthlyDiscount?: number;
 
   @ApiProperty({ required: false, default: false, description: '20% off for the first 3 bookings (new listing promotion)' })
@@ -75,7 +77,7 @@ export class CreateListingDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @Max(90)
+  @Max(80)
   lastMinuteDiscountPercent?: number;
 
   @ApiProperty({

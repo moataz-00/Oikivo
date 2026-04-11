@@ -25,6 +25,7 @@ export class PaymentsController {
   @Post('create-intent')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Create a Stripe PaymentIntent for a booking' })
   createIntent(
     @CurrentUser() user: UserEntity,

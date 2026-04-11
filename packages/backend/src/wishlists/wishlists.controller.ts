@@ -106,4 +106,15 @@ export class WishlistsController {
   ) {
     return this.wishlistsService.removeItem(wishlistId, user.id, propertyId);
   }
+
+  @Post(':id/rotate-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Rotate share token for a wishlist (security feature)' })
+  rotateToken(
+    @Param('id', ParseIntPipe) wishlistId: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.wishlistsService.rotateShareToken(wishlistId, user.id);
+  }
 }

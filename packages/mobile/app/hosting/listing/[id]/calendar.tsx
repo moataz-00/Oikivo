@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,11 +29,13 @@ import { availabilityApi } from '@/lib/api';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { useAlert } from '@/components/ui/AlertModal';
 
 export default function CalendarManagementScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { alert, success, error: showError, confirm } = useAlert();
   const propertyId = parseInt(id!, 10);
 
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -82,10 +83,10 @@ export default function CalendarManagementScreen() {
       });
       setSelectedStart(null);
       setSelectedEnd(null);
-      Alert.alert('Success', 'Selected dates have been blocked.');
+      success('Success', 'Selected dates have been blocked.');
     },
     onError: () => {
-      Alert.alert('Error', 'Failed to block dates. Please try again.');
+      showError('Error', 'Failed to block dates. Please try again.');
     },
   });
 
@@ -124,30 +125,25 @@ export default function CalendarManagementScreen() {
   // ---------------------------------------------------------------------------
   const handleBlockDates = () => {
     if (!selectedStart || !selectedEnd) {
-      Alert.alert(
-        'Select Dates',
-        'Please select a start and end date to block.',
-      );
+      alert({
+        type: 'warning',
+        title: 'Select Dates',
+        message: 'Please select a start and end date to block.',
+      });
       return;
     }
 
-    Alert.alert(
+    confirm(
       'Block Dates',
       `Block dates from ${format(selectedStart, 'MMM d')} to ${format(selectedEnd, 'MMM d, yyyy')}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Block',
-          style: 'destructive',
-          onPress: () =>
-            blockMutation.mutate({
-              propertyId,
-              startDate: format(selectedStart, 'yyyy-MM-dd'),
-              endDate: format(selectedEnd, 'yyyy-MM-dd'),
-              reason: 'Blocked by host',
-            }),
-        },
-      ],
+      () =>
+        blockMutation.mutate({
+          propertyId,
+          startDate: format(selectedStart, 'yyyy-MM-dd'),
+          endDate: format(selectedEnd, 'yyyy-MM-dd'),
+          reason: 'Blocked by host',
+        }),
+      { confirmText: 'Block', cancelText: 'Cancel', destructive: true },
     );
   };
 

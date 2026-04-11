@@ -4,16 +4,16 @@ import {
   ForbiddenException,
   ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { ConsultantEntity } from '../entities/consultant.entity';
 import { ConsultantDocumentEntity } from '../entities/consultant-document.entity';
 import { ConsultationBookingEntity } from '../entities/consultation-booking.entity';
 import { ConsultationReviewEntity } from '../entities/consultation-review.entity';
 import { ConsultantAvailabilityEntity } from '../entities/consultant-availability.entity';
-import { ConsultationServiceEntity } from '../entities/consultation-service.entity';
 import { ConsultantVacationBlockEntity } from '../entities/consultant-vacation-block.entity';
 import { ConsultantEarningEntity } from '../entities/consultant-earning.entity';
 import { ConsultantPayoutRequestEntity } from '../entities/consultant-payout-request.entity';
@@ -25,15 +25,17 @@ import {
   BookConsultationDto, RespondToBookingDto, CompleteBookingDto,
   CreateConsultationReviewDto, ReplyToReviewDto,
   AdminReviewConsultantDto, SetAvailabilityDto,
-  CreateConsultationServiceDto, UpdateConsultationServiceDto,
   BlockVacationDto, RequestConsultantPayoutDto, UpdateConsultantPayoutSettingsDto,
-  AdminProcessConsultantPayoutDto,
+  AdminProcessConsultantPayoutDto, AdminMarkNoShowDto, AdminResolveDisputeDto,
+  RescheduleBookingDto,
 } from './dto/consultations.dto';
 
-const PLATFORM_FEE_PERCENT = 0.10; // 10% from each side (consultant + client)
+const PLATFORM_FEE_PERCENT = 0.10; // 10% deducted from consultant payout only; client pays face value
 
 @Injectable()
 export class ConsultationsService {
+  private readonly logger = new Logger(ConsultationsService.name);
+
   constructor(
     @InjectRepository(ConsultantEntity)
     private consultantRepo: Repository<ConsultantEntity>,
@@ -45,8 +47,6 @@ export class ConsultationsService {
     private reviewRepo: Repository<ConsultationReviewEntity>,
     @InjectRepository(ConsultantAvailabilityEntity)
     private availabilityRepo: Repository<ConsultantAvailabilityEntity>,
-    @InjectRepository(ConsultationServiceEntity)
-    private serviceRepo: Repository<ConsultationServiceEntity>,
     @InjectRepository(ConsultantVacationBlockEntity)
     private vacationRepo: Repository<ConsultantVacationBlockEntity>,
     @InjectRepository(ConsultantEarningEntity)
@@ -58,11 +58,12 @@ export class ConsultationsService {
     private notificationsService: NotificationsService,
     private mail: MailService,
     private configService: ConfigService,
+    private dataSource: DataSource,
   ) {}
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  CONSULTANT APPLICATION
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async applyAsConsultant(userId: number, dto: ApplyAsConsultantDto) {
     const existing = await this.consultantRepo.findOne({ where: { userId } });
@@ -98,6 +99,9 @@ export class ConsultationsService {
   async updateConsultantProfile(userId: number, dto: UpdateConsultantProfileDto) {
     const consultant = await this.consultantRepo.findOne({ where: { userId } });
     if (!consultant) throw new NotFoundException('Consultant profile not found');
+    if (['suspended', 'rejected'].includes(consultant.status)) {
+      throw new ForbiddenException('Suspended or rejected consultants cannot update profile until reinstated');
+    }
 
     Object.assign(consultant, dto);
     return this.consultantRepo.save(consultant);
@@ -116,14 +120,15 @@ export class ConsultationsService {
     }));
   }
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  BROWSE CONSULTANTS (PUBLIC)
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async listConsultants(filters: {
     specialization?: string;
     minRating?: number;
     maxPrice?: number;
+    search?: string;
     page?: number;
     limit?: number;
   }) {
@@ -145,6 +150,9 @@ export class ConsultationsService {
     if (filters.maxPrice) {
       qb.andWhere('c.hourly_rate <= :maxPrice', { maxPrice: filters.maxPrice });
     }
+    if (filters.search) {
+      qb.andWhere('(c.displayName LIKE :search OR u.firstName LIKE :search OR u.lastName LIKE :search)', { search: `%${filters.search}%` });
+    }
 
     qb.orderBy('c.isFeatured', 'DESC')
       .addOrderBy('c.avgRating', 'DESC')
@@ -163,12 +171,12 @@ export class ConsultationsService {
     });
     if (!consultant) throw new NotFoundException('Consultant not found');
 
-    // Load recent reviews (exclude admin-hidden ones for public view)
+    // Load reviews (exclude admin-hidden ones for public view)
     const reviews = await this.reviewRepo.find({
       where: { consultantId, isHidden: false as any },
       relations: ['reviewer'],
       order: { createdAt: 'DESC' },
-      take: 10,
+      take: 50,
     });
 
     // Load availability
@@ -179,9 +187,9 @@ export class ConsultationsService {
     return { consultant, reviews, availability };
   }
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  BOOKING A CONSULTATION (client = host seeking help)
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async bookConsultation(clientId: number, dto: BookConsultationDto) {
     const consultant = await this.consultantRepo.findOne({
@@ -211,32 +219,45 @@ export class ConsultationsService {
       throw new BadRequestException('Consultant is fully booked for this day');
     }
 
-    const deliveryMode = dto.deliveryMode ?? 'video_call';
-
-    // C5: If serviceId provided, use service price & duration; otherwise use hourly rate
-    let basePrice: number;
-    let durationMinutes = dto.durationMinutes;
-    let serviceIdToStore: number | null = null;
-
-    if (dto.serviceId) {
-      const service = await this.serviceRepo.findOne({
-        where: { id: dto.serviceId, consultantId: consultant.id, isActive: true },
-      });
-      if (!service) throw new NotFoundException('Consultation service not found or inactive');
-      basePrice = Number(service.price);
-      durationMinutes = service.durationMinutes;
-      serviceIdToStore = service.id;
-    } else {
-      basePrice = Math.round(Number(consultant.hourlyRate) * (durationMinutes / 60) * 100) / 100;
+    // BUG-C2: Check for overlapping bookings (double-booking prevention)
+    const durationMs = (dto.durationMinutes) * 60 * 1000;
+    const newEnd = new Date(scheduledAt.getTime() + durationMs);
+    const overlap = await this.bookingRepo.createQueryBuilder('b')
+      .where('b.consultant_id = :cid', { cid: consultant.id })
+      .andWhere('b.status NOT IN (:...excluded)', { excluded: ['cancelled', 'no_show'] })
+      .andWhere('b.scheduled_at < :newEnd', { newEnd })
+      .andWhere('DATE_ADD(b.scheduled_at, INTERVAL b.duration_minutes MINUTE) > :newStart', { newStart: scheduledAt })
+      .getCount();
+    if (overlap > 0) {
+      throw new BadRequestException('This time slot overlaps with an existing booking');
     }
 
-    // Platform takes 10% from the client side only; consultant receives the full base rate
+    // BUG-C3: Enforce consultant availability windows + vacation blocks
+    const dateStr = scheduledAt.toISOString().slice(0, 10); // YYYY-MM-DD
+    const availableSlots = await this.getAvailableSlots(
+      consultant.id,
+      dateStr,
+      dto.durationMinutes,
+    );
+    const requestedIso = scheduledAt.toISOString();
+    if (!availableSlots.slots.includes(requestedIso)) {
+      throw new BadRequestException(
+        'The requested time slot is not within the consultant\'s available hours or falls during a vacation block',
+      );
+    }
+
+    const deliveryMode = dto.deliveryMode ?? 'video_call';
+
+    // C5: Calculate price from hourly rate (consultation_services table removed in migration_053)
+    const durationMinutes = dto.durationMinutes;
+    const basePrice = Math.round(Number(consultant.hourlyRate) * (durationMinutes / 60) * 100) / 100;
+
+    // Platform takes 10% from the consultant payout only; client pays face value
+    const price = basePrice;
     const platformFee = Math.round(basePrice * PLATFORM_FEE_PERCENT * 100) / 100;
-    const price = Math.round((basePrice + platformFee) * 100) / 100;
-    const consultantPayout = basePrice;
+    const consultantPayout = Math.round((basePrice - platformFee) * 100) / 100;
 
     const booking = this.bookingRepo.create({
-      serviceId: serviceIdToStore,
       consultantId: consultant.id,
       clientId,
       scheduledAt,
@@ -247,11 +268,13 @@ export class ConsultationsService {
       consultantPayout,
       currency: consultant.currency ?? 'EGP',
       status: 'pending',
-      paymentMethod: dto.paymentMethod ?? 'card',
+      paymentMethod: 'instapay', // Egypt launch: InstaPay only
       clientNote: dto.clientNote,
-    });
+      // P4: Payment deadline — auto-cancel if unpaid after 2 hours
+      paymentDeadline: new Date(Date.now() + 2 * 60 * 60 * 1000),
+    } as any);
 
-    const saved = await this.bookingRepo.save(booking);
+    const saved = await this.bookingRepo.save(booking) as unknown as ConsultationBookingEntity;
 
     // Load users for email
     const [client, consultantUser] = await Promise.all([
@@ -264,18 +287,20 @@ export class ConsultationsService {
       consultant.userId,
       'booking_requested',
       'New consultation booking request',
-      'طلب حجز استشارة جديد',
+      'Ø·Ù„Ø¨ Ø­Ø¬Ø² Ø§Ø³ØªØ´Ø§Ø±Ø© Ø¬Ø¯ÙŠØ¯',
       `You have a new consultation booking request`,
-      `لديك طلب حجز استشارة جديد`,
+      `Ù„Ø¯ÙŠÙƒ Ø·Ù„Ø¨ Ø­Ø¬Ø² Ø§Ø³ØªØ´Ø§Ø±Ø© Ø¬Ø¯ÙŠØ¯`,
       { consultationBookingId: saved.id },
     );
 
     // Send emails
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const feBase = fe.replace(/\/+$/, '');
-      const instapayPhone = this.configService.get<string>('INSTAPAY_PHONE', '010-XXXX-XXXX');
+      const feBase = this.getFrontendBaseUrl();
+      const instapayPhone = this.configService.get<string>('INSTAPAY_PHONE');
       const instapayName = this.configService.get<string>('INSTAPAY_NAME', 'Oikivo Platform');
+      if (!instapayPhone) {
+        Logger.warn('INSTAPAY_PHONE env var not configured — client booking email will be missing payment details');
+      }
       const scheduledLabel = new Date(scheduledAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
       const bookingRef = `CONSULT-${saved.id}`;
       const sessionLabel = `${durationMinutes} min Consultation`;
@@ -283,7 +308,7 @@ export class ConsultationsService {
       if (consultantUser) {
         await this.mail.send(
           consultantUser.email,
-          'New consultation booking request — Oikivo',
+          'New consultation booking request â€” Oikivo',
           tplConsultationRequestReceived(
             consultantUser.firstName,
             client?.firstName ?? 'Client',
@@ -301,7 +326,7 @@ export class ConsultationsService {
         if (saved.paymentMethod === 'instapay') {
           await this.mail.send(
             client.email,
-            'Complete your InstaPay payment — Oikivo',
+            'Complete your InstaPay payment â€” Oikivo',
             tplConsultationInstapayPending(
               client.firstName,
               consultant.displayName,
@@ -318,7 +343,7 @@ export class ConsultationsService {
         } else {
           await this.mail.send(
             client.email,
-            'Consultation request submitted — Oikivo',
+            'Consultation request submitted â€” Oikivo',
             tplConsultationRequestSubmitted(
               client.firstName,
               consultant.displayName,
@@ -333,7 +358,7 @@ export class ConsultationsService {
         }
       }
     } catch (e) {
-      // Non-blocking — booking is already saved; log and continue
+      // Non-blocking â€” booking is already saved; log and continue
     }
 
     return saved;
@@ -345,6 +370,10 @@ export class ConsultationsService {
       where: { id: bookingId, consultantId: consultant.id },
     });
     if (!booking) throw new NotFoundException('Booking not found');
+    // BUG-H1: Prevent marking cancelled/no_show bookings as paid
+    if (['cancelled', 'no_show'].includes(booking.status)) {
+      throw new BadRequestException('Cannot confirm payment on a cancelled or no-show booking');
+    }
     if (booking.paymentMethod !== 'instapay') {
       throw new BadRequestException('This booking does not use InstaPay');
     }
@@ -357,8 +386,7 @@ export class ConsultationsService {
 
     // C10: Notify consultant that payment has been received
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const feBase = fe.replace(/\/+$/, '');
+      const feBase = this.getFrontendBaseUrl();
       const [consultantUser, client] = await Promise.all([
         this.usersRepo.findOne({ where: { id: consultant.userId } }),
         this.usersRepo.findOne({ where: { id: booking.clientId } }),
@@ -368,7 +396,7 @@ export class ConsultationsService {
         const sessionLabel = `${booking.durationMinutes} min Consultation`;
         await this.mail.send(
           consultantUser.email,
-          'Payment confirmed for your consultation booking — Oikivo',
+          'Payment confirmed for your consultation booking â€” Oikivo',
           tplConsultationPaymentReceived(
             consultant.displayName,
             client ? `${client.firstName} ${client.lastName}` : `Client #${booking.clientId}`,
@@ -381,7 +409,7 @@ export class ConsultationsService {
           ),
         );
       }
-    } catch { /* non-blocking */ }
+    } catch (e) { this.logger.warn(`Non-blocking booking email error: ${e?.message}`); }
 
     return saved;
   }
@@ -402,6 +430,17 @@ export class ConsultationsService {
           'Ask the client to submit their payment reference, then use \'Mark InstaPay paid\' to confirm receipt.',
         );
       }
+      // BUG-L3: Validate meeting link format for video_call delivery mode
+      if (dto.meetingLink && booking.deliveryMode === 'video_call') {
+        try {
+          const url = new URL(dto.meetingLink);
+          if (!['http:', 'https:'].includes(url.protocol)) {
+            throw new Error('Invalid protocol');
+          }
+        } catch {
+          throw new BadRequestException('Meeting link must be a valid URL (https://...) for video call sessions');
+        }
+      }
       booking.status = 'confirmed';
       booking.meetingLink = dto.meetingLink ?? null;
       booking.consultantNote = dto.consultantNote ?? null;
@@ -410,16 +449,15 @@ export class ConsultationsService {
         booking.clientId,
         'booking_confirmed',
         'Consultation booking confirmed!',
-        'تم تأكيد حجز الاستشارة!',
+        'ØªÙ… ØªØ£ÙƒÙŠØ¯ Ø­Ø¬Ø² Ø§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø©!',
         `Your consultation has been confirmed`,
-        `تم تأكيد استشارتك`,
+        `ØªÙ… ØªØ£ÙƒÙŠØ¯ Ø§Ø³ØªØ´Ø§Ø±ØªÙƒ`,
         { consultationBookingId: booking.id },
       );
 
       // Send confirmation email to client
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const feBase = fe.replace(/\/+$/, '');
+        const feBase = this.getFrontendBaseUrl();
         const [client, consultantUser] = await Promise.all([
           this.usersRepo.findOne({ where: { id: booking.clientId } }),
           this.usersRepo.findOne({ where: { id: userId } }),
@@ -429,7 +467,7 @@ export class ConsultationsService {
           const sessionLabel = `${booking.durationMinutes} min Consultation`;
           await this.mail.send(
             client.email,
-            'Your consultation is confirmed! — Oikivo',
+            'Your consultation is confirmed! â€” Oikivo',
             tplConsultationConfirmed(
               client.firstName,
               consultant.displayName,
@@ -450,7 +488,7 @@ export class ConsultationsService {
           try {
             await this.mail.send(
               consultantUser.email,
-              'Payment confirmed for your consultation booking — Oikivo',
+              'Payment confirmed for your consultation booking â€” Oikivo',
               tplConsultationPaymentReceived(
                 consultant.displayName,
                 client ? `${client.firstName} ${client.lastName}` : `Client #${booking.clientId}`,
@@ -462,35 +500,41 @@ export class ConsultationsService {
                 `${feBase}/en/consultations/dashboard`,
               ),
             );
-          } catch { /* non-blocking */ }
+          } catch (e) { this.logger.warn(`Non-blocking respond email error: ${e?.message}`); }
         }
-      } catch (e) { /* non-blocking */ }
+      } catch (e) { this.logger.warn(`Non-blocking respond notification error: ${e?.message}`); }
     } else {
       booking.status = 'cancelled';
       booking.cancelledBy = 'consultant';
       booking.cancellationReason = dto.cancellationReason ?? null;
 
+      // BUG-C4: Trigger refund when consultant declines a paid/submitted booking
+      if (['paid', 'submitted'].includes(booking.paymentStatus)) {
+        booking.refundAmount = Number(booking.price);
+        booking.cancellationFee = 0;
+        booking.paymentStatus = 'refund_pending';
+      }
+
       await this.notificationsService.create(
         booking.clientId,
         'booking_declined',
         'Consultation booking declined',
-        'تم رفض حجز الاستشارة',
+        'ØªÙ… Ø±ÙØ¶ Ø­Ø¬Ø² Ø§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø©',
         `Your consultation booking was declined`,
-        `تم رفض حجز استشارتك`,
+        `ØªÙ… Ø±ÙØ¶ Ø­Ø¬Ø² Ø§Ø³ØªØ´Ø§Ø±ØªÙƒ`,
         { consultationBookingId: booking.id },
       );
 
       // Send decline email to client
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const feBase = fe.replace(/\/+$/, '');
+        const feBase = this.getFrontendBaseUrl();
         const client = await this.usersRepo.findOne({ where: { id: booking.clientId } });
         if (client) {
           const scheduledLabel = new Date(booking.scheduledAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
           const sessionLabel = `${booking.durationMinutes} min Consultation`;
           await this.mail.send(
             client.email,
-            'Consultation request declined — Oikivo',
+            'Consultation request declined â€” Oikivo',
             tplConsultationDeclined(
               client.firstName,
               consultant.displayName,
@@ -501,7 +545,7 @@ export class ConsultationsService {
             ),
           );
         }
-      } catch (e) { /* non-blocking */ }
+      } catch (e) { this.logger.warn(`Non-blocking cancel email error: ${e?.message}`); }
     }
 
     return this.bookingRepo.save(booking);
@@ -515,6 +559,17 @@ export class ConsultationsService {
     if (!booking) throw new NotFoundException('Booking not found');
     if (!['confirmed', 'in_progress'].includes(booking.status)) {
       throw new BadRequestException('Booking cannot be completed in its current state');
+    }
+
+    // BUG-C1: Payment must be verified before completing
+    if (booking.paymentStatus !== 'paid') {
+      throw new BadRequestException('Payment must be verified before completing the session');
+    }
+
+    // BUG-5: Cannot complete before scheduled end time
+    const scheduledEnd = new Date(new Date(booking.scheduledAt).getTime() + booking.durationMinutes * 60 * 1000);
+    if (scheduledEnd > new Date()) {
+      throw new BadRequestException('Cannot mark a session as completed before its scheduled end time');
     }
 
     booking.status = 'completed';
@@ -545,18 +600,17 @@ export class ConsultationsService {
           }),
         );
       }
-    } catch { /* non-blocking */ }
+    } catch (e) { this.logger.warn(`Non-blocking earning creation error: ${e?.message}`); }
 
     // Send completion + review prompt email to client
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const feBase = fe.replace(/\/+$/, '');
+      const feBase = this.getFrontendBaseUrl();
       const client = await this.usersRepo.findOne({ where: { id: booking.clientId } });
       if (client) {
         const sessionLabel = `${booking.durationMinutes} min Consultation`;
         await this.mail.send(
           client.email,
-          'Session completed — please leave a review! — Oikivo',
+          'Session completed â€” please leave a review! â€” Oikivo',
           tplConsultationCompleted(
             client.firstName,
             consultant.displayName,
@@ -567,49 +621,108 @@ export class ConsultationsService {
           ),
         );
       }
-    } catch (e) { /* non-blocking */ }
+    } catch (e) { this.logger.warn(`Non-blocking completion email error: ${e?.message}`); }
 
     return saved;
   }
 
-  async cancelBooking(userId: number, bookingId: number, reason?: string) {
-    const booking = await this.bookingRepo.findOne({ where: { id: bookingId } });
+  /** BE-4: Client confirms the consultation session took place (unlocks payout; 48h auto-confirm) */
+  async confirmCompletion(clientId: number, bookingId: number) {
+    const booking = await this.bookingRepo.findOne({ where: { id: bookingId, clientId } });
     if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status !== 'completed') {
+      throw new BadRequestException('Booking must be completed before confirmation');
+    }
+    if (booking.clientConfirmedAt) {
+      throw new BadRequestException('Session already confirmed');
+    }
+    booking.clientConfirmedAt = new Date();
+    return this.bookingRepo.save(booking);
+  }
 
-    const isClient = booking.clientId === userId;
-    const consultant = await this.consultantRepo.findOne({ where: { userId } });
-    const isConsultant = consultant && booking.consultantId === consultant.id;
-
-    if (!isClient && !isConsultant) throw new ForbiddenException('Not authorized');
-    if (['completed', 'cancelled'].includes(booking.status)) {
-      throw new BadRequestException('Booking cannot be cancelled');
+  // BUG-H4: Client reports an issue with a completed session — blocks payout, creates dispute
+  async reportSessionIssue(clientId: number, bookingId: number, reason: string) {
+    const booking = await this.bookingRepo.findOne({ where: { id: bookingId, clientId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status !== 'completed') {
+      throw new BadRequestException('Can only report issues for completed bookings');
+    }
+    if (booking.clientConfirmedAt) {
+      throw new BadRequestException('Session already confirmed — cannot report an issue');
+    }
+    if (!reason?.trim()) {
+      throw new BadRequestException('A reason is required');
     }
 
-    booking.status = 'cancelled';
-    booking.cancelledBy = isClient ? 'client' : 'consultant';
-    booking.cancellationReason = reason ?? null;
+    booking.status = 'disputed';
+    booking.cancellationReason = reason.trim();
+    await this.bookingRepo.save(booking);
 
-    // G24: Graduated refund policy for client-initiated cancellations
-    if (isClient && booking.paymentStatus === 'paid') {
-      const now = new Date();
-      const scheduledAt = new Date(booking.scheduledAt);
-      const hoursUntilSession = (scheduledAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+    // Notify admins
+    const admins = await this.usersRepo.find({ where: { isAdmin: true } });
+    for (const admin of admins) {
+      await this.notificationsService.create(
+        admin.id,
+        'session_disputed',
+        'Client reported session issue',
+        '\u0623\u0628\u0644\u063A \u0627\u0644\u0639\u0645\u064A\u0644 \u0639\u0646 \u0645\u0634\u0643\u0644\u0629 \u0641\u064A \u0627\u0644\u062C\u0644\u0633\u0629',
+        `Client reported an issue with booking #${bookingId}: ${reason}`,
+        `\u0623\u0628\u0644\u063A \u0627\u0644\u0639\u0645\u064A\u0644 \u0639\u0646 \u0645\u0634\u0643\u0644\u0629 \u0641\u064A \u0627\u0644\u062D\u062C\u0632 #${bookingId}: ${reason}`,
+        { consultationBookingId: bookingId },
+      );
+    }
 
-      if (hoursUntilSession >= 24) {
-        // Full refund — cancelled well in advance
+    return { message: 'Issue reported. Our team will investigate and get back to you.' };
+  }
+
+  async cancelBooking(userId: number, bookingId: number, reason?: string) {
+    return this.dataSource.transaction(async (manager) => {
+      const bookingRepo = manager.getRepository(ConsultationBookingEntity);
+      const booking = await bookingRepo.findOne({ where: { id: bookingId } });
+      if (!booking) throw new NotFoundException('Booking not found');
+
+      const isClient = booking.clientId === userId;
+      const consultant = await manager.getRepository(ConsultantEntity).findOne({ where: { userId } });
+      const isConsultant = consultant && booking.consultantId === consultant.id;
+
+      if (!isClient && !isConsultant) throw new ForbiddenException('Not authorized');
+      if (['completed', 'cancelled'].includes(booking.status)) {
+        throw new BadRequestException('Booking cannot be cancelled');
+      }
+
+      booking.status = 'cancelled';
+      booking.cancelledBy = isClient ? 'client' : 'consultant';
+      booking.cancellationReason = reason ?? null;
+
+      // G24: Graduated refund policy for client-initiated cancellations
+      if (isClient && booking.paymentStatus === 'paid') {
+        const now = new Date();
+        const scheduledAt = new Date(booking.scheduledAt);
+        const hoursUntilSession = (scheduledAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+        if (hoursUntilSession >= 24) {
+          // Full refund â€” cancelled well in advance
+          booking.refundAmount = Number(booking.price);
+          booking.cancellationFee = 0;
+          booking.paymentStatus = 'refund_pending';
+        } else if (hoursUntilSession >= 1) {
+          // 50% refund â€” cancelled same-day but not last minute
+          booking.refundAmount = Math.round(Number(booking.price) * 0.5 * 100) / 100;
+          booking.cancellationFee = Math.round(Number(booking.price) * 0.5 * 100) / 100;
+          booking.paymentStatus = 'refund_pending';
+        }
+        // else: < 1 hour before session â€” no refund, paymentStatus stays 'paid'
+      }
+
+      // BUG-6: Full refund when consultant cancels a paid booking
+      if (isConsultant && ['paid', 'hold'].includes(booking.paymentStatus)) {
         booking.refundAmount = Number(booking.price);
         booking.cancellationFee = 0;
         booking.paymentStatus = 'refund_pending';
-      } else if (hoursUntilSession >= 1) {
-        // 50% refund — cancelled same-day but not last minute
-        booking.refundAmount = Math.round(Number(booking.price) * 0.5 * 100) / 100;
-        booking.cancellationFee = Math.round(Number(booking.price) * 0.5 * 100) / 100;
-        booking.paymentStatus = 'refund_pending';
       }
-      // else: < 1 hour before session — no refund, paymentStatus stays 'paid'
-    }
 
-    return this.bookingRepo.save(booking);
+      return bookingRepo.save(booking);
+    });
   }
 
   // G10: Client submits InstaPay payment reference/proof for a consultation booking
@@ -647,10 +760,10 @@ export class ConsultationsService {
       await this.notificationsService.create(
         booking.consultant.userId,
         'payment_submitted',
-        'InstaPay proof received — please verify',
-        'تم استلام إثبات InstaPay — يرجى التحقق',
+        'InstaPay proof received â€” please verify',
+        'ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø¥Ø«Ø¨Ø§Øª InstaPay â€” ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚',
         `Client submitted an InstaPay reference for booking #${booking.id}. Reference: ${dto.reference}. Please verify and confirm.`,
-        `قدّم العميل مرجع دفع InstaPay للحجز #${booking.id}. المرجع: ${dto.reference}. يرجى التحقق والتأكيد.`,
+        `Ù‚Ø¯Ù‘Ù… Ø§Ù„Ø¹Ù…ÙŠÙ„ Ù…Ø±Ø¬Ø¹ Ø¯ÙØ¹ InstaPay Ù„Ù„Ø­Ø¬Ø² #${booking.id}. Ø§Ù„Ù…Ø±Ø¬Ø¹: ${dto.reference}. ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØ§Ù„ØªØ£ÙƒÙŠØ¯.`,
         { consultationBookingId: booking.id },
       );
     }
@@ -661,7 +774,7 @@ export class ConsultationsService {
   async getMyBookingsAsClient(userId: number, page = 1, limit = 20) {
     const [items, total] = await this.bookingRepo.findAndCount({
       where: { clientId: userId },
-      relations: ['service', 'consultant', 'consultant.user'],
+      relations: ['consultant', 'consultant.user'],
       order: { scheduledAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -673,7 +786,7 @@ export class ConsultationsService {
     const consultant = await this.getApprovedConsultant(userId);
     const [items, total] = await this.bookingRepo.findAndCount({
       where: { consultantId: consultant.id },
-      relations: ['service', 'client'],
+      relations: ['client'],
       order: { scheduledAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -681,9 +794,9 @@ export class ConsultationsService {
     return { data: items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  REVIEWS
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async createReview(userId: number, bookingId: number, dto: CreateConsultationReviewDto) {
     const booking = await this.bookingRepo.findOne({ where: { id: bookingId, clientId: userId } });
@@ -714,13 +827,20 @@ export class ConsultationsService {
     return this.reviewRepo.save(review);
   }
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  AVAILABILITY
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async setAvailability(userId: number, dto: SetAvailabilityDto) {
     const consultant = await this.consultantRepo.findOne({ where: { userId } });
     if (!consultant) throw new NotFoundException('Consultant profile not found');
+
+    // BE-16: Validate startTime < endTime for each slot
+    for (const s of dto.slots) {
+      if (s.startTime >= s.endTime) {
+        throw new BadRequestException(`startTime (${s.startTime}) must be before endTime (${s.endTime})`);
+      }
+    }
 
     // Clear existing and re-create
     await this.availabilityRepo.delete({ consultantId: consultant.id });
@@ -743,9 +863,9 @@ export class ConsultationsService {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  ADMIN: CONSULTANT APPROVAL
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async adminListConsultants(filters: {
     status?: string;
@@ -779,7 +899,7 @@ export class ConsultationsService {
 
     if (dto.decision === 'approved') {
       consultant.approvedAt = new Date();
-      // Mark user as a consultant — visible across the platform
+      // Mark user as a consultant â€” visible across the platform
       if (consultant.user) {
         await this.usersRepo.update(consultant.userId, { isConsultant: true });
       }
@@ -790,14 +910,13 @@ export class ConsultationsService {
         await this.usersRepo.update(consultant.userId, { isConsultant: false });
       }
 
-      // H15 — Cancel all confirmed/pending bookings and notify clients
+      // H15 â€” Cancel all confirmed/pending bookings and notify clients
       const activeBookings = await this.bookingRepo.find({
         where: { consultantId: consultant.id, status: In(['pending', 'confirmed']) },
         relations: ['client'],
       });
       if (activeBookings.length > 0) {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const browsUrl = `${fe.replace(/\/+$/, '')}/en/consultations`;
+        const browsUrl = `${this.getFrontendBaseUrl()}/en/consultations`;
         for (const booking of activeBookings) {
           booking.status = 'cancelled';
           (booking as any).paymentStatus = 'refund_pending';
@@ -809,9 +928,9 @@ export class ConsultationsService {
               booking.clientId,
               'consultation_cancelled',
               'Your consultation booking was cancelled',
-              'تم إلغاء حجز الاستشارة الخاص بك',
+              'ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø­Ø¬Ø² Ø§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø© Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ',
               `${consultant.displayName}'s account has been suspended. Your booking has been cancelled and a refund will be processed.`,
-              `تم تعليق حساب ${consultant.displayName}. تم إلغاء حجزك وسيتم استرداد المبلغ.`,
+              `ØªÙ… ØªØ¹Ù„ÙŠÙ‚ Ø­Ø³Ø§Ø¨ ${consultant.displayName}. ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø­Ø¬Ø²Ùƒ ÙˆØ³ÙŠØªÙ… Ø§Ø³ØªØ±Ø¯Ø§Ø¯ Ø§Ù„Ù…Ø¨Ù„Øº.`,
               { bookingId: booking.id },
             );
 
@@ -822,7 +941,7 @@ export class ConsultationsService {
                 : 'TBD';
               await this.mail.send(
                 booking.client.email,
-                'Your consultation booking has been cancelled — Oikivo',
+                'Your consultation booking has been cancelled â€” Oikivo',
                 tplConsultantSuspendedClientNotice(
                   booking.client.firstName,
                   consultant.displayName,
@@ -831,7 +950,7 @@ export class ConsultationsService {
                   browsUrl,
                 ),
               );
-            } catch { /* non-blocking */ }
+            } catch (e) { this.logger.warn(`Non-blocking payment email error: ${e?.message}`); }
           }
         }
       }
@@ -844,8 +963,8 @@ export class ConsultationsService {
       ? 'Congratulations! Your consultant application is approved'
       : 'Your consultant application was not approved';
     const titleAr = dto.decision === 'approved'
-      ? 'تهانينا! تم قبول طلب الاستشارات الخاص بك'
-      : 'لم يتم قبول طلب الاستشارات الخاص بك';
+      ? 'ØªÙ‡Ø§Ù†ÙŠÙ†Ø§! ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨ Ø§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø§Øª Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ'
+      : 'Ù„Ù… ÙŠØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨ Ø§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø§Øª Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ';
 
     await this.notificationsService.create(
       consultant.userId,
@@ -856,21 +975,20 @@ export class ConsultationsService {
         ? 'You can now offer consultation services on Oikivo!'
         : `Reason: ${dto.rejectionReason ?? 'Not specified'}`,
       dto.decision === 'approved'
-        ? 'يمكنك الآن تقديم خدمات الاستشارات على Oikivo!'
-        : `السبب: ${dto.rejectionReason ?? 'غير محدد'}`,
+        ? 'ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ù„Ø¢Ù† ØªÙ‚Ø¯ÙŠÙ… Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø§Øª Ø¹Ù„Ù‰ Oikivo!'
+        : `Ø§Ù„Ø³Ø¨Ø¨: ${dto.rejectionReason ?? 'ØºÙŠØ± Ù…Ø­Ø¯Ø¯'}`,
       { consultantId: consultant.id },
     );
 
     // C9: Send decision email to consultant
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const feBase = fe.replace(/\/+$/, '');
+      const feBase = this.getFrontendBaseUrl();
       const consultantUser = consultant.user ?? await this.usersRepo.findOne({ where: { id: consultant.userId } });
       if (consultantUser) {
         await this.mail.send(
           consultantUser.email,
           dto.decision === 'approved'
-            ? 'Your Oikivo consultant application is approved! 🎉'
+            ? 'Your Oikivo consultant application is approved! ðŸŽ‰'
             : 'Update on your Oikivo consultant application',
           tplConsultantApplicationDecision(
             consultantUser.firstName,
@@ -881,13 +999,12 @@ export class ConsultationsService {
           ),
         );
       }
-    } catch { /* non-blocking */ }
+    } catch (e) { this.logger.warn(`Non-blocking decision email error: ${e?.message}`); }
 
     // C11: When approved, notify past clients who had bookings with this consultant
     if (dto.decision === 'approved') {
       try {
-        const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-        const feBase = fe.replace(/\/+$/, '');
+        const feBase = this.getFrontendBaseUrl();
         const pastBookings = await this.bookingRepo.find({
           where: { consultantId: consultant.id },
           relations: ['client'],
@@ -900,24 +1017,24 @@ export class ConsultationsService {
             booking.clientId,
             'consultant_approved',
             `${consultant.displayName} is now a verified consultant`,
-            `${consultant.displayName} أصبح الآن مستشاراً موثقاً`,
+            `${consultant.displayName} Ø£ØµØ¨Ø­ Ø§Ù„Ø¢Ù† Ù…Ø³ØªØ´Ø§Ø±Ø§Ù‹ Ù…ÙˆØ«Ù‚Ø§Ù‹`,
             `You can now book a consultation session with ${consultant.displayName}.`,
-            `يمكنك الآن حجز جلسة استشارية مع ${consultant.displayName}.`,
+            `ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ù„Ø¢Ù† Ø­Ø¬Ø² Ø¬Ù„Ø³Ø© Ø§Ø³ØªØ´Ø§Ø±ÙŠØ© Ù…Ø¹ ${consultant.displayName}.`,
             { consultantId: consultant.id },
           );
           try {
             await this.mail.send(
               booking.client.email,
-              `${consultant.displayName} is now available on Oikivo — Oikivo`,
+              `${consultant.displayName} is now available on Oikivo â€” Oikivo`,
               tplConsultantApprovedClientNotice(
                 booking.client.firstName,
                 consultant.displayName,
                 `${feBase}/en/consultations/${consultant.uuid}`,
               ),
             );
-          } catch { /* non-blocking */ }
+          } catch (e) { this.logger.warn(`Non-blocking past client email error: ${e?.message}`); }
         }
-      } catch { /* non-blocking */ }
+      } catch (e) { this.logger.warn(`Non-blocking past client notification error: ${e?.message}`); }
     }
 
     return saved;
@@ -926,10 +1043,73 @@ export class ConsultationsService {
   async adminGetConsultantDetail(consultantId: number) {
     const consultant = await this.consultantRepo.findOne({
       where: { id: consultantId },
-      relations: ['user', 'documents'],
+      relations: ['user', 'documents', 'availability'],
     });
     if (!consultant) throw new NotFoundException('Consultant not found');
-    return consultant;
+
+    // Fetch extra stats
+    const [bookingCount, totalEarnings, reviewCount] = await Promise.all([
+      this.bookingRepo.count({ where: { consultantId } }),
+      this.bookingRepo.createQueryBuilder('b')
+        .select('COALESCE(SUM(b.price), 0)', 'v')
+        .where('b.consultant_id = :id', { id: consultantId })
+        .andWhere('b.payment_status = :ps', { ps: 'paid' })
+        .getRawOne().then((r: any) => parseFloat(r?.v ?? '0')),
+      this.reviewRepo.count({ where: { consultantId } }),
+    ]);
+
+    return {
+      ...consultant,
+      stats: { bookingCount, totalEarnings, reviewCount },
+    };
+  }
+
+  async adminUpdateConsultant(consultantId: number, dto: UpdateConsultantProfileDto & { isFeatured?: boolean; status?: string }) {
+    const consultant = await this.consultantRepo.findOne({ where: { id: consultantId } });
+    if (!consultant) throw new NotFoundException('Consultant not found');
+
+    const { isFeatured, status, ...profileFields } = dto;
+
+    // Update profile fields
+    Object.assign(consultant, profileFields);
+
+    // Toggle featured
+    if (typeof isFeatured === 'boolean') {
+      consultant.isFeatured = isFeatured;
+    }
+
+    // Status change (suspend/unsuspend)
+    if (status && ['approved', 'suspended', 'pending'].includes(status)) {
+      consultant.status = status as any;
+      // Update user.isConsultant flag
+      if (consultant.userId) {
+        const user = await this.usersRepo.findOne({ where: { id: consultant.userId } });
+        if (user) {
+          user.isConsultant = status === 'approved';
+          await this.usersRepo.save(user);
+        }
+      }
+    }
+
+    return this.consultantRepo.save(consultant);
+  }
+
+  async adminGetConsultantBookings(consultantId: number, params: { page?: number; limit?: number; status?: string }) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 20;
+    const qb = this.bookingRepo.createQueryBuilder('b')
+      .leftJoinAndSelect('b.client', 'client')
+      .where('b.consultant_id = :id', { id: consultantId })
+      .orderBy('b.scheduledAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (params.status) {
+      qb.andWhere('b.status = :status', { status: params.status });
+    }
+
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async adminGetStats() {
@@ -951,10 +1131,155 @@ export class ConsultationsService {
       platformRevenue: Number(revenue),
     };
   }
+  // MISS7: Admin revenue dashboard with detailed breakdown
+  async adminGetRevenueStats() {
+    const { totalFees } = await this.bookingRepo.createQueryBuilder('b')
+      .select('COALESCE(SUM(b.platform_fee), 0)', 'totalFees')
+      .where('b.status = :s', { s: 'completed' })
+      .getRawOne();
 
-  // ═══════════════════════════════════════════════════════════
+    const { totalRefunds } = await this.bookingRepo.createQueryBuilder('b')
+      .select('COALESCE(SUM(b.refund_amount), 0)', 'totalRefunds')
+      .where('b.refund_amount > 0')
+      .getRawOne();
+
+    const { pendingPayouts } = await this.payoutRepo.createQueryBuilder('p')
+      .select('COALESCE(SUM(p.amount), 0)', 'pendingPayouts')
+      .where('p.status = :s', { s: 'pending' })
+      .getRawOne();
+
+    const { completedPayouts } = await this.payoutRepo.createQueryBuilder('p')
+      .select('COALESCE(SUM(p.amount), 0)', 'completedPayouts')
+      .where('p.status = :s', { s: 'approved' })
+      .getRawOne();
+
+    const monthly = await this.bookingRepo.createQueryBuilder('b')
+      .select('DATE_FORMAT(b.completed_at, \'%Y-%m\')', 'month')
+      .addSelect('COALESCE(SUM(b.platform_fee), 0)', 'fees')
+      .addSelect('COALESCE(SUM(b.consultant_payout), 0)', 'payouts')
+      .addSelect('COUNT(*)', 'bookings')
+      .where('b.status = :s', { s: 'completed' })
+      .andWhere('b.completed_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)')
+      .groupBy('month')
+      .orderBy('month', 'DESC')
+      .getRawMany();
+
+    const { pendingRefunds } = await this.bookingRepo.createQueryBuilder('b')
+      .select('COALESCE(SUM(b.refund_amount), 0)', 'pendingRefunds')
+      .where('b.payment_status = :s', { s: 'refund_pending' })
+      .getRawOne();
+
+    return {
+      totalPlatformFees: Number(totalFees),
+      totalRefunds: Number(totalRefunds),
+      pendingRefunds: Number(pendingRefunds),
+      pendingPayouts: Number(pendingPayouts),
+      completedPayouts: Number(completedPayouts),
+      netRevenue: Number(totalFees) - Number(totalRefunds),
+      monthly: monthly.map(m => ({
+        month: m.month,
+        fees: Number(m.fees),
+        payouts: Number(m.payouts),
+        bookings: Number(m.bookings),
+      })),
+    };
+  }
+
+  // MISS6: Reschedule a confirmed booking
+  async rescheduleBooking(userId: number, bookingId: number, dto: RescheduleBookingDto) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId },
+      relations: ['consultant', 'consultant.user', 'client'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const isClient = booking.clientId === userId;
+    const consultant = await this.consultantRepo.findOne({ where: { userId } });
+    const isConsultant = consultant && booking.consultantId === consultant.id;
+    if (!isClient && !isConsultant) throw new ForbiddenException('Not authorized');
+
+    if (booking.status !== 'confirmed') {
+      throw new BadRequestException('Only confirmed bookings can be rescheduled');
+    }
+
+    const newScheduledAt = new Date(dto.scheduledAt);
+    if (newScheduledAt <= new Date()) {
+      throw new BadRequestException('New scheduled time must be in the future');
+    }
+
+    const hoursUntilSession = (new Date(booking.scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60);
+    if (hoursUntilSession < 2) {
+      throw new BadRequestException('Cannot reschedule less than 2 hours before the session');
+    }
+
+    const dateStr = newScheduledAt.toISOString().slice(0, 10);
+    const availableSlots = await this.getAvailableSlots(
+      booking.consultantId,
+      dateStr,
+      booking.durationMinutes,
+    );
+    if (!availableSlots.slots.includes(newScheduledAt.toISOString())) {
+      throw new BadRequestException('The new time slot is not available');
+    }
+
+    const durationMs = booking.durationMinutes * 60 * 1000;
+    const newEnd = new Date(newScheduledAt.getTime() + durationMs);
+    const overlap = await this.bookingRepo.createQueryBuilder('b')
+      .where('b.consultant_id = :cid', { cid: booking.consultantId })
+      .andWhere('b.id != :bid', { bid: booking.id })
+      .andWhere('b.status NOT IN (:...excluded)', { excluded: ['cancelled', 'no_show'] })
+      .andWhere('b.scheduled_at < :newEnd', { newEnd })
+      .andWhere('DATE_ADD(b.scheduled_at, INTERVAL b.duration_minutes MINUTE) > :newStart', { newStart: newScheduledAt })
+      .getCount();
+    if (overlap > 0) {
+      throw new BadRequestException('The new time slot overlaps with another booking');
+    }
+
+    if (!booking.originalScheduledAt) {
+      booking.originalScheduledAt = booking.scheduledAt;
+    }
+    booking.scheduledAt = newScheduledAt;
+    const saved = await this.bookingRepo.save(booking);
+
+    const rescheduledBy = isClient ? 'client' : 'consultant';
+    const notifyUserId = isClient ? booking.consultant?.userId : booking.clientId;
+    const scheduledLabel = newScheduledAt.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+
+    if (notifyUserId) {
+      await this.notificationsService.create(
+        notifyUserId,
+        'booking_rescheduled',
+        `Consultation rescheduled by ${rescheduledBy}`,
+        `Consultation rescheduled`,
+        `Your consultation has been rescheduled to ${scheduledLabel}${dto.reason ? '. Reason: ' + dto.reason : ''}`,
+        `Your consultation has been rescheduled to ${scheduledLabel}`,
+        { consultationBookingId: saved.id },
+      );
+    }
+
+    return saved;
+  }
+
+  // MISS8: Get platform InstaPay details for client-facing display
+  getInstapayDetails() {
+    const phone = this.configService.get<string>('INSTAPAY_PHONE');
+    const name = this.configService.get<string>('INSTAPAY_NAME');
+
+    if (!phone) {
+      throw new BadRequestException('Platform InstaPay payment details are not configured. Please contact support.');
+    }
+
+    return {
+      instapayPhone: phone,
+      instapayName: name ?? 'Oikivo Platform',
+    };
+  }
+
+
+
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  HELPERS
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   // G22: Resolve a local time string (HH:mm) on a given date in the consultant's timezone to a UTC Date.
   private localTimeToUtc(dateStr: string, timeStr: string, timezone: string): Date {
@@ -1001,7 +1326,7 @@ export class ConsultationsService {
     clientTimezone?: string,
   ): Promise<{ slots: string[]; consultantTimezone: string }> {
     const dateObj = new Date(date + 'T00:00:00Z');
-    const dayOfWeek = dateObj.getUTCDay(); // 0=Sunday … 6=Saturday
+    const dayOfWeek = dateObj.getUTCDay(); // 0=Sunday â€¦ 6=Saturday
 
     const consultant = await this.consultantRepo.findOne({ where: { id: consultantId } });
     const consultantTimezone = consultant?.timezone ?? 'UTC';
@@ -1019,7 +1344,7 @@ export class ConsultationsService {
       .getOne();
     if (vacationBlock) return { slots: [], consultantTimezone };
 
-    // Build day boundaries in the consultant's timezone → UTC
+    // Build day boundaries in the consultant's timezone â†’ UTC
     const dayStartUtc = this.localTimeToUtc(date, '00:00', consultantTimezone);
     const dayEndUtc   = this.localTimeToUtc(date, '23:59', consultantTimezone);
 
@@ -1142,67 +1467,32 @@ export class ConsultationsService {
     };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  CONSULTATION SERVICES CRUD
-  // ═══════════════════════════════════════════════════════════
-
-  async createService(userId: number, dto: CreateConsultationServiceDto): Promise<ConsultationServiceEntity> {
-    const consultant = await this.getApprovedConsultant(userId);
-    const service = this.serviceRepo.create({
-      consultantId: consultant.id,
-      title: dto.title,
-      titleAr: dto.titleAr,
-      description: dto.description,
-      descriptionAr: dto.descriptionAr,
-      category: dto.category,
-      durationMinutes: dto.durationMinutes,
-      price: dto.price,
-      currency: dto.currency ?? 'EGP',
-      deliveryMode: dto.deliveryMode ?? 'video_call',
-      maxBookingsPerDay: dto.maxBookingsPerDay ?? 5,
-      isActive: true,
-    });
-    return this.serviceRepo.save(service);
-  }
-
-  async getMyServices(userId: number): Promise<ConsultationServiceEntity[]> {
-    const consultant = await this.consultantRepo.findOne({ where: { userId } });
-    if (!consultant) return [];
-    return this.serviceRepo.find({ where: { consultantId: consultant.id }, order: { createdAt: 'DESC' } });
-  }
-
-  async getConsultantServices(consultantId: number): Promise<ConsultationServiceEntity[]> {
-    return this.serviceRepo.find({ where: { consultantId, isActive: true }, order: { price: 'ASC' } });
-  }
-
-  async updateService(userId: number, serviceId: number, dto: UpdateConsultationServiceDto): Promise<ConsultationServiceEntity> {
-    const consultant = await this.consultantRepo.findOne({ where: { userId } });
-    if (!consultant) throw new NotFoundException('Consultant profile not found');
-    const service = await this.serviceRepo.findOne({ where: { id: serviceId, consultantId: consultant.id } });
-    if (!service) throw new NotFoundException('Consultation service not found');
-    Object.assign(service, dto);
-    return this.serviceRepo.save(service);
-  }
-
-  async deleteService(userId: number, serviceId: number): Promise<{ message: string }> {
-    const consultant = await this.consultantRepo.findOne({ where: { userId } });
-    if (!consultant) throw new NotFoundException('Consultant profile not found');
-    const service = await this.serviceRepo.findOne({ where: { id: serviceId, consultantId: consultant.id } });
-    if (!service) throw new NotFoundException('Consultation service not found');
-    service.isActive = false;
-    await this.serviceRepo.save(service);
-    return { message: 'Service deactivated' };
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  C4 — VACATION / OUT-OF-OFFICE BLOCKING
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  //  C4 â€” VACATION / OUT-OF-OFFICE BLOCKING
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async blockVacation(userId: number, dto: BlockVacationDto) {
     const consultant = await this.getApprovedConsultant(userId);
     if (dto.startDate > dto.endDate) {
       throw new BadRequestException('Start date must be on or before end date');
     }
+
+    const conflicting = await this.bookingRepo
+      .createQueryBuilder('b')
+      .where('b.consultant_id = :cid', { cid: consultant.id })
+      .andWhere('b.status = :status', { status: 'confirmed' })
+      .andWhere('DATE(b.scheduled_at) BETWEEN :startDate AND :endDate', {
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+      })
+      .getCount();
+
+    if (conflicting > 0) {
+      throw new BadRequestException(
+        'Vacation block conflicts with existing confirmed bookings. Reschedule/cancel those bookings first.',
+      );
+    }
+
     return this.vacationRepo.save(
       this.vacationRepo.create({
         consultantId: consultant.id,
@@ -1232,9 +1522,9 @@ export class ConsultationsService {
     return { message: 'Vacation block deleted' };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  C7 — REVIEW FLAGGING
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  //  C7 â€” REVIEW FLAGGING
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async flagReview(userId: number, reviewId: number, reason: string) {
     const review = await this.reviewRepo.findOne({ where: { id: reviewId } });
@@ -1249,9 +1539,9 @@ export class ConsultationsService {
           admin.id,
           'review_flagged',
           `Consultation review #${reviewId} flagged`,
-          `تم الإبلاغ عن التقييم #${reviewId}`,
+          `ØªÙ… Ø§Ù„Ø¥Ø¨Ù„Ø§Øº Ø¹Ù† Ø§Ù„ØªÙ‚ÙŠÙŠÙ… #${reviewId}`,
           `Review #${reviewId} was flagged by user #${userId}. Reason: ${reason}`,
-          `تم الإبلاغ عن التقييم #${reviewId} من المستخدم #${userId}. السبب: ${reason}`,
+          `ØªÙ… Ø§Ù„Ø¥Ø¨Ù„Ø§Øº Ø¹Ù† Ø§Ù„ØªÙ‚ÙŠÙŠÙ… #${reviewId} Ù…Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… #${userId}. Ø§Ù„Ø³Ø¨Ø¨: ${reason}`,
           { consultationReviewId: reviewId },
         ),
       ),
@@ -1260,9 +1550,9 @@ export class ConsultationsService {
     return { message: 'Review has been flagged. Our team will review it shortly.' };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  C8 — ADMIN CONSULTATION REVIEW MODERATION
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  //  C8 â€” ADMIN CONSULTATION REVIEW MODERATION
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   async adminGetConsultationReviews(page = 1, limit = 20) {
     const [items, total] = await this.reviewRepo.findAndCount({
@@ -1278,22 +1568,70 @@ export class ConsultationsService {
     const review = await this.reviewRepo.findOne({ where: { id: reviewId } });
     if (!review) throw new NotFoundException('Review not found');
     review.isHidden = !review.isHidden as any;
-    return this.reviewRepo.save(review);
+    const saved = await this.reviewRepo.save(review);
+
+    // BUG-M6: Recalculate consultant's avgRating and reviewCount from visible reviews
+    await this.recalculateConsultantRating(review.consultantId);
+
+    return saved;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  C12: PAYOUT FLOW
-  // ═══════════════════════════════════════════════════════════
+  /** Recalculate avgRating and reviewCount for a consultant from non-hidden reviews */
+  private async recalculateConsultantRating(consultantId: number) {
+    const result = await this.reviewRepo
+      .createQueryBuilder('r')
+      .select('COUNT(*)', 'cnt')
+      .addSelect('COALESCE(AVG(r.overall_rating), 0)', 'avg')
+      .where('r.consultant_id = :cid', { cid: consultantId })
+      .andWhere('r.is_hidden = 0')
+      .getRawOne();
+    await this.consultantRepo.update(consultantId, {
+      reviewCount: Number(result?.cnt ?? 0),
+      avgRating: Math.round(Number(result?.avg ?? 0) * 100) / 100,
+    });
+  }
 
-  /** Release held earnings to 'available' after 48h — called by scheduler */
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  //  C12: PAYOUT FLOW
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+  /** Release held earnings to 'available' after 48h â€” called by scheduler */
   async releaseConsultantEarningsHold() {
     const now = new Date();
+    // BUG-C5: Join with booking to skip earnings for cancelled/refunded/disputed bookings
     const held = await this.earningRepo
       .createQueryBuilder('e')
+      .leftJoinAndSelect('e.booking', 'b')
       .where('e.status = :s', { s: 'hold' })
       .andWhere('e.available_at <= :now', { now })
       .getMany();
     for (const e of held) {
+      const booking = (e as any).booking;
+      if (booking && ['cancelled', 'disputed', 'no_show'].includes(booking.status)) {
+        e.status = 'refunded';
+        await this.earningRepo.save(e);
+        continue;
+      }
+      if (booking && ['refund_pending', 'refunded'].includes(booking.paymentStatus)) {
+        e.status = 'refunded';
+        await this.earningRepo.save(e);
+        continue;
+      }
+      // BUG-H4: Only release if client confirmed OR 48h auto-confirm window passed
+      if (booking && !booking.clientConfirmedAt) {
+        // Client hasn't confirmed — check if 48h auto-confirm window has passed
+        const completedAt = booking.completedAt ? new Date(booking.completedAt) : null;
+        const autoConfirmDeadline = completedAt
+          ? new Date(completedAt.getTime() + 48 * 60 * 60 * 1000)
+          : null;
+        if (!autoConfirmDeadline || now < autoConfirmDeadline) {
+          // Still within the window — don't release yet, wait for client confirmation or auto-confirm
+          continue;
+        }
+        // 48h passed without client action — auto-confirm
+        booking.clientConfirmedAt = now;
+        await this.bookingRepo.save(booking);
+      }
       e.status = 'available';
       await this.earningRepo.save(e);
     }
@@ -1340,63 +1678,75 @@ export class ConsultationsService {
   }
 
   /** Consultant requests a payout of available balance */
+  /** Consultant requests a payout of available balance */
   async requestPayout(userId: number, dto: RequestConsultantPayoutDto) {
     const consultant = await this.getApprovedConsultant(userId);
 
-    const availableBalance = await this.earningRepo
-      .createQueryBuilder('e')
-      .select('SUM(e.amount)', 'total')
-      .where('e.consultant_id = :id', { id: consultant.id })
-      .andWhere('e.status = :s', { s: 'available' })
-      .getRawOne()
-      .then((r) => Number(r?.total ?? 0));
+    // PAY3: Enforce minimum payout amount
+    const MIN_PAYOUT_AMOUNT = 50;
+    if (dto.amount < MIN_PAYOUT_AMOUNT) {
+      throw new BadRequestException(`Minimum payout amount is ${MIN_PAYOUT_AMOUNT} EGP`);
+    }
 
-    if (dto.amount > availableBalance) {
-      throw new BadRequestException(
-        `Requested amount (${dto.amount}) exceeds available balance (${availableBalance.toFixed(2)})`,
+    // BUG-H3: Move balance check + earning marking inside a single transaction with row locking
+    const result = await this.dataSource.transaction(async (manager) => {
+      // Lock the available earnings rows to prevent concurrent payout race condition
+      const availableEarnings = await manager
+        .createQueryBuilder(this.earningRepo.target, 'e')
+        .setLock('pessimistic_write')
+        .where('e.consultant_id = :id', { id: consultant.id })
+        .andWhere('e.status = :s', { s: 'available' })
+        .orderBy('e.created_at', 'ASC')
+        .getMany();
+
+      const availableBalance = availableEarnings.reduce((s, e) => s + Number(e.amount), 0);
+
+      if (dto.amount > availableBalance) {
+        throw new BadRequestException(
+          `Requested amount (${dto.amount}) exceeds available balance (${availableBalance.toFixed(2)})`,
+        );
+      }
+
+      // Create payout request
+      const request = await manager.save(
+        manager.create(this.payoutRepo.target, {
+          consultantId: consultant.id,
+          amount: dto.amount,
+          currency: consultant.currency ?? 'EGP',
+          method: dto.method ?? consultant.payoutMethod ?? 'instapay',
+          accountDetails: dto.accountDetails ?? consultant.payoutAccountDetails ?? null,
+          status: 'pending',
+        }),
       );
-    }
 
-    // Create payout request
-    const request = await this.payoutRepo.save(
-      this.payoutRepo.create({
-        consultantId: consultant.id,
-        amount: dto.amount,
-        currency: consultant.currency ?? 'EGP',
-        method: dto.method ?? consultant.payoutMethod ?? 'instapay',
-        accountDetails: dto.accountDetails ?? consultant.payoutAccountDetails ?? null,
-        status: 'pending',
-      }),
-    );
+      // Mark corresponding earnings as 'paid' and link to payout request (PAY2)
+      let remaining = dto.amount;
+      for (const e of availableEarnings) {
+        if (remaining <= 0) break;
+        e.status = 'paid';
+        (e as any).payoutRequestId = request.id;
+        await manager.save(e);
+        remaining -= Number(e.amount);
+      }
 
-    // Mark corresponding earnings as 'paid' (deduct from available balance)
-    const availableEarnings = await this.earningRepo.find({
-      where: { consultantId: consultant.id, status: 'available' },
-      order: { createdAt: 'ASC' },
+      return request;
     });
-    let remaining = dto.amount;
-    for (const e of availableEarnings) {
-      if (remaining <= 0) break;
-      e.status = 'paid';
-      await this.earningRepo.save(e);
-      remaining -= Number(e.amount);
-    }
 
-    // Notify admins
+    // Notify admins (non-blocking, outside transaction)
     const admins = await this.usersRepo.find({ where: { isAdmin: true } });
     for (const admin of admins) {
       await this.notificationsService.create(
         admin.id,
         'consultant_payout_request',
         'New consultant payout request',
-        'طلب سحب جديد من مستشار',
+        'Ø·Ù„Ø¨ Ø³Ø­Ø¨ Ø¬Ø¯ÙŠØ¯ Ù…Ù† Ù…Ø³ØªØ´Ø§Ø±',
         `${consultant.displayName} requested a payout of ${dto.amount} ${consultant.currency ?? 'EGP'}`,
-        `${consultant.displayName} طلب سحب ${dto.amount} ${consultant.currency ?? 'EGP'}`,
-        { consultantId: consultant.id, payoutRequestId: request.id },
+        `${consultant.displayName} Ø·Ù„Ø¨ Ø³Ø­Ø¨ ${dto.amount} ${consultant.currency ?? 'EGP'}`,
+        { consultantId: consultant.id, payoutRequestId: result.id },
       );
     }
 
-    return request;
+    return result;
   }
 
   /** Consultant views own payout requests */
@@ -1441,18 +1791,15 @@ export class ConsultationsService {
       request.processedAt = new Date();
     }
 
-    // If failed, refund earnings back to 'available'
+    // If failed, refund earnings back to 'available' — PAY2: use payoutRequestId for precision
     if (dto.status === 'failed') {
-      const paidEarnings = await this.earningRepo.find({
-        where: { consultantId: request.consultantId, status: 'paid' },
-        order: { createdAt: 'DESC' },
+      const linkedEarnings = await this.earningRepo.find({
+        where: { consultantId: request.consultantId, status: 'paid', payoutRequestId: request.id },
       });
-      let refund = Number(request.amount);
-      for (const e of paidEarnings) {
-        if (refund <= 0) break;
+      for (const e of linkedEarnings) {
         e.status = 'available';
+        e.payoutRequestId = null;
         await this.earningRepo.save(e);
-        refund -= Number(e.amount);
       }
     }
 
@@ -1460,15 +1807,14 @@ export class ConsultationsService {
 
     // Email consultant about the outcome
     try {
-      const fe = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const feBase = fe.replace(/\/+$/, '');
+      const feBase = this.getFrontendBaseUrl();
       const consultantUser = request.consultant?.user;
       if (consultantUser) {
         await this.mail.send(
           consultantUser.email,
           dto.status === 'completed'
-            ? 'Your payout has been processed — Oikivo'
-            : 'Payout processing update — Oikivo',
+            ? 'Your payout has been processed â€” Oikivo'
+            : 'Payout processing update â€” Oikivo',
           tplConsultantPayoutProcessed(
             request.consultant.displayName,
             Number(request.amount).toFixed(2),
@@ -1480,14 +1826,395 @@ export class ConsultationsService {
           ),
         );
       }
-    } catch { /* non-blocking */ }
+    } catch (e) { this.logger.warn(`Non-blocking payout notification error: ${e?.message}`); }
 
     return request;
   }
 
+  // BUG-H2: Admin-only InstaPay payment verification (replaces consultant-side verification)
+  async adminVerifyPayment(bookingId: number) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId },
+      relations: ['consultant', 'consultant.user'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (['cancelled', 'no_show'].includes(booking.status)) {
+      throw new BadRequestException('Cannot verify payment on a cancelled or no-show booking');
+    }
+    if (booking.paymentMethod !== 'instapay') {
+      throw new BadRequestException('This booking does not use InstaPay');
+    }
+    if (booking.paymentStatus === 'paid') {
+      throw new BadRequestException('Payment already verified');
+    }
+    if (!['submitted', 'pending'].includes(booking.paymentStatus)) {
+      throw new BadRequestException('No payment proof submitted yet');
+    }
+
+    booking.paymentStatus = 'paid';
+    const saved = await this.bookingRepo.save(booking);
+
+    // Notify consultant
+    try {
+      const feBase = this.getFrontendBaseUrl();
+      const consultant = booking.consultant;
+      const consultantUser = consultant?.user;
+      const client = await this.usersRepo.findOne({ where: { id: booking.clientId } });
+      if (consultantUser) {
+        const scheduledLabel = new Date(booking.scheduledAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+        const sessionLabel = `${booking.durationMinutes} min Consultation`;
+        await this.mail.send(
+          consultantUser.email,
+          'Payment verified for your consultation booking \u2013 Oikivo',
+          tplConsultationPaymentReceived(
+            consultant.displayName,
+            client ? `${client.firstName} ${client.lastName}` : `Client #${booking.clientId}`,
+            sessionLabel,
+            scheduledLabel,
+            Number(booking.consultantPayout).toFixed(2),
+            booking.currency ?? 'EGP',
+            String(booking.id),
+            `${feBase}/en/consultations/dashboard`,
+          ),
+        );
+      }
+      // Notify consultant in-app
+      if (consultant?.userId) {
+        await this.notificationsService.create(
+          consultant.userId,
+          'payment_verified',
+          'Payment verified by admin',
+          '\u062A\u0645 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u062F\u0641\u0639 \u0628\u0648\u0627\u0633\u0637\u0629 \u0627\u0644\u0645\u0634\u0631\u0641',
+          `Payment for booking #${booking.id} has been verified. You can now confirm the session.`,
+          `\u062A\u0645 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u062F\u0641\u0639 \u0627\u0644\u062D\u062C\u0632 #${booking.id}. \u064A\u0645\u0643\u0646\u0643 \u0627\u0644\u0622\u0646 \u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062C\u0644\u0633\u0629.`,
+          { consultationBookingId: booking.id },
+        );
+      }
+    } catch (e) { this.logger.warn(`Non-blocking admin verify payment notification error: ${e?.message}`); }
+
+    return saved;
+  }
+
+  // BUG-H2: Admin list pending payment verifications
+  async adminListPendingPayments(params: { page?: number }) {
+    const page = params.page ?? 1;
+    const limit = 25;
+    const qb = this.bookingRepo.createQueryBuilder('b')
+      .leftJoinAndSelect('b.consultant', 'c')
+      .leftJoinAndSelect('c.user', 'cu')
+      .leftJoinAndSelect('b.client', 'cl')
+      .where('b.payment_method = :pm', { pm: 'instapay' })
+      .andWhere('b.payment_status = :ps', { ps: 'submitted' })
+      .andWhere('b.status NOT IN (:...excluded)', { excluded: ['cancelled', 'no_show'] })
+      .orderBy('b.created_at', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, page, totalPages: Math.ceil(total / limit) };
+  }
+
   private async getApprovedConsultant(userId: number): Promise<ConsultantEntity> {
+    const consultant = await this.consultantRepo.findOne({ where: { userId } });
     if (!consultant) throw new NotFoundException('Consultant profile not found');
     if (consultant.status !== 'approved') throw new ForbiddenException('Your consultant profile is not approved yet');
     return consultant;
+  }
+
+  /** FE-12: Single source of truth for FRONTEND_URL resolution */
+  private getFrontendBaseUrl(): string {
+    const raw = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    return (raw.split(',')[0]?.trim() || 'http://localhost:3000').replace(/\/+$/, '');
+  }
+
+  // BUG-M1: Mark a booking as no_show with party-specific refund logic
+  async markNoShow(bookingId: number, dto: AdminMarkNoShowDto) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId },
+      relations: ['consultant'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (!['confirmed', 'in_progress'].includes(booking.status)) {
+      throw new BadRequestException('Only confirmed or in-progress bookings can be marked as no-show');
+    }
+
+    const wasCompleted = booking.status === 'completed';
+    booking.status = 'no_show';
+    booking.cancelledBy = 'admin';
+    booking.cancellationReason = `No-show by ${dto.noShowParty}`;
+
+    if (dto.noShowParty === 'consultant') {
+      // Consultant no-show → full refund to client
+      if (['paid', 'hold'].includes(booking.paymentStatus)) {
+        booking.refundAmount = Number(booking.price);
+        booking.cancellationFee = 0;
+        booking.paymentStatus = 'refund_pending';
+      }
+      // Cancel any existing earning
+      const earning = await this.earningRepo.findOne({ where: { bookingId } });
+      if (earning && earning.status !== 'refunded') {
+        earning.status = 'refunded';
+        await this.earningRepo.save(earning);
+      }
+    } else {
+      // Client no-show → consultant keeps the money, no refund
+      // Leave paymentStatus as-is (consultant deserves payment for showing up)
+    }
+
+    // BUG-M5: Decrement totalSessions if the booking was previously completed
+    if (wasCompleted && booking.consultant) {
+      await this.consultantRepo.decrement({ id: booking.consultantId }, 'totalSessions', 1);
+    }
+
+    const saved = await this.bookingRepo.save(booking);
+
+    // Notify both parties
+    const [client, consultantUser] = await Promise.all([
+      this.usersRepo.findOne({ where: { id: booking.clientId } }),
+      booking.consultant?.userId
+        ? this.usersRepo.findOne({ where: { id: booking.consultant.userId } })
+        : null,
+    ]);
+    if (client) {
+      await this.notificationsService.create(
+        client.id, 'booking_no_show', 'Session marked as no-show',
+        '\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0639\u062F\u0645 \u062D\u0636\u0648\u0631',
+        `Booking #${bookingId} was marked as no-show (${dto.noShowParty} did not attend).`,
+        `\u0627\u0644\u062D\u062C\u0632 #${bookingId} \u062A\u0645 \u062A\u0633\u062C\u064A\u0644\u0647 \u0643\u0639\u062F\u0645 \u062D\u0636\u0648\u0631 (${dto.noShowParty}).`,
+        { consultationBookingId: bookingId },
+      );
+    }
+    if (consultantUser) {
+      await this.notificationsService.create(
+        consultantUser.id, 'booking_no_show', 'Session marked as no-show',
+        '\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0639\u062F\u0645 \u062D\u0636\u0648\u0631',
+        `Booking #${bookingId} was marked as no-show (${dto.noShowParty} did not attend).`,
+        `\u0627\u0644\u062D\u062C\u0632 #${bookingId} \u062A\u0645 \u062A\u0633\u062C\u064A\u0644\u0647 \u0643\u0639\u062F\u0645 \u062D\u0636\u0648\u0631 (${dto.noShowParty}).`,
+        { consultationBookingId: bookingId },
+      );
+    }
+
+    return saved;
+  }
+
+  // BE-20: Mark a booking as disputed (admin only)
+  async markDisputed(bookingId: number) {
+    const booking = await this.bookingRepo.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (['cancelled', 'disputed'].includes(booking.status)) {
+      throw new BadRequestException('Booking cannot be disputed');
+    }
+    booking.status = 'disputed';
+    return this.bookingRepo.save(booking);
+  }
+
+  // BUG-M2: Admin resolves a dispute with specific resolution
+  async adminResolveDispute(bookingId: number, dto: AdminResolveDisputeDto) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId },
+      relations: ['consultant'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status !== 'disputed') {
+      throw new BadRequestException('Booking is not in disputed state');
+    }
+
+    const earning = await this.earningRepo.findOne({ where: { bookingId } });
+
+    if (dto.resolution === 'refund_client') {
+      // Full refund to client, cancel earning
+      if (['paid', 'hold'].includes(booking.paymentStatus)) {
+        booking.refundAmount = Number(booking.price);
+        booking.cancellationFee = 0;
+        booking.paymentStatus = 'refund_pending';
+      }
+      if (earning && earning.status !== 'refunded') {
+        earning.status = 'refunded';
+        await this.earningRepo.save(earning);
+      }
+      // BUG-M5: Decrement totalSessions since session is voided
+      if (booking.consultant) {
+        await this.consultantRepo.decrement({ id: booking.consultantId }, 'totalSessions', 1);
+      }
+    } else if (dto.resolution === 'pay_consultant') {
+      // Consultant keeps money, release earning
+      if (earning && earning.status === 'hold') {
+        earning.status = 'available';
+        await this.earningRepo.save(earning);
+      }
+    } else if (dto.resolution === 'split') {
+      // 50/50 split — partial refund to client, partial to consultant
+      const halfPrice = Math.round(Number(booking.price) * 0.5 * 100) / 100;
+      booking.refundAmount = halfPrice;
+      booking.cancellationFee = halfPrice;
+      if (['paid', 'hold'].includes(booking.paymentStatus)) {
+        booking.paymentStatus = 'refund_pending';
+      }
+      if (earning) {
+        // Reduce earning amount to half
+        earning.amount = Math.round(Number(booking.consultantPayout) * 0.5 * 100) / 100;
+        earning.status = 'available';
+        await this.earningRepo.save(earning);
+      }
+    }
+
+    booking.status = 'cancelled'; // Dispute resolved — close the booking
+    booking.cancellationReason = `Dispute resolved: ${dto.resolution}${dto.note ? ' — ' + dto.note : ''}`;
+    booking.cancelledBy = 'admin';
+    const saved = await this.bookingRepo.save(booking);
+
+    // Notify both parties
+    const [client, consultantUser] = await Promise.all([
+      this.usersRepo.findOne({ where: { id: booking.clientId } }),
+      booking.consultant?.userId
+        ? this.usersRepo.findOne({ where: { id: booking.consultant.userId } })
+        : null,
+    ]);
+    const resolutionLabel = {
+      refund_client: 'Full refund issued to client',
+      pay_consultant: 'Payment released to consultant',
+      split: '50/50 split — partial refund to client',
+    }[dto.resolution];
+
+    for (const user of [client, consultantUser].filter(Boolean)) {
+      await this.notificationsService.create(
+        user!.id, 'dispute_resolved', 'Dispute has been resolved',
+        '\u062A\u0645 \u062D\u0644 \u0627\u0644\u0646\u0632\u0627\u0639',
+        `Booking #${bookingId} dispute resolved: ${resolutionLabel}.${dto.note ? ' Note: ' + dto.note : ''}`,
+        `\u062A\u0645 \u062D\u0644 \u0646\u0632\u0627\u0639 \u0627\u0644\u062D\u062C\u0632 #${bookingId}: ${resolutionLabel}.`,
+        { consultationBookingId: bookingId },
+      );
+    }
+
+    return saved;
+  }
+
+  // REF1: Admin list bookings with pending refunds
+  async adminListPendingRefunds(params: { page?: number }) {
+    const page = params.page ?? 1;
+    const limit = 25;
+    const qb = this.bookingRepo.createQueryBuilder('b')
+      .leftJoinAndSelect('b.consultant', 'c')
+      .leftJoinAndSelect('c.user', 'cu')
+      .leftJoinAndSelect('b.client', 'cl')
+      .where('b.payment_status = :ps', { ps: 'refund_pending' })
+      .orderBy('b.updated_at', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, page, totalPages: Math.ceil(total / limit) };
+  }
+
+  // REF2: Admin marks a refund as completed
+  async adminProcessRefund(bookingId: number) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId },
+      relations: ['consultant'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.paymentStatus !== 'refund_pending') {
+      throw new BadRequestException('Booking does not have a pending refund');
+    }
+
+    booking.paymentStatus = 'refunded';
+    const saved = await this.bookingRepo.save(booking);
+
+    // Ensure earning is cancelled
+    const earning = await this.earningRepo.findOne({ where: { bookingId } });
+    if (earning && earning.status !== 'refunded' && earning.status !== 'paid') {
+      earning.status = 'refunded';
+      await this.earningRepo.save(earning);
+    }
+
+    // Notify client that refund is processed
+    const client = await this.usersRepo.findOne({ where: { id: booking.clientId } });
+    if (client) {
+      await this.notificationsService.create(
+        client.id, 'refund_completed', 'Your refund has been processed',
+        '\u062A\u0645 \u0645\u0639\u0627\u0644\u062C\u0629 \u0627\u0633\u062A\u0631\u062F\u0627\u062F\u0643',
+        `Refund of ${Number(booking.refundAmount).toFixed(2)} ${booking.currency} for booking #${bookingId} has been sent via InstaPay.`,
+        `\u062A\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0633\u062A\u0631\u062F\u0627\u062F ${Number(booking.refundAmount).toFixed(2)} ${booking.currency} \u0644\u0644\u062D\u062C\u0632 #${bookingId} \u0639\u0628\u0631 InstaPay.`,
+        { consultationBookingId: bookingId },
+      );
+    }
+
+    return saved;
+  }
+
+  // MF-17: Bulk confirm/decline bookings (consultant only)
+  async bulkRespondBookings(userId: number, bookingIds: number[], action: 'confirmed' | 'cancelled') {
+    const consultant = await this.getApprovedConsultant(userId);
+    const results: { id: number; success: boolean; error?: string }[] = [];
+    for (const id of bookingIds) {
+      try {
+        const booking = await this.bookingRepo.findOne({ where: { id, consultantId: consultant.id } });
+        if (!booking) { results.push({ id, success: false, error: 'Not found' }); continue; }
+        if (booking.status !== 'pending') { results.push({ id, success: false, error: 'Not pending' }); continue; }
+
+        if (action === 'confirmed') {
+          if (booking.paymentMethod === 'instapay' && booking.paymentStatus !== 'paid') {
+            results.push({ id, success: false, error: 'InstaPay booking cannot be confirmed before payment verification' });
+            continue;
+          }
+          booking.status = 'confirmed';
+        } else {
+          booking.status = 'cancelled';
+          booking.cancelledBy = 'consultant';
+          if (['paid', 'submitted'].includes(booking.paymentStatus)) {
+            booking.refundAmount = Number(booking.price);
+            booking.cancellationFee = 0;
+            booking.paymentStatus = 'refund_pending';
+          }
+        }
+        await this.bookingRepo.save(booking);
+        results.push({ id, success: true });
+      } catch (e) {
+        results.push({ id, success: false, error: e?.message ?? 'Unknown error' });
+      }
+    }
+    return results;
+  }
+
+  // NEW-8: Explicit transition to in_progress at session start time
+  async startSession(userId: number, bookingId: number) {
+    const consultant = await this.getApprovedConsultant(userId);
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId, consultantId: consultant.id },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status !== 'confirmed') {
+      throw new BadRequestException('Only confirmed bookings can be started');
+    }
+    if (booking.paymentStatus !== 'paid') {
+      throw new BadRequestException('Cannot start session before payment verification');
+    }
+
+    const now = new Date();
+    const scheduledAt = new Date(booking.scheduledAt);
+    const earlyWindow = new Date(scheduledAt.getTime() - 15 * 60 * 1000);
+    if (now < earlyWindow) {
+      throw new BadRequestException('You can start the session up to 15 minutes before scheduled time');
+    }
+
+    booking.status = 'in_progress';
+    return this.bookingRepo.save(booking);
+  }
+
+  // MF-18: Export earnings as CSV data
+  async exportEarningsCSV(userId: number) {
+    const consultant = await this.getApprovedConsultant(userId);
+    const earnings = await this.earningRepo.find({
+      where: { consultantId: consultant.id },
+      order: { createdAt: 'DESC' },
+      relations: ['booking'],
+    });
+    const rows = earnings.map((e) => ({
+      id: e.id,
+      bookingId: e.bookingId,
+      amount: Number(e.amount),
+      platformFee: Number(e.platformFee),
+      status: e.status,
+      createdAt: e.createdAt?.toISOString(),
+    }));
+    return rows;
   }
 }

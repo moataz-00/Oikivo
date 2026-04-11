@@ -6,13 +6,15 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { DisputeEntity } from '../entities/dispute.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { EarningEntity } from '../entities/earning.entity';
 import { BookingsService } from '../bookings/bookings.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
+import { unlinkSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class DisputesService {
@@ -25,6 +27,8 @@ export class DisputesService {
     private bookingsRepo: Repository<BookingEntity>,
     @InjectRepository(EarningEntity)
     private earningsRepo: Repository<EarningEntity>,
+    @InjectDataSource()
+    private dataSource: DataSource,
     private bookingsService: BookingsService,
   ) {}
 
@@ -122,36 +126,28 @@ export class DisputesService {
       throw new BadRequestException('Dispute is already resolved');
     }
 
-    // 4.4 — Trigger financial action before persisting resolution
-    if (resolution === 'resolved_for_guest') {
-      // Refund the guest: reuse existing refundBooking logic (admin action — no userId check)
-      try {
+    // Wrap resolution + financial action in transaction to ensure atomicity
+    await this.dataSource.transaction(async (manager) => {
+      // 4.4 — Trigger financial action before persisting resolution
+      if (resolution === 'resolved_for_guest') {
+        // Refund the guest: reuse existing refundBooking logic (admin action — no userId check)
         await this.bookingsService.refundBooking(dispute.bookingId);
-      } catch (err) {
-        // Log but do not block the dispute resolution if refund call fails
-        this.logger.error(
-          `[Dispute #${id}] refundBooking failed for booking #${dispute.bookingId}: ${(err as Error).message}`,
-        );
-      }
-    } else if (resolution === 'resolved_for_host') {
-      // Unlock any held (pending) earnings for this booking
-      try {
-        await this.earningsRepo.update(
+      } else if (resolution === 'resolved_for_host') {
+        // Unlock any held (pending) earnings for this booking
+        await manager.update(
+          EarningEntity,
           { bookingId: dispute.bookingId, status: 'pending' },
           { status: 'available' },
         );
-      } catch (err) {
-        this.logger.error(
-          `[Dispute #${id}] Failed to release earnings for booking #${dispute.bookingId}: ${(err as Error).message}`,
-        );
       }
-    }
 
-    await this.disputesRepo.update(id, {
-      resolution,
-      adminNote,
-      status: 'resolved',
-      resolvedAt: new Date(),
+      // Only mark as resolved if financial action succeeded
+      await manager.update(DisputeEntity, id, {
+        resolution,
+        adminNote,
+        status: 'resolved',
+        resolvedAt: new Date(),
+      });
     });
 
     return this.disputesRepo.findOne({ where: { id } });
@@ -190,6 +186,165 @@ export class DisputesService {
     const updated = (dispute.additionalInfo ?? '') + entry;
 
     await this.disputesRepo.update(id, { additionalInfo: updated });
+    return this.disputesRepo.findOne({ where: { id } });
+  }
+
+  // ─── FIX DISP-G1: Evidence upload support ──────────────────────────────────
+
+  /**
+   * Add evidence file to an open dispute.
+   * Files are stored in /uploads/disputes/{disputeId}/
+   */
+  async addEvidence(
+    id: number,
+    userId: number,
+    filePath: string,
+  ): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({
+      where: { id },
+      relations: ['booking'],
+    });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+
+    const booking = dispute.booking as BookingEntity;
+    if (
+      dispute.raisedById !== userId &&
+      booking?.guestId !== userId &&
+      booking?.hostId !== userId
+    ) {
+      throw new ForbiddenException('Not authorized to add evidence to this dispute');
+    }
+
+    if (['resolved', 'closed'].includes(dispute.status)) {
+      throw new BadRequestException('Cannot add evidence to a resolved or closed dispute');
+    }
+
+    // Add file path to evidence array
+    const currentEvidence = dispute.evidence || [];
+    const updatedEvidence = [...currentEvidence, filePath];
+
+    await this.disputesRepo.update(id, { evidence: updatedEvidence });
+    return this.disputesRepo.findOne({ where: { id } });
+  }
+
+  /**
+   * Remove evidence file from dispute.
+   */
+  async removeEvidence(
+    id: number,
+    userId: number,
+    filePath: string,
+  ): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({
+      where: { id },
+      relations: ['booking'],
+    });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+
+    const booking = dispute.booking as BookingEntity;
+    if (
+      dispute.raisedById !== userId &&
+      booking?.guestId !== userId &&
+      booking?.hostId !== userId
+    ) {
+      throw new ForbiddenException('Not authorized to remove evidence from this dispute');
+    }
+
+    if (['resolved', 'closed'].includes(dispute.status)) {
+      throw new BadRequestException('Cannot remove evidence from a resolved or closed dispute');
+    }
+
+    // Remove file from evidence array
+    const currentEvidence = dispute.evidence || [];
+    const updatedEvidence = currentEvidence.filter((path) => path !== filePath);
+
+    // Delete file from disk
+    try {
+      const fullPath = join(process.cwd(), filePath);
+      unlinkSync(fullPath);
+    } catch (err) {
+      this.logger.warn(`Failed to delete evidence file: ${filePath}`);
+    }
+
+    await this.disputesRepo.update(id, { evidence: updatedEvidence });
+    return this.disputesRepo.findOne({ where: { id } });
+  }
+
+  // ─── FIX DISP-G2: Appeal process support ───────────────────────────────────
+
+  /**
+   * Request an appeal for a resolved dispute.
+   * Only the party who raised the dispute can appeal.
+   */
+  async requestAppeal(
+    id: number,
+    userId: number,
+    reason: string,
+  ): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({ where: { id } });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+
+    // Only the raiser can appeal
+    if (dispute.raisedById !== userId) {
+      throw new ForbiddenException('Only the party who raised the dispute can request an appeal');
+    }
+
+    if (dispute.status !== 'resolved') {
+      throw new BadRequestException('Only resolved disputes can be appealed');
+    }
+
+    if (dispute.appealRequested) {
+      throw new ConflictException('Appeal already requested for this dispute');
+    }
+
+    await this.disputesRepo.update(id, {
+      appealRequested: true,
+      appealReason: reason,
+      appealedAt: new Date(),
+    });
+
+    return this.disputesRepo.findOne({ where: { id } });
+  }
+
+  /**
+   * Get all disputes with pending appeals (admin only).
+   */
+  async getDisputesWithPendingAppeals(): Promise<DisputeEntity[]> {
+    return this.disputesRepo.find({
+      where: {
+        appealRequested: true,
+        appealResolvedAt: null as any, // TypeORM workaround for IS NULL
+      },
+      relations: ['booking', 'booking.property', 'raisedBy'],
+      order: { appealedAt: 'ASC' },
+    });
+  }
+
+  /**
+   * Review and resolve an appeal (senior admin only).
+   */
+  async resolveAppeal(
+    id: number,
+    reviewerId: number,
+    resolution: string,
+  ): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({ where: { id } });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+
+    if (!dispute.appealRequested) {
+      throw new BadRequestException('No appeal requested for this dispute');
+    }
+
+    if (dispute.appealResolvedAt) {
+      throw new BadRequestException('Appeal already reviewed');
+    }
+
+    await this.disputesRepo.update(id, {
+      appealReviewedById: reviewerId,
+      appealResolution: resolution,
+      appealResolvedAt: new Date(),
+    });
+
     return this.disputesRepo.findOne({ where: { id } });
   }
 }

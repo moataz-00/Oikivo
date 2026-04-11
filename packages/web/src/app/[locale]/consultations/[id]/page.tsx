@@ -125,7 +125,7 @@ function BookingModal({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
+        className="relative w-full max-w-md max-h-[90vh] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
@@ -140,7 +140,7 @@ function BookingModal({
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
           {/* C5: Service selector */}
           {services.length > 0 && (
             <div>

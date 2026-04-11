@@ -116,17 +116,17 @@ function countryFlag(iso2: string) {
   );
 }
 
-// Egyptian mobile prefixes (local, with leading 0)
-const EGYPT_PREFIXES = ['010', '011', '012', '015'];
+// Egyptian mobile prefixes (after country code: 10, 11, 12, 15)
+const EGYPT_PREFIXES_SHORT = ['10', '11', '12', '15'];
+const EGYPT_PREFIXES_LOCAL = ['010', '011', '012', '015'];
 
 function validateEgyptianPhone(localNumber: string): string | true {
   const digits = localNumber.replace(/\D/g, '');
   if (!digits) return true; // allow empty (not required here)
-  const prefix = digits.slice(0, 3);
-  if (digits.length !== 11 || !EGYPT_PREFIXES.includes(prefix)) {
-    return 'Only Egyptian numbers starting with 010, 011, 012, or 015 can be verified at this time';
-  }
-  return true;
+  // Accept 10 digits without leading 0 (e.g. 1012345678) or 11 digits with leading 0 (e.g. 01012345678)
+  if (digits.length === 10 && EGYPT_PREFIXES_SHORT.some((p) => digits.startsWith(p))) return true;
+  if (digits.length === 11 && EGYPT_PREFIXES_LOCAL.some((p) => digits.startsWith(p))) return true;
+  return 'Only Egyptian numbers starting with 010, 011, 012, or 015 can be verified at this time';
 }
 
 // ─── PhoneInput component ──────────────────────────────────────────────────────
@@ -678,7 +678,7 @@ function AccountPageContent() {
         toast.success('Profile updated');
       }
     },
-    onError: () => toast.error('Update failed'),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Update failed'),
   });
 
   const uploadAvatarMutation = useMutation({
@@ -801,7 +801,16 @@ function AccountPageContent() {
                   </div>
                 </div>
 
-                <form onSubmit={submitProfile((data) => updateProfileMutation.mutate(data))} className="p-6 space-y-6">
+                <form onSubmit={submitProfile((data) => {
+                  // Normalize phone from PhoneInput format "+XX 0XXXXXXXXX" to backend format
+                  if (data.phone) {
+                    const raw = data.phone.replace(/\s+/g, ''); // "+2001012345678" or "01012345678"
+                    // If it has country code + local with leading 0 (e.g. +2001012345678), strip the extra 0
+                    const m = raw.match(/^(\+\d{2,4})(0)(\d+)$/);
+                    data.phone = m ? `${m[1]}${m[3]}` : raw;
+                  }
+                  updateProfileMutation.mutate(data);
+                })} className="p-6 space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <Input label={t('firstName')} {...regProfile('firstName')} />
                     <Input label={t('lastName')} {...regProfile('lastName')} />

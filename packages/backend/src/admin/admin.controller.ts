@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
@@ -18,6 +19,7 @@ import { AdminLogInterceptor } from './admin-log.interceptor';
 import { AdminGuard } from './admin.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { DisputesService } from '../disputes/disputes.service';
+import { ICalSyncService } from '../availability/ical-sync.service';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -29,6 +31,7 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly disputesService: DisputesService,
     private readonly activityLogService: AdminActivityLogService,
+    private readonly icalSyncService: ICalSyncService,
   ) {}
 
   @Get('dashboard')
@@ -297,6 +300,17 @@ export class AdminController {
 
   // ─── Analytics ──────────────────────────────────────────────────────
 
+  @Get('analytics/enhanced')
+  @ApiOperation({ summary: 'Get comprehensive analytics with detailed breakdowns (admin only)' })
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  getEnhancedAnalytics(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.adminService.getEnhancedAnalytics(from, to);
+  }
+
   @Get('analytics')
   @ApiOperation({ summary: 'Get analytics data with optional date range (admin only)' })
   @ApiQuery({ name: 'from', required: false, example: '2025-01-01' })
@@ -358,5 +372,368 @@ export class AdminController {
     @Body() body: { subject: string; body: string; audience: 'all' | 'hosts' | 'guests' },
   ) {
     return this.adminService.sendEmailBlast(body.subject, body.body, body.audience ?? 'all');
+  }
+
+  // ─── iCal Monitoring ──────────────────────────────────────────────────────
+
+  @Get('ical-sources')
+  @ApiOperation({ summary: 'Get all iCal feed sources across all properties (admin only)' })
+  getIcalSources() {
+    return this.icalSyncService.getSourcesAdmin();
+  }
+
+  @Post('ical-sources/:id/sync')
+  @ApiOperation({ summary: 'Force-sync a specific iCal feed by ID (admin only)' })
+  syncIcalSource(@Param('id', ParseIntPipe) id: number) {
+    return this.icalSyncService.syncSourceById(id);
+  }
+
+  // ─── User Detail + CRUD ─────────────────────────────────────────────────────
+
+  @Get('users/:id')
+  @ApiOperation({ summary: 'Get full user detail with stats (admin only)' })
+  getUserDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getUserDetail(id);
+  }
+
+  @Patch('users/:id')
+  @ApiOperation({ summary: 'Edit user fields (admin only)' })
+  updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: Partial<{
+      firstName: string; lastName: string; email: string; phone: string;
+      bio: string; isHost: boolean; isActive: boolean; isAdmin: boolean;
+    }>,
+  ) {
+    return this.adminService.updateUser(id, body);
+  }
+
+  @Delete('users/:id')
+  @ApiOperation({ summary: 'Delete a user (admin only)' })
+  deleteUser(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteUser(id);
+  }
+
+  @Patch('users/:id/ban')
+  @ApiOperation({ summary: 'Ban a user with reason (admin only)' })
+  banUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { reason: string },
+  ) {
+    return this.adminService.banUser(id, body.reason);
+  }
+
+  // ─── Property Detail + CRUD ─────────────────────────────────────────────────
+
+  @Get('properties/:id')
+  @ApiOperation({ summary: 'Get full property detail with stats (admin only)' })
+  getPropertyDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getPropertyDetail(id);
+  }
+
+  @Patch('properties/:id')
+  @ApiOperation({ summary: 'Edit property fields (admin only)' })
+  updateProperty(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: Partial<{
+      title: string; description: string; pricePerNight: number;
+      cleaningFee: number; status: string; maxGuests: number;
+      bedrooms: number; bathrooms: number; beds: number;
+      minNights: number; maxNights: number; city: string; country: string;
+      cancellationPolicy: string; isActive: boolean;
+    }>,
+  ) {
+    return this.adminService.updateProperty(id, body);
+  }
+
+  @Delete('properties/:id')
+  @ApiOperation({ summary: 'Delete a property (admin only)' })
+  deleteProperty(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteProperty(id);
+  }
+
+  // ─── Booking Detail + Admin Actions ─────────────────────────────────────────
+
+  @Get('bookings/:id')
+  @ApiOperation({ summary: 'Get full booking detail (admin only)' })
+  getBookingDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getBookingDetail(id);
+  }
+
+  @Patch('bookings/:id')
+  @ApiOperation({ summary: 'Edit booking fields (admin only)' })
+  updateBooking(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: Partial<{
+      status: string; paymentStatus: string; paymentNote: string;
+      guestNote: string; specialRequests: string;
+    }>,
+  ) {
+    return this.adminService.updateBooking(id, body);
+  }
+
+  @Post('bookings/:id/admin-cancel')
+  @ApiOperation({ summary: 'Admin force-cancel a booking (admin only)' })
+  adminCancelBooking(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { reason: string },
+  ) {
+    return this.adminService.adminCancelBooking(id, body.reason);
+  }
+
+  @Post('bookings/:id/admin-refund')
+  @ApiOperation({ summary: 'Admin issue manual refund (admin only)' })
+  adminRefund(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { amount: number; reason: string },
+  ) {
+    return this.adminService.adminRefund(id, body.amount, body.reason);
+  }
+
+  // ─── Categories CRUD ───────────────────────────────────────────────────────
+
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all categories (admin only)' })
+  getCategories() {
+    return this.adminService.getCategories();
+  }
+
+  @Post('categories')
+  @ApiOperation({ summary: 'Create a category (admin only)' })
+  createCategory(@Body() body: { name: string; nameAr: string; icon: string; description?: string; sortOrder?: number }) {
+    return this.adminService.createCategory(body);
+  }
+
+  @Patch('categories/:id')
+  @ApiOperation({ summary: 'Update a category (admin only)' })
+  updateCategory(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: Partial<{ name: string; nameAr: string; icon: string; description: string; sortOrder: number; isActive: boolean }>,
+  ) {
+    return this.adminService.updateCategory(id, body);
+  }
+
+  @Delete('categories/:id')
+  @ApiOperation({ summary: 'Delete a category (admin only)' })
+  deleteCategory(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteCategory(id);
+  }
+
+  // ─── Amenities CRUD ───────────────────────────────────────────────────────
+
+  @Get('amenities')
+  @ApiOperation({ summary: 'Get all amenities (admin only)' })
+  getAmenities() {
+    return this.adminService.getAmenities();
+  }
+
+  @Post('amenities')
+  @ApiOperation({ summary: 'Create an amenity (admin only)' })
+  createAmenity(@Body() body: { name: string; nameAr: string; icon: string; category?: string; sortOrder?: number }) {
+    return this.adminService.createAmenity(body);
+  }
+
+  @Patch('amenities/:id')
+  @ApiOperation({ summary: 'Update an amenity (admin only)' })
+  updateAmenity(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: Partial<{ name: string; nameAr: string; icon: string; category: string; sortOrder: number }>,
+  ) {
+    return this.adminService.updateAmenity(id, body);
+  }
+
+  @Delete('amenities/:id')
+  @ApiOperation({ summary: 'Delete an amenity (admin only)' })
+  deleteAmenity(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteAmenity(id);
+  }
+
+  // ─── Consultant Detail ─────────────────────────────────────────────────────
+
+  @Get('consultants/:id')
+  @ApiOperation({ summary: 'Get full consultant detail with stats (admin only)' })
+  getConsultantDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getConsultantDetail(id);
+  }
+
+  // ─── Create User ───────────────────────────────────────────────────────────
+
+  @Post('users')
+  @ApiOperation({ summary: 'Create a new user (admin only)' })
+  createUser(
+    @Body() body: { firstName: string; lastName: string; email: string; password: string; phone?: string; isHost?: boolean; isAdmin?: boolean },
+  ) {
+    return this.adminService.createUser(body);
+  }
+
+  // ─── Adjust Booking Amounts ────────────────────────────────────────────────
+
+  @Patch('bookings/:id/adjust-amounts')
+  @ApiOperation({ summary: 'Adjust pricing on an existing booking (admin only)' })
+  adjustBookingAmounts(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { baseAmount?: number; cleaningFee?: number; serviceFee?: number; totalAmount?: number; reason: string },
+  ) {
+    return this.adminService.adjustBookingAmounts(id, body);
+  }
+
+  // ─── Featured Properties ───────────────────────────────────────────────────
+
+  @Patch('properties/:id/featured')
+  @ApiOperation({ summary: 'Toggle featured status for a property (admin only)' })
+  toggleFeatured(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.toggleFeatured(id);
+  }
+
+  // ─── Commission Override ───────────────────────────────────────────────────
+
+  @Patch('properties/:id/commission')
+  @ApiOperation({ summary: 'Override commission (service fee %) for a property (admin only)' })
+  updateCommission(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { serviceFeePercent: number },
+  ) {
+    return this.adminService.updateCommission(id, body.serviceFeePercent);
+  }
+
+  // ─── Flag Review ───────────────────────────────────────────────────────────
+
+  @Patch('reviews/:id/flag')
+  @ApiOperation({ summary: 'Flag or unflag a review (admin only)' })
+  flagReview(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { flagged: boolean; adminNote?: string },
+  ) {
+    return this.adminService.flagReview(id, body.flagged, body.adminNote);
+  }
+
+  // ─── Individual User Notification ──────────────────────────────────────────
+
+  @Post('users/:id/notify')
+  @ApiOperation({ summary: 'Send notification to a specific user (admin only)' })
+  sendUserNotification(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { title: string; message: string },
+  ) {
+    return this.adminService.sendUserNotification(id, body.title, body.message);
+  }
+
+  // ─── User Activity Timeline ────────────────────────────────────────────────
+
+  @Get('users/:id/timeline')
+  @ApiOperation({ summary: 'Get user activity timeline (admin only)' })
+  getUserTimeline(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getUserActivityTimeline(id);
+  }
+
+  // ─── Message Threads ───────────────────────────────────────────────────────
+
+  @Get('messages')
+  @ApiOperation({ summary: 'List all conversations (admin only)' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  getConversations(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getConversations(parseInt(page) || 1, parseInt(limit) || 20, search);
+  }
+
+  @Get('messages/:id')
+  @ApiOperation({ summary: 'Get conversation messages (admin only)' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getConversationMessages(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+  ) {
+    return this.adminService.getConversationMessages(id, parseInt(page) || 1, parseInt(limit) || 50);
+  }
+
+  // ─── Data Export ───────────────────────────────────────────────────────────
+
+  @Get('export/:type')
+  @ApiOperation({ summary: 'Export full dataset by type (admin only)' })
+  getExportData(@Param('type') type: 'bookings' | 'users' | 'properties' | 'payouts' | 'reviews' | 'disputes') {
+    return this.adminService.getExportData(type);
+  }
+
+  // ─── Experience Booking Detail ─────────────────────────────────────────────
+
+  @Get('experience-bookings/:id')
+  @ApiOperation({ summary: 'Get full experience booking detail (admin only)' })
+  getExperienceBookingDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getExperienceBookingDetail(id);
+  }
+
+  // ─── Batch Process Payouts ─────────────────────────────────────────────────
+
+  @Post('payouts/batch-process')
+  @ApiOperation({ summary: 'Batch process multiple payouts (admin only)' })
+  batchProcessPayouts(
+    @Body() body: { ids: number[]; status: 'processing' | 'completed' | 'failed'; note?: string },
+  ) {
+    return this.adminService.batchProcessPayouts(body.ids, body.status, body.note);
+  }
+
+  // ─── Email Templates ─────────────────────────────────────────────────────────
+
+  @Get('email-templates')
+  @ApiOperation({ summary: 'List all email templates (admin only)' })
+  getEmailTemplates() {
+    return this.adminService.getEmailTemplates();
+  }
+
+  @Get('email-templates/:slug')
+  @ApiOperation({ summary: 'Preview an email template with sample data (admin only)' })
+  previewEmailTemplate(@Param('slug') slug: string) {
+    return this.adminService.previewEmailTemplate(slug);
+  }
+
+  // ─── Financial Analytics ──────────────────────────────────────────────────
+
+  @Get('analytics/financial')
+  @ApiOperation({ summary: 'Get financial analytics with profit tracking (admin only)' })
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  getFinancialAnalytics(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.adminService.getFinancialAnalytics(from, to);
+  }
+
+  @Get('bookings/:id/profit')
+  @ApiOperation({ summary: 'Get per-booking profit breakdown (admin only)' })
+  getBookingProfit(@Param('id') id: string) {
+    return this.adminService.getBookingProfit(parseInt(id));
+  }
+
+  // ─── Expenses ─────────────────────────────────────────────────────────────
+
+  @Get('expenses')
+  @ApiOperation({ summary: 'List expenses (admin only)' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getExpenses(@Query('page') page = '1', @Query('limit') limit = '20') {
+    return this.adminService.getExpenses(parseInt(page) || 1, parseInt(limit) || 20);
+  }
+
+  @Post('expenses')
+  @ApiOperation({ summary: 'Create an expense entry (admin only)' })
+  createExpense(@Body() body: { description: string; amount: number; category?: string; date: string }, @Req() req: any) {
+    return this.adminService.createExpense({ ...body, addedBy: req.user?.id });
+  }
+
+  @Patch('expenses/:id')
+  @ApiOperation({ summary: 'Update an expense entry (admin only)' })
+  updateExpense(@Param('id') id: string, @Body() body: { description?: string; amount?: number; category?: string; date?: string }) {
+    return this.adminService.updateExpense(parseInt(id), body);
+  }
+
+  @Delete('expenses/:id')
+  @ApiOperation({ summary: 'Delete an expense entry (admin only)' })
+  deleteExpense(@Param('id') id: string) {
+    return this.adminService.deleteExpense(parseInt(id));
   }
 }

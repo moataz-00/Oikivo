@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,6 +16,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
+import { useAlert } from '@/components/ui/AlertModal';
 import type { Booking } from '@/types';
 
 type ReservationTab = 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -38,6 +38,7 @@ export default function HostReservationsScreen() {
   const [activeTab, setActiveTab] = useState<ReservationTab>('pending');
   const accessToken = useAuthStore((s) => s.accessToken);
   const isHydrated = useAuthStore((s) => s.isHydrated);
+  const { success, error: showError, confirm } = useAlert();
 
   // ---------------------------------------------------------------------------
   // Fetch reservations
@@ -60,10 +61,10 @@ export default function HostReservationsScreen() {
     mutationFn: bookingsApi.confirmBooking,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hostReservations'] });
-      Alert.alert('Success', 'Reservation has been confirmed.');
+      success('Success', 'Reservation has been confirmed.');
     },
     onError: () => {
-      Alert.alert('Error', 'Failed to confirm reservation. Please try again.');
+      showError('Error', 'Failed to confirm reservation. Please try again.');
     },
   });
 
@@ -74,10 +75,10 @@ export default function HostReservationsScreen() {
     mutationFn: bookingsApi.declineBooking,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hostReservations'] });
-      Alert.alert('Declined', 'Reservation has been declined.');
+      success('Declined', 'Reservation has been declined.');
     },
     onError: () => {
-      Alert.alert('Error', 'Failed to decline reservation. Please try again.');
+      showError('Error', 'Failed to decline reservation. Please try again.');
     },
   });
 
@@ -85,16 +86,11 @@ export default function HostReservationsScreen() {
   // Handle confirm
   // ---------------------------------------------------------------------------
   const handleConfirm = (booking: Booking) => {
-    Alert.alert(
+    confirm(
       'Confirm Reservation',
       `Confirm reservation for ${booking.guest.firstName} ${booking.guest.lastName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => confirmMutation.mutate(booking.id),
-        },
-      ],
+      () => confirmMutation.mutate(booking.id),
+      { confirmText: 'Confirm', cancelText: 'Cancel' },
     );
   };
 
@@ -102,17 +98,11 @@ export default function HostReservationsScreen() {
   // Handle decline
   // ---------------------------------------------------------------------------
   const handleDecline = (booking: Booking) => {
-    Alert.alert(
+    confirm(
       'Decline Reservation',
       `Are you sure you want to decline this reservation?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Decline',
-          style: 'destructive',
-          onPress: () => declineMutation.mutate(booking.id),
-        },
-      ],
+      () => declineMutation.mutate(booking.id),
+      { confirmText: 'Decline', cancelText: 'Cancel', destructive: true },
     );
   };
 

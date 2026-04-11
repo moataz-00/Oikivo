@@ -476,7 +476,7 @@ export default function PropertyDetailPage() {
                 </div>
 
                 {/* Text-based rules as chips */}
-                {property.houseRules && (
+                {property.houseRules && typeof property.houseRules === 'string' && (
                   <div className="flex flex-wrap gap-2 mb-4">
                     {property.houseRules.split('\n').filter(Boolean).map((rule: string) => (
                       <span key={rule} className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">

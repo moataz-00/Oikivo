@@ -13,7 +13,6 @@ import { ConsultantDocumentEntity } from '../entities/consultant-document.entity
 import { ConsultationBookingEntity } from '../entities/consultation-booking.entity';
 import { ConsultationReviewEntity } from '../entities/consultation-review.entity';
 import { ConsultantAvailabilityEntity } from '../entities/consultant-availability.entity';
-import { ConsultationServiceEntity } from '../entities/consultation-service.entity';
 import { ConsultantVacationBlockEntity } from '../entities/consultant-vacation-block.entity';
 import { ConsultantEarningEntity } from '../entities/consultant-earning.entity';
 import { ConsultantPayoutRequestEntity } from '../entities/consultant-payout-request.entity';
@@ -30,7 +29,6 @@ import { MailModule } from '../mail/mail.module';
       ConsultationBookingEntity,
       ConsultationReviewEntity,
       ConsultantAvailabilityEntity,
-      ConsultationServiceEntity,
       ConsultantVacationBlockEntity,
       ConsultantEarningEntity,
       ConsultantPayoutRequestEntity,

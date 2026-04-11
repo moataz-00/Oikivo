@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   FlatList,
@@ -17,6 +16,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { useAlert } from '@/components/ui/AlertModal';
 import type { Category, SpaceType } from '@/types';
 
 const SPACE_TYPES: { value: SpaceType; label: string; description: string }[] =
@@ -42,6 +42,7 @@ export default function EditListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { alert, error: showError } = useAlert();
   const propertyId = parseInt(id!, 10);
 
   // ---------------------------------------------------------------------------
@@ -122,18 +123,18 @@ export default function EditListingScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['property', propertyId] });
       queryClient.invalidateQueries({ queryKey: ['hostListings'] });
-      Alert.alert('Success', 'Your listing has been updated!', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
+      alert({
+        type: 'success',
+        title: 'Success',
+        message: 'Your listing has been updated!',
+        buttons: [{ text: 'OK', onPress: () => router.back() }],
+      });
     },
     onError: (error: any) => {
       const message =
         error?.response?.data?.message ||
         'Failed to update listing. Please try again.';
-      Alert.alert('Error', message);
+      showError('Error', message);
     },
   });
 
@@ -151,10 +152,11 @@ export default function EditListingScreen() {
   // ---------------------------------------------------------------------------
   const handleSave = () => {
     if (!isValid) {
-      Alert.alert(
-        'Missing Information',
-        'Please fill in at least the title, city, country, and price.',
-      );
+      alert({
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please fill in at least the title, city, country, and price.',
+      });
       return;
     }
 

@@ -4,8 +4,8 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -40,11 +40,13 @@ export default function InboxScreen() {
   if (!isLoggedIn) {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-        <View className="px-6 pt-6 pb-4">
+        <View className="px-6 pt-6 pb-4 bg-indigo-50 border-b border-indigo-100">
           <Text className="text-2xl font-bold text-gray-900">Inbox</Text>
         </View>
         <View className="flex-1 items-center justify-center px-6">
-          <MessageCircle size={48} color="#717171" />
+          <View className="w-16 h-16 rounded-2xl bg-brand-50 items-center justify-center">
+            <MessageCircle size={28} color="#4F46E5" />
+          </View>
           <Text className="text-lg font-semibold text-gray-900 mt-4">
             Log in to see messages
           </Text>
@@ -64,7 +66,7 @@ export default function InboxScreen() {
   // ---------------------------------------------------------------------------
   // Conversation row
   // ---------------------------------------------------------------------------
-  const renderConversation = ({ item }: { item: Conversation }) => {
+  const renderConversation = ({ item, index }: { item: Conversation; index: number }) => {
     const otherName = `${item.otherUser.firstName} ${item.otherUser.lastName}`;
     const avatarUri = getImageUrl(item.otherUser.avatarUrl);
     const lastMsg = item.lastMessage?.body ?? '';
@@ -82,17 +84,22 @@ export default function InboxScreen() {
     }
 
     const handlePress = () => {
-      Alert.alert(
-        'Conversation',
-        `Chat with ${otherName}\n\nFull messaging screen coming soon.`,
-      );
+      router.push({
+        pathname: '/inbox/[conversationId]',
+        params: {
+          conversationId: item.id.toString(),
+          otherName: otherName,
+          otherAvatar: item.otherUser.avatarUrl ?? '',
+        },
+      });
     };
 
     return (
+      <Animated.View entering={FadeInDown.delay(index * 60).duration(350)}>
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.7}
-        className="flex-row items-center px-6 py-4 border-b border-gray-100"
+        className="flex-row items-center px-6 py-4 border-b border-indigo-50"
       >
         {/* Avatar */}
         <Avatar uri={avatarUri} name={otherName} size={52} />
@@ -137,6 +144,7 @@ export default function InboxScreen() {
           </View>
         )}
       </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -145,7 +153,7 @@ export default function InboxScreen() {
   // ---------------------------------------------------------------------------
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <View className="px-6 pt-6 pb-4">
+      <View className="px-6 pt-6 pb-4 bg-indigo-50 border-b border-indigo-100">
         <Text className="text-2xl font-bold text-gray-900">Inbox</Text>
       </View>
 
@@ -160,7 +168,9 @@ export default function InboxScreen() {
           refreshing={isRefetching}
           ListEmptyComponent={
             <View className="items-center justify-center py-24 px-6">
-              <MessageCircle size={48} color="#717171" />
+              <View className="w-16 h-16 rounded-2xl bg-brand-50 items-center justify-center">
+                <MessageCircle size={28} color="#4F46E5" />
+              </View>
               <Text className="text-base text-gray-500 mt-4 text-center">
                 No messages yet. When you contact a host or receive a message, it
                 will appear here.

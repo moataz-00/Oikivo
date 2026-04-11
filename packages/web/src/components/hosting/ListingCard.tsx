@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { Calendar, Edit3, Eye, Star, Trash2, EyeOff, BedDouble, Users, Bath, BadgeCheck, AlertTriangle, Clock } from 'lucide-react';
+import { Calendar, Edit3, Eye, Star, Trash2, EyeOff, BedDouble, Users, Bath, BadgeCheck, AlertTriangle, Clock, Home, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getImageUrl, formatPrice, formatRating } from '@/lib/utils';
@@ -104,7 +104,7 @@ export function ListingCard({ property }: ListingCardProps) {
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 select-none bg-gradient-to-br from-neutral-100 to-neutral-200">
-            <span className="text-5xl">ðŸ </span>
+            <Home className="h-12 w-12 text-neutral-300" />
             <span className="text-xs text-neutral-400 font-medium">No photos yet</span>
           </div>
         )}
@@ -145,7 +145,7 @@ export function ListingCard({ property }: ListingCardProps) {
         <div>
           <h3 className="font-bold text-neutral-900 leading-snug line-clamp-1 text-[15px]">{property.title}</h3>
           <p className="mt-0.5 text-xs text-neutral-400 flex items-center gap-1">
-            <span>ðŸ“</span>{property.city}, {property.country}
+            <MapPin className="h-3 w-3 text-neutral-400" />{property.city}, {property.country}
           </p>
         </div>
 

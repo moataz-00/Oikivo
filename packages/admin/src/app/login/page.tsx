@@ -46,9 +46,11 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-xl font-bold text-white">S</div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden">
+            <img src="/favicon-96x96.png" alt="Oikivo" className="h-full w-full object-cover" />
+          </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-white">Sakan Admin</h1>
+            <h1 className="text-xl font-bold text-white">Oikivo Admin</h1>
             <p className="text-sm text-gray-400">Sign in to access the control panel</p>
           </div>
         </div>

@@ -10,12 +10,12 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
-  Heart,
   Share2,
   Star,
   MapPin,
@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { StarRating } from '@/components/StarRating';
+import { WishlistHeart } from '@/components/WishlistHeart';
 import type { Property, Review, PropertyPhoto } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -43,6 +44,7 @@ export default function PropertyDetailScreen() {
   const { isLoggedIn } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
 
   const propertyId = parseInt(id!, 10);
 
@@ -93,7 +95,7 @@ export default function PropertyDetailScreen() {
     if (!property) return;
     try {
       await Share.share({
-        message: `Check out "${property.title}" on Sakan!`,
+        message: `Check out "${property.title}" on Oikivo!`,
       });
     } catch {
       // ignore
@@ -156,13 +158,15 @@ export default function PropertyDetailScreen() {
     ? property.description
     : property.description?.substring(0, 200);
 
-  const displayedAmenities = property.amenities.slice(0, 6);
+  const displayedAmenities = showAllAmenities
+    ? property.amenities
+    : property.amenities.slice(0, 6);
   const totalAmenities = property.amenities.length;
 
   // ---------------------------------------------------------------------------
   // Separator component
   // ---------------------------------------------------------------------------
-  const Separator = () => <View className="h-px bg-gray-200 mx-6 my-5" />;
+  const Separator = () => <View className="h-px bg-indigo-100 mx-6 my-5" />;
 
   // ---------------------------------------------------------------------------
   // Review card
@@ -264,31 +268,25 @@ export default function PropertyDetailScreen() {
             >
               <Share2 size={18} color="#222" />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                if (!isLoggedIn) router.push('/auth/login');
-              }}
-              activeOpacity={0.8}
-              className="bg-white/90 w-9 h-9 rounded-full items-center justify-center shadow-sm"
-            >
-              <Heart size={18} color="#222" />
-            </TouchableOpacity>
+            <View className="bg-white/90 rounded-full shadow-sm">
+              <WishlistHeart propertyId={propertyId} size={18} />
+            </View>
           </View>
         </View>
 
         {/* ================================================================ */}
         {/* Title & Rating */}
         {/* ================================================================ */}
-        <View className="px-6 pt-5">
+        <Animated.View entering={FadeInDown.duration(400)} className="px-6 pt-5">
           <Text className="text-2xl font-bold text-gray-900">
             {property.title}
           </Text>
           <View className="flex-row items-center mt-2">
-            {property.avgRating > 0 && (
+            {Number(property.avgRating) > 0 && (
               <>
                 <Star size={14} color="#222" fill="#222" />
                 <Text className="text-sm font-semibold text-gray-900 ml-1">
-                  {property.avgRating.toFixed(1)}
+                  {Number(property.avgRating).toFixed(1)}
                 </Text>
                 <Text className="text-sm text-gray-500 ml-1">
                   ({property.reviewCount}{' '}
@@ -302,7 +300,7 @@ export default function PropertyDetailScreen() {
               {property.city}, {property.country}
             </Text>
           </View>
-        </View>
+        </Animated.View>
 
         <Separator />
 
@@ -380,14 +378,15 @@ export default function PropertyDetailScreen() {
               </View>
               {totalAmenities > 6 && (
                 <Button
-                  title={`Show all ${totalAmenities} amenities`}
+                  title={
+                    showAllAmenities
+                      ? 'Show fewer amenities'
+                      : `Show all ${totalAmenities} amenities`
+                  }
                   variant="secondary"
                   size="md"
                   className="mt-2"
-                  onPress={() => {
-                    // Expand all amenities inline
-                    setShowFullDescription(true);
-                  }}
+                  onPress={() => setShowAllAmenities((prev) => !prev)}
                 />
               )}
             </View>
@@ -402,8 +401,8 @@ export default function PropertyDetailScreen() {
           <View className="flex-row items-center mb-4">
             <Star size={18} color="#222" fill="#222" />
             <Text className="text-lg font-semibold text-gray-900 ml-2">
-              {property.avgRating > 0
-                ? property.avgRating.toFixed(1)
+              {Number(property.avgRating) > 0
+                ? Number(property.avgRating).toFixed(1)
                 : 'No reviews yet'}
             </Text>
             {property.reviewCount > 0 && (
@@ -437,7 +436,7 @@ export default function PropertyDetailScreen() {
             Where you will be
           </Text>
           <View className="bg-gray-100 rounded-xl h-40 items-center justify-center">
-            <MapPin size={32} color="#FF385C" />
+            <MapPin size={32} color="#4F46E5" />
             <Text className="text-sm text-gray-600 mt-2">
               {property.city}, {property.country}
             </Text>

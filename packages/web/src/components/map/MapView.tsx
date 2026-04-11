@@ -43,6 +43,7 @@ export function MapView({ properties, center, zoom = 12, onBoundsChange }: MapVi
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
+    libraries: ['places'],
   });
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {

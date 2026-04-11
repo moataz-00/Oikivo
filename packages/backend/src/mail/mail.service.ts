@@ -16,6 +16,9 @@ const SUCCESS = '#16a34a';          // green-600
 const WARNING = '#d97706';          // amber-600
 const DANGER = '#dc2626';           // red-600
 
+// ─── Logo URL (served from the web frontend /public/) ─────────────────────────
+const LOGO_URL = (process.env.FRONTEND_URL?.split(',')?.[0]?.trim() ?? 'https://oikivo.com') + '/favicon-96x96.png';
+
 // ─── Base layout ──────────────────────────────────────────────────────────────
 function layout(content: string): string {
   return `<!DOCTYPE html>
@@ -23,7 +26,8 @@ function layout(content: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sakan</title>
+  <title>Oikivo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
 </head>
 <body style="margin:0;padding:0;background:${BG};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:${TEXT};">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:${BG};padding:32px 0;">
@@ -31,13 +35,9 @@ function layout(content: string): string {
       <table width="100%" style="max-width:600px;" cellpadding="0" cellspacing="0">
 
         <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,${PRIMARY} 0%,${ACCENT} 100%);padding:28px 32px;border-radius:16px 16px 0 0;text-align:center;">
-          <div style="display:inline-flex;align-items:center;gap:10px;">
-            <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;">
-              <span style="font-size:20px;">🧭</span>
-            </div>
-            <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;">Sakan</span>
-          </div>
+        <tr><td style="background:linear-gradient(135deg,${PRIMARY} 0%,${ACCENT} 100%);padding:32px 32px;border-radius:16px 16px 0 0;text-align:center;">
+          <img src="${LOGO_URL}" alt="Oikivo" width="48" height="48" style="width:48px;height:48px;border-radius:12px;display:block;margin:0 auto 12px;" />
+          <span style="font-family:'Dancing Script','Magnolia Script',cursive;font-size:28px;font-weight:700;color:#fff;letter-spacing:0.5px;">Oikivo</span>
         </td></tr>
 
         <!-- Body card -->
@@ -47,7 +47,7 @@ function layout(content: string): string {
 
         <!-- Footer -->
         <tr><td style="background:#f8fafc;padding:20px 32px;border:1px solid ${BORDER};border-top:none;border-radius:0 0 16px 16px;text-align:center;">
-          <p style="margin:0;font-size:12px;color:${MUTED};">© ${new Date().getFullYear()} Sakan, Inc. All rights reserved.</p>
+          <p style="margin:0;font-size:12px;color:${MUTED};">© ${new Date().getFullYear()} Oikivo. All rights reserved.</p>
           <p style="margin:4px 0 0;font-size:12px;color:${MUTED};">If you did not request this email, you can safely ignore it.</p>
         </td></tr>
 
@@ -97,12 +97,19 @@ function divider(): string {
   return `<hr style="border:none;border-top:1px solid ${BORDER};margin:24px 0;" />`;
 }
 
+function currencyNote(currency: string): string {
+  if (currency.toUpperCase() === 'EGP') {
+    return `<p style="margin:0;font-size:11px;color:${MUTED};text-align:center;font-style:italic;">All amounts are in Egyptian Pounds (EGP). If you paid by card in another currency, your bank may show the equivalent in your local currency.</p>`;
+  }
+  return '';
+}
+
 // ─── Template: Email Verification ─────────────────────────────────────────────
 export function tplEmailVerification(firstName: string, verifyUrl: string): string {
   return layout(`
     ${heading('Verify your email address')}
     ${subHeading('One quick step to get started')}
-    ${paragraph(`Hi <strong>${firstName}</strong>, welcome to Sakan! Please confirm your email address to activate your account and start exploring unique stays.`)}
+    ${paragraph(`Hi <strong>${firstName}</strong>, welcome to Oikivo! Please confirm your email address to activate your account and start exploring unique stays.`)}
     ${btn('✅ Verify Email', verifyUrl)}
     ${divider()}
     <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
@@ -129,9 +136,9 @@ export function tplPasswordReset(firstName: string, resetUrl: string): string {
 // ─── Template: Welcome after registration ─────────────────────────────────────
 export function tplWelcome(firstName: string, loginUrl: string): string {
   return layout(`
-    ${heading(`Welcome to Sakan, ${firstName}! 🎉`)}
+    ${heading(`Welcome to Oikivo, ${firstName}! 🎉`)}
     ${subHeading('Your account is ready')}
-    ${paragraph(`Your email has been verified and your Sakan account is now fully active. Start exploring thousands of unique homes and experiences across the Middle East and beyond.`)}
+    ${paragraph(`Your email has been verified and your Oikivo account is now fully active. Start exploring thousands of unique homes and experiences across the Middle East and beyond.`)}
     ${btn('🏠 Explore Stays', loginUrl)}
     ${divider()}
     <table width="100%" cellpadding="0" cellspacing="0">
@@ -214,6 +221,7 @@ export function tplBookingConfirmed(
       infoRow('Status', badge('Confirmed', SUCCESS))
     )}
     ${btn('📅 View My Trips', tripsUrl)}
+    ${currencyNote(currency)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Please contact your host directly for check-in instructions. Have a wonderful stay!</span>`)}
   `);
@@ -230,7 +238,12 @@ export function tplBookingRequestReceived(
   totalAmount: string,
   currency: string,
   reservationsUrl: string,
+  specialRequests?: string,
 ): string {
+  const specialRequestsRow = specialRequests
+    ? infoRow('Special Requests', specialRequests)
+    : '';
+
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">🏠</span>
@@ -244,6 +257,7 @@ export function tplBookingRequestReceived(
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Guests', String(guests)) +
+      specialRequestsRow +
       infoRow('Payout', `${totalAmount} ${currency}`) +
       infoRow('Status', badge('Pending Review', WARNING))
     )}
@@ -316,7 +330,7 @@ export function tplPaymentInvoice(
         </td>
         <td style="text-align:right;">
           <div style="background:linear-gradient(135deg,${PRIMARY},${ACCENT});display:inline-block;padding:10px 18px;border-radius:10px;">
-            <span style="font-size:22px;font-weight:900;color:#fff;">🧭 Sakan</span>
+            <img src="${LOGO_URL}" alt="Oikivo" width="28" height="28" style="width:28px;height:28px;border-radius:6px;vertical-align:middle;margin-right:6px;" /><span style="font-family:'Dancing Script','Magnolia Script',cursive;font-size:22px;font-weight:700;color:#fff;">Oikivo</span>
           </div>
         </td>
       </tr>
@@ -364,6 +378,7 @@ export function tplPaymentInvoice(
     )}
 
     ${btn('📋 View My Trips', tripsUrl)}
+    ${currencyNote(currency)}
   `);
 }
 
@@ -435,6 +450,7 @@ export function tplRefundNotification(
       infoRow('Processing time', '5–10 business days')
     )}
     ${btn('📅 View My Trips', tripsUrl)}
+    ${currencyNote(currency)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Refunds may take 5–10 business days to appear in your account depending on your bank.</span>`)}
   `);
@@ -465,32 +481,90 @@ export function tplHostActivation(
   dashboardUrl: string,
 ): string {
   return layout(`
-    <div style="text-align:center;margin-bottom:24px;">
-      <span style="font-size:48px;">🏠</span>
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="display:inline-block;background:linear-gradient(135deg,${PRIMARY}18,${ACCENT}12);border-radius:50%;padding:20px;">
+        <span style="font-size:52px;line-height:1;">🏠</span>
+      </div>
     </div>
-    ${heading(`Welcome, ${hostName}! You're now a host 🎉`)}
-    ${subHeading('Your host account is active')}
-    ${paragraph(`Congratulations! Your host account on Sakan is now active. You can start listing your properties and earning with <strong>0% platform commission</strong>.`)}
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+    ${heading(`Welcome aboard, ${hostName}!`)}
+    <p style="margin:0 0 24px;font-size:16px;color:${TEXT};text-align:center;line-height:1.5;">Your host account on <strong style="color:${PRIMARY};">Oikivo</strong> is now active. Start listing your properties and earning today.</p>
+
+    <!-- Hero stat banner -->
+    <div style="text-align:center;margin:24px 0;">
+      <div style="display:inline-block;background:linear-gradient(135deg,${PRIMARY},${ACCENT});border-radius:16px;padding:24px 48px;">
+        <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.8);font-weight:600;text-transform:uppercase;letter-spacing:1.5px;">Platform Commission</p>
+        <p style="margin:8px 0 0;font-size:48px;font-weight:900;color:#fff;letter-spacing:-1px;">0%</p>
+        <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.7);">Keep 100% of your earnings</p>
+      </div>
+    </div>
+
+    <!-- Feature cards -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
       <tr>
-        <td style="text-align:center;padding:12px;">
-          <span style="font-size:28px;">💸</span>
-          <p style="margin:6px 0 0;font-size:13px;font-weight:700;color:${TEXT};">0% Commission</p>
-          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Keep 100% of your earnings</p>
+        <td style="padding:8px;width:33%;" valign="top">
+          <div style="background:${BG};border:1px solid ${BORDER};border-radius:14px;padding:20px 14px;text-align:center;">
+            <div style="display:inline-block;background:linear-gradient(135deg,${SUCCESS}18,${SUCCESS}08);border-radius:12px;padding:10px;margin-bottom:10px;">
+              <span style="font-size:24px;">💸</span>
+            </div>
+            <p style="margin:0;font-size:13px;font-weight:700;color:${TEXT};">Zero Fees</p>
+            <p style="margin:4px 0 0;font-size:11px;color:${MUTED};line-height:1.4;">No hidden charges or platform cuts</p>
+          </div>
         </td>
-        <td style="text-align:center;padding:12px;">
-          <span style="font-size:28px;">⚡</span>
-          <p style="margin:6px 0 0;font-size:13px;font-weight:700;color:${TEXT};">Fast Payouts</p>
-          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Within 24 hours</p>
+        <td style="padding:8px;width:33%;" valign="top">
+          <div style="background:${BG};border:1px solid ${BORDER};border-radius:14px;padding:20px 14px;text-align:center;">
+            <div style="display:inline-block;background:linear-gradient(135deg,${WARNING}18,${WARNING}08);border-radius:12px;padding:10px;margin-bottom:10px;">
+              <span style="font-size:24px;">⚡</span>
+            </div>
+            <p style="margin:0;font-size:13px;font-weight:700;color:${TEXT};">Fast Payouts</p>
+            <p style="margin:4px 0 0;font-size:11px;color:${MUTED};line-height:1.4;">Get paid within 24 hours</p>
+          </div>
         </td>
-        <td style="text-align:center;padding:12px;">
-          <span style="font-size:28px;">🛡️</span>
-          <p style="margin:6px 0 0;font-size:13px;font-weight:700;color:${TEXT};">Host Protection</p>
-          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">$1M coverage</p>
+        <td style="padding:8px;width:33%;" valign="top">
+          <div style="background:${BG};border:1px solid ${BORDER};border-radius:14px;padding:20px 14px;text-align:center;">
+            <div style="display:inline-block;background:linear-gradient(135deg,${PRIMARY}18,${PRIMARY}08);border-radius:12px;padding:10px;margin-bottom:10px;">
+              <span style="font-size:24px;">🛡️</span>
+            </div>
+            <p style="margin:0;font-size:13px;font-weight:700;color:${TEXT};">Host Protection</p>
+            <p style="margin:4px 0 0;font-size:11px;color:${MUTED};line-height:1.4;">Up to $1M host coverage</p>
+          </div>
         </td>
       </tr>
     </table>
-    ${btn('🏠 Go to Dashboard', dashboardUrl)}
+
+    <!-- Steps to get started -->
+    ${divider()}
+    <p style="margin:0 0 16px;font-size:16px;font-weight:800;color:${TEXT};text-align:center;">Get started in 3 easy steps</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:10px 14px;vertical-align:top;width:36px;">
+          <div style="display:inline-block;background:${PRIMARY};color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:13px;font-weight:800;">1</div>
+        </td>
+        <td style="padding:10px 14px;">
+          <p style="margin:0;font-size:14px;font-weight:700;color:${TEXT};">Create your listing</p>
+          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Add photos, description, pricing &amp; amenities</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;vertical-align:top;width:36px;">
+          <div style="display:inline-block;background:${ACCENT};color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:13px;font-weight:800;">2</div>
+        </td>
+        <td style="padding:10px 14px;">
+          <p style="margin:0;font-size:14px;font-weight:700;color:${TEXT};">Set your availability</p>
+          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Choose dates, set rules &amp; cancellation policy</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;vertical-align:top;width:36px;">
+          <div style="display:inline-block;background:${SUCCESS};color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:13px;font-weight:800;">3</div>
+        </td>
+        <td style="padding:10px 14px;">
+          <p style="margin:0;font-size:14px;font-weight:700;color:${TEXT};">Start earning</p>
+          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Guests will find you &amp; book — get paid instantly</p>
+        </td>
+      </tr>
+    </table>
+
+    ${btn('🏠 Go to Your Dashboard', dashboardUrl)}
   `);
 }
 
@@ -523,6 +597,7 @@ export function tplInstapayPaymentConfirmed(
     )}
     ${paragraph('Your stay is fully booked and confirmed. We look forward to welcoming you!')}
     ${btn('📅 View My Trips', tripsUrl, SUCCESS)}
+    ${currencyNote(currency)}
   `);
 }
 
@@ -592,6 +667,7 @@ export function tplBookingRequestSubmitted(
       ${policyText}
     </p>
     ${btn('📅 View My Trips', tripsUrl)}
+    ${currencyNote(currency)}
   `);
 }
 
@@ -1028,6 +1104,51 @@ export function tplConsultantSuspendedClientNotice(
   `);
 }
 
+// ─── Template: Pre-Arrival Reminder (BUG-GL1 fix) ────────────────────────────
+export function tplPreArrivalReminder(
+  guestName: string,
+  propertyTitle: string,
+  checkIn: string,
+  checkOut: string,
+  checkInTime: string,
+  hostName: string,
+  hostPhone: string | null,
+  checkInInstructions: string | null,
+  address: string,
+  bookingRef: string,
+  tripsUrl: string,
+): string {
+  const instructionsSection = checkInInstructions
+    ? `${infoTable(infoRow('Check-in Instructions', checkInInstructions))}`
+    : '';
+
+  const hostContactSection = hostPhone
+    ? `${infoTable(infoRow('Host Contact', `${hostName} — ${hostPhone}`))}`
+    : `${infoTable(infoRow('Host', hostName))}`;
+
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">🏡</span>
+    </div>
+    ${heading('Your stay is coming up!')}
+    ${subHeading(`Check-in: ${checkIn} at ${checkInTime}`)}
+    ${paragraph(`Hi <strong>${guestName}</strong>, your reservation at <strong>${propertyTitle}</strong> is just around the corner. Here's everything you need to know.`)}
+    ${infoTable(
+      infoRow('Property', propertyTitle) +
+      infoRow('Check-in', `${checkIn} after ${checkInTime}`) +
+      infoRow('Check-out', checkOut) +
+      infoRow('Address', address) +
+      infoRow('Booking Ref', badge(bookingRef, PRIMARY))
+    )}
+    ${hostContactSection}
+    ${instructionsSection}
+    ${btn('📋 View Trip Details', tripsUrl, SUCCESS)}
+    ${divider()}
+    ${paragraph(`<span style="font-size:13px;color:${MUTED};">Have a wonderful stay! If you encounter any issues, contact your host or reach out to support.</span>`)}
+  `);
+}
+
+
 // ─── Template: Consultant application approved/rejected (C9) ─────────────────
 export function tplConsultantApplicationDecision(
   firstName: string,
@@ -1166,7 +1287,7 @@ export class MailService {
 
   async send(to: string, subject: string, html: string): Promise<void> {
     const { smtpHost, smtpUser, smtpPass, smtpPort } = this.createTransporter();
-    const from = this.config.get<string>('SMTP_FROM', `Sakan <${smtpUser || 'no-reply@sakan.com'}>`);
+    const from = this.config.get<string>('SMTP_FROM', `Oikivo <${smtpUser || 'no-reply@oikivo.com'}>`);
     const isDev = this.config.get('NODE_ENV', 'development') === 'development';
 
     if (!smtpHost || !smtpUser || !smtpPass) {
@@ -1193,7 +1314,7 @@ export class MailService {
       ${paragraph(htmlBody)}
       ${divider()}
       <p style="margin:0;font-size:12px;color:${MUTED};text-align:center;">
-        This message was sent by the Sakan admin team. If you believe this was sent in error, please contact support.
+        This message was sent by the Oikivo admin team. If you believe this was sent in error, please contact support.
       </p>
     `);
     await this.send(to, subject, html);

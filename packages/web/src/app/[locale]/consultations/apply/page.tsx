@@ -286,7 +286,7 @@ export default function ApplyAsConsultantPage() {
             : 'You need an account with a verified Egyptian phone number to apply as a consultant.'}
         </p>
         <button
-          onClick={() => router.push(`/${locale}/auth/login?redirect=/${locale}/consultations/apply`)}
+          onClick={() => router.push(`/${locale}/login?redirect=/${locale}/consultations/apply`)}
           className="rounded-xl bg-indigo-500 px-8 py-3 text-sm font-semibold text-white hover:bg-indigo-600 transition"
         >
           {isAr ? 'تسجيل الدخول' : 'Sign In'}

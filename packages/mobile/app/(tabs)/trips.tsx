@@ -56,11 +56,13 @@ export default function TripsScreen() {
   if (!isLoggedIn) {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-        <View className="px-6 pt-6 pb-4">
+        <View className="px-6 pt-6 pb-4 bg-indigo-50 border-b border-indigo-100">
           <Text className="text-2xl font-bold text-gray-900">Trips</Text>
         </View>
         <View className="flex-1 items-center justify-center px-6">
-          <Calendar size={48} color="#717171" />
+          <View className="w-16 h-16 rounded-2xl bg-brand-50 items-center justify-center">
+            <Calendar size={28} color="#4F46E5" />
+          </View>
           <Text className="text-lg font-semibold text-gray-900 mt-4">
             Log in to view your trips
           </Text>
@@ -98,12 +100,12 @@ export default function TripsScreen() {
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        className="mb-5 mx-6 bg-white rounded-xl overflow-hidden border border-gray-100"
+        className="mb-5 mx-6 bg-white rounded-xl overflow-hidden border border-indigo-100"
         style={{
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.06,
-          shadowRadius: 6,
+          shadowColor: '#4338CA',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 10,
           elevation: 2,
         }}
       >
@@ -135,6 +137,20 @@ export default function TripsScreen() {
           <Text className="text-base font-semibold text-gray-900 mt-2">
             {formatPrice(item.totalAmount, item.currency)}
           </Text>
+          {item.status === 'completed' && (
+            <TouchableOpacity
+              onPress={() =>
+                router.push(
+                  `/reviews/write?bookingId=${item.id}&propertyId=${item.property.id}`,
+                )
+              }
+              className="mt-3 bg-brand rounded-lg py-2 px-4 self-start"
+            >
+              <Text className="text-white text-sm font-semibold">
+                Write a review
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -145,12 +161,12 @@ export default function TripsScreen() {
   // ---------------------------------------------------------------------------
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <View className="px-6 pt-6 pb-2">
+      <View className="px-6 pt-6 pb-3 bg-indigo-50 border-b border-indigo-100">
         <Text className="text-2xl font-bold text-gray-900">Trips</Text>
       </View>
 
       {/* Segment tabs */}
-      <View className="flex-row px-6 mb-4 gap-2">
+      <View className="flex-row px-6 mt-4 mb-4 gap-2">
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -158,8 +174,8 @@ export default function TripsScreen() {
             activeOpacity={0.8}
             className={`px-4 py-2 rounded-full border ${
               activeTab === tab.key
-                ? 'bg-gray-900 border-gray-900'
-                : 'bg-white border-gray-300'
+                ? 'bg-brand border-brand'
+                : 'bg-white border-indigo-100'
             }`}
           >
             <Text
@@ -184,7 +200,9 @@ export default function TripsScreen() {
           refreshing={isRefetching}
           ListEmptyComponent={
             <View className="items-center justify-center py-24 px-6">
-              <Calendar size={48} color="#717171" />
+              <View className="w-16 h-16 rounded-2xl bg-brand-50 items-center justify-center">
+                <Calendar size={28} color="#4F46E5" />
+              </View>
               <Text className="text-base text-gray-500 mt-4 text-center">
                 {activeTab === 'upcoming'
                   ? 'No upcoming trips. Start exploring to plan your next adventure!'

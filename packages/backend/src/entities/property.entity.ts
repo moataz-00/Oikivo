@@ -143,11 +143,17 @@ export class PropertyEntity {
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
   longitude: number;
 
+  @Column({ length: 64, nullable: true, comment: 'IANA timezone (e.g. Africa/Cairo, America/New_York)' })
+  timezone: string | null;
+
   @Column({ name: 'check_in_after', type: 'time', default: '15:00:00' })
   checkInAfter: string;
 
   @Column({ name: 'check_out_before', type: 'time', default: '11:00:00' })
   checkOutBefore: string;
+
+  @Column({ name: 'check_in_instructions', type: 'text', nullable: true, comment: 'WiFi passwords, door codes, entry instructions' })
+  checkInInstructions: string | null;
 
   @Column({ name: 'allows_pets', default: false })
   allowsPets: boolean;
@@ -208,7 +214,7 @@ export class PropertyEntity {
   @Column({ name: 'archived_at', type: 'timestamp', nullable: true, default: null })
   archivedAt: Date | null;
 
-  @OneToMany(() => PropertyPhotoEntity, (p) => p.property, { cascade: true })
+  @OneToMany(() => PropertyPhotoEntity, (p) => p.property, { cascade: true, orphanedRowAction: 'delete' })
   photos: PropertyPhotoEntity[];
 
   @ManyToMany(() => AmenityEntity, (a) => a.properties)
@@ -219,7 +225,7 @@ export class PropertyEntity {
   })
   amenities: AmenityEntity[];
 
-  @OneToMany(() => HouseRuleEntity, (r) => r.property, { cascade: true })
+  @OneToMany(() => HouseRuleEntity, (r) => r.property, { cascade: true, orphanedRowAction: 'delete' })
   houseRules: HouseRuleEntity[];
 
   @OneToMany(() => BookingEntity, (b) => b.property)

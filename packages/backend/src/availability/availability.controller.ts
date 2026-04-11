@@ -17,6 +17,7 @@ import { Response } from 'express';
 import { AvailabilityService } from './availability.service';
 import { ICalSyncService } from './ical-sync.service';
 import { BlockDatesDto, SeasonalPricingDto } from './dto/block-dates.dto';
+import { BulkBlockDatesDto, BulkSeasonalPricingDto } from './dto/bulk-listing-availability.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserEntity } from '../entities/user.entity';
@@ -77,6 +78,28 @@ export class AvailabilityController {
     @Body() dto: SeasonalPricingDto,
   ) {
     return this.availabilityService.setSeasonalPricing(propertyId, user.id, dto);
+  }
+
+  @Post('bulk/block')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk block/unblock dates across host listings' })
+  bulkBlockDates(
+    @CurrentUser() user: UserEntity,
+    @Body() dto: BulkBlockDatesDto,
+  ) {
+    return this.availabilityService.bulkBlockDates(user.id, dto);
+  }
+
+  @Post('bulk/seasonal-pricing')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk seasonal pricing update across host listings' })
+  bulkSeasonalPricing(
+    @CurrentUser() user: UserEntity,
+    @Body() dto: BulkSeasonalPricingDto,
+  ) {
+    return this.availabilityService.bulkSeasonalPricing(user.id, dto);
   }
 
   // ─── iCal / Channel Manager ────────────────────────────────────────────────

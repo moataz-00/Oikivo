@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsPositive,
   IsDateString,
+  IsBoolean,
   Min,
   MaxLength,
 } from 'class-validator';
@@ -42,4 +43,9 @@ export class CreateBookingDto {
   @IsString()
   @MaxLength(2000)
   specialRequests?: string;
+
+  @ApiProperty({ required: false, example: true, description: 'Guest acknowledges property house rules' })
+  @IsOptional()
+  @IsBoolean()
+  houseRulesAcknowledged?: boolean;
 }

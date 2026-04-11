@@ -1,9 +1,9 @@
 import {
   Controller, Get, Post, Patch, Delete,
   Param, Body, Query, UseGuards, ParseIntPipe,
-  UseInterceptors, UploadedFiles, BadRequestException,
+  UseInterceptors, UploadedFiles, UploadedFile, BadRequestException,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
@@ -15,9 +15,9 @@ import {
   BookConsultationDto, RespondToBookingDto, CompleteBookingDto,
   CreateConsultationReviewDto, ReplyToReviewDto,
   AdminReviewConsultantDto, SetAvailabilityDto,
-  CreateConsultationServiceDto, UpdateConsultationServiceDto,
   BlockVacationDto, RequestConsultantPayoutDto, UpdateConsultantPayoutSettingsDto,
-  AdminProcessConsultantPayoutDto,
+  AdminProcessConsultantPayoutDto, AdminMarkNoShowDto, AdminResolveDisputeDto,
+  RescheduleBookingDto,
 } from './dto/consultations.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../admin/admin.guard';
@@ -68,12 +68,14 @@ export class ConsultationsPublicController {
 
   @Get('consultants')
   @ApiOperation({ summary: 'Browse approved consultants' })
+  @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'specialization', required: false })
   @ApiQuery({ name: 'minRating', required: false })
   @ApiQuery({ name: 'maxPrice', required: false })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   listConsultants(
+    @Query('search') search?: string,
     @Query('specialization') specialization?: string,
     @Query('minRating') minRating?: string,
     @Query('maxPrice') maxPrice?: string,
@@ -81,6 +83,7 @@ export class ConsultationsPublicController {
     @Query('limit') limit?: string,
   ) {
     return this.svc.listConsultants({
+      search,
       specialization,
       minRating: minRating ? Number(minRating) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
@@ -110,11 +113,6 @@ export class ConsultationsPublicController {
     return this.svc.getConsultantPublicProfile(id);
   }
 
-  @Get('consultants/:id/services')
-  @ApiOperation({ summary: 'Get active service offerings for a specific consultant' })
-  getConsultantServices(@Param('id', ParseIntPipe) id: number) {
-    return this.svc.getConsultantServices(id);
-  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -259,6 +257,15 @@ export class ConsultationsAuthController {
     return this.svc.completeBooking(user.id, id, dto);
   }
 
+  @Patch('bookings/:id/start')
+  @ApiOperation({ summary: 'Start a confirmed consultation session (consultant only)' })
+  startSession(
+    @CurrentUser() user: UserEntity,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.svc.startSession(user.id, id);
+  }
+
   @Patch('bookings/:id/cancel')
   @ApiOperation({ summary: 'Cancel a consultation booking' })
   cancelBooking(
@@ -269,8 +276,28 @@ export class ConsultationsAuthController {
     return this.svc.cancelBooking(user.id, id, reason);
   }
 
+  @Patch('bookings/:id/confirm-completion')
+  @ApiOperation({ summary: 'Client confirms the consultation session took place (unlocks consultant payout)' })
+  confirmCompletion(
+    @CurrentUser() user: UserEntity,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.svc.confirmCompletion(user.id, id);
+  }
+
+  // BUG-H4: Client reports an issue with a completed session
+  @Post('bookings/:id/report-issue')
+  @ApiOperation({ summary: 'Client reports that the consultation session did not happen or had issues (blocks payout)' })
+  reportSessionIssue(
+    @CurrentUser() user: UserEntity,
+    @Param('id', ParseIntPipe) id: number,
+    @Body('reason') reason: string,
+  ) {
+    return this.svc.reportSessionIssue(user.id, id, reason);
+  }
+
   @Patch('bookings/:id/mark-instapay-paid')
-  @ApiOperation({ summary: 'Mark an InstaPay consultation booking as paid (consultant confirms receipt)' })
+  @ApiOperation({ summary: '[DEPRECATED] Mark InstaPay paid — use admin verify-payment instead. Kept for backward compat.' })
   markInstapayPaid(
     @CurrentUser() user: UserEntity,
     @Param('id', ParseIntPipe) id: number,
@@ -286,6 +313,46 @@ export class ConsultationsAuthController {
     @Body() body: { reference: string; proofUrl?: string },
   ) {
     return this.svc.submitConsultationInstapayProof(user.id, id, body);
+  }
+
+  // P2: Upload payment proof screenshot for a booking
+  @Post('bookings/:id/upload-payment-proof')
+  @ApiOperation({ summary: 'Upload InstaPay payment proof screenshot (client)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const dir = join(process.cwd(), 'uploads', 'payments', 'consultation-proofs');
+          ensureDir(dir);
+          cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `proof-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
+          return cb(new BadRequestException('Only image files (jpg, png, webp) are allowed'), false);
+        }
+        cb(null, true);
+      },
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  async uploadPaymentProof(
+    @CurrentUser() user: UserEntity,
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('reference') reference?: string,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    const proofUrl = `/uploads/payments/consultation-proofs/${file.filename}`;
+    return this.svc.submitConsultationInstapayProof(user.id, id, {
+      reference: reference ?? '',
+      proofUrl,
+    });
   }
 
   @Get('my-bookings')
@@ -351,35 +418,6 @@ export class ConsultationsAuthController {
     return this.svc.flagReview(user.id, id, reason);
   }
 
-  // ── Services CRUD ──
-  @Post('services')
-  @ApiOperation({ summary: 'Create a consultation service offering' })
-  createService(@CurrentUser() user: UserEntity, @Body() dto: CreateConsultationServiceDto) {
-    return this.svc.createService(user.id, dto);
-  }
-
-  @Get('services/mine')
-  @ApiOperation({ summary: 'Get my consultation service offerings' })
-  getMyServices(@CurrentUser() user: UserEntity) {
-    return this.svc.getMyServices(user.id);
-  }
-
-  @Patch('services/:id')
-  @ApiOperation({ summary: 'Update a consultation service offering' })
-  updateService(
-    @CurrentUser() user: UserEntity,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateConsultationServiceDto,
-  ) {
-    return this.svc.updateService(user.id, id, dto);
-  }
-
-  @Delete('services/:id')
-  @ApiOperation({ summary: 'Deactivate a consultation service offering' })
-  deleteService(@CurrentUser() user: UserEntity, @Param('id', ParseIntPipe) id: number) {
-    return this.svc.deleteService(user.id, id);
-  }
-
   // ── C12: Payout endpoints ──
   @Get('earnings')
   @ApiOperation({ summary: 'Get my earnings summary and history' })
@@ -404,6 +442,41 @@ export class ConsultationsAuthController {
   updatePayoutSettings(@CurrentUser() user: UserEntity, @Body() dto: UpdateConsultantPayoutSettingsDto) {
     return this.svc.updatePayoutSettings(user.id, dto);
   }
+
+  // MF-17: Bulk respond to multiple bookings
+  @Patch('bookings/bulk-respond')
+  @ApiOperation({ summary: 'Bulk accept or decline pending bookings (consultant only)' })
+  bulkRespondBookings(
+    @CurrentUser() user: UserEntity,
+    @Body() body: { bookingIds: number[]; action: 'confirmed' | 'cancelled' },
+  ) {
+    return this.svc.bulkRespondBookings(user.id, body.bookingIds, body.action);
+  }
+
+  // MISS6: Reschedule a confirmed booking
+  @Patch('bookings/:id/reschedule')
+  @ApiOperation({ summary: 'Reschedule a confirmed booking to a new time (client or consultant)' })
+  rescheduleBooking(
+    @CurrentUser() user: UserEntity,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RescheduleBookingDto,
+  ) {
+    return this.svc.rescheduleBooking(user.id, id, dto);
+  }
+
+  // MISS8: Get platform InstaPay details
+  @Get('instapay-info')
+  @ApiOperation({ summary: 'Get platform InstaPay transfer details for making payments' })
+  getInstapayInfo() {
+    return this.svc.getInstapayDetails();
+  }
+
+  // MF-18: Export earnings data as JSON (frontend generates CSV)
+  @Get('earnings/export')
+  @ApiOperation({ summary: 'Export my earnings data for CSV generation' })
+  exportEarnings(@CurrentUser() user: UserEntity) {
+    return this.svc.exportEarningsCSV(user.id);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -421,6 +494,13 @@ export class ConsultationsAdminController {
   @ApiOperation({ summary: 'Get consultation marketplace stats' })
   getStats() {
     return this.svc.adminGetStats();
+  }
+
+  // MISS7: Revenue dashboard
+  @Get('revenue')
+  @ApiOperation({ summary: 'Get detailed consultation revenue stats (fees, payouts, refunds, monthly breakdown)' })
+  getRevenueStats() {
+    return this.svc.adminGetRevenueStats();
   }
 
   @Get('consultants')
@@ -441,9 +521,36 @@ export class ConsultationsAdminController {
   }
 
   @Get('consultants/:id')
-  @ApiOperation({ summary: 'Get consultant detail with documents' })
+  @ApiOperation({ summary: 'Get consultant detail with documents, availability & stats' })
   getConsultant(@Param('id', ParseIntPipe) id: number) {
     return this.svc.adminGetConsultantDetail(id);
+  }
+
+  @Patch('consultants/:id')
+  @ApiOperation({ summary: 'Admin: update consultant profile, status, or featured flag' })
+  updateConsultant(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: any,
+  ) {
+    return this.svc.adminUpdateConsultant(id, dto);
+  }
+
+  @Get('consultants/:id/bookings')
+  @ApiOperation({ summary: 'Admin: list bookings for a specific consultant' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  getConsultantBookings(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.svc.adminGetConsultantBookings(id, {
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+      status,
+    });
   }
 
   @Patch('consultants/:id/review')
@@ -492,5 +599,61 @@ export class ConsultationsAdminController {
     @Body() dto: AdminProcessConsultantPayoutDto,
   ) {
     return this.svc.adminProcessConsultantPayout(id, dto);
+  }
+
+  // BUG-M1: Mark a booking as no-show with party identification
+  @Patch('bookings/:id/no-show')
+  @ApiOperation({ summary: 'Admin: mark a booking as no-show (specify which party)' })
+  markNoShow(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AdminMarkNoShowDto,
+  ) {
+    return this.svc.markNoShow(id, dto);
+  }
+
+  // BE-20: Mark a booking as disputed
+  @Patch('bookings/:id/dispute')
+  @ApiOperation({ summary: 'Admin: mark a booking as disputed' })
+  markDisputed(@Param('id', ParseIntPipe) id: number) {
+    return this.svc.markDisputed(id);
+  }
+
+  // BUG-M2: Resolve a disputed booking
+  @Patch('bookings/:id/resolve-dispute')
+  @ApiOperation({ summary: 'Admin: resolve a disputed booking (refund, pay consultant, or split)' })
+  resolveDispute(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AdminResolveDisputeDto,
+  ) {
+    return this.svc.adminResolveDispute(id, dto);
+  }
+
+  // REF1: Admin refund queue
+  @Get('pending-refunds')
+  @ApiOperation({ summary: 'Admin: list bookings with pending refunds' })
+  @ApiQuery({ name: 'page', required: false })
+  listPendingRefunds(@Query('page') page?: string) {
+    return this.svc.adminListPendingRefunds({ page: page ? Number(page) : 1 });
+  }
+
+  // REF2: Admin process refund
+  @Patch('bookings/:id/process-refund')
+  @ApiOperation({ summary: 'Admin: mark a refund as completed (sent via InstaPay)' })
+  processRefund(@Param('id', ParseIntPipe) id: number) {
+    return this.svc.adminProcessRefund(id);
+  }
+
+  // BUG-H2: Admin payment verification queue
+  @Get('pending-payments')
+  @ApiOperation({ summary: 'Admin: list bookings with submitted InstaPay proof awaiting verification' })
+  @ApiQuery({ name: 'page', required: false })
+  listPendingPayments(@Query('page') page?: string) {
+    return this.svc.adminListPendingPayments({ page: page ? Number(page) : 1 });
+  }
+
+  @Patch('bookings/:id/verify-payment')
+  @ApiOperation({ summary: 'Admin: verify and approve an InstaPay payment' })
+  verifyPayment(@Param('id', ParseIntPipe) id: number) {
+    return this.svc.adminVerifyPayment(id);
   }
 }

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsPositive, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsPositive, IsEnum, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -27,6 +27,7 @@ export class SendMessageDto {
   @ApiProperty({ example: 'Hi, is this property available for next weekend?' })
   @IsOptional()
   @IsString()
+  @MaxLength(5000)
   body?: string;
 
   @ApiProperty({ required: false, enum: ['text', 'image'], default: 'text' })

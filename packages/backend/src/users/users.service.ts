@@ -14,6 +14,7 @@ import { PropertyPhotoEntity } from '../entities/property-photo.entity';
 import { ExperienceEntity } from '../entities/experience.entity';
 import { ExperiencePhotoEntity } from '../entities/experience-photo.entity';
 import { MessageEntity } from '../entities/message.entity';
+import { BlockedUserEntity } from '../entities/blocked-user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EGYPTIAN_PHONE_REGEX } from './dto/update-profile.dto';
 
@@ -36,6 +37,8 @@ export class UsersService {
     private experiencePhotosRepo: Repository<ExperiencePhotoEntity>,
     @InjectRepository(MessageEntity)
     private messagesRepo: Repository<MessageEntity>,
+    @InjectRepository(BlockedUserEntity)
+    private blockedUsersRepo: Repository<BlockedUserEntity>,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
@@ -187,7 +190,7 @@ export class UsersService {
     const smtpPass = this.config.get<string>('SMTP_PASS') ?? this.config.get<string>('EMAIL_PASS');
     const smtpHost = this.config.get<string>('SMTP_HOST') ?? (smtpUser ? 'smtp.gmail.com' : undefined);
     const smtpPort = Number(this.config.get<string>('SMTP_PORT', '587'));
-    const from = this.config.get<string>('SMTP_FROM', `Journey Stay <${smtpUser || 'no-reply@journeystay.com'}>`);
+    const from = this.config.get<string>('SMTP_FROM', `Oikivo <${smtpUser || 'no-reply@oikivo.com'}>`);
 
     if (!smtpHost || !smtpUser || !smtpPass) {
       throw new BadRequestException(
@@ -492,5 +495,71 @@ export class UsersService {
       reviewsWritten,
       messagesSent,
     };
+  }
+
+  // MSG-G3: Block a user
+  async blockUser(blockerId: number, blockedUserId: number): Promise<{ message: string }> {
+    if (blockerId === blockedUserId) {
+      throw new BadRequestException('You cannot block yourself');
+    }
+
+    // Check if blocked user exists
+    const blockedUser = await this.usersRepo.findOne({ where: { id: blockedUserId } });
+    if (!blockedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if already blocked
+    const existing = await this.blockedUsersRepo.findOne({
+      where: { blockerId, blockedUserId },
+    });
+
+    if (existing) {
+      throw new BadRequestException('User is already blocked');
+    }
+
+    // Create block record
+    const block = this.blockedUsersRepo.create({
+      blockerId,
+      blockedUserId,
+    });
+
+    await this.blockedUsersRepo.save(block);
+
+    return { message: 'User blocked successfully' };
+  }
+
+  // MSG-G3: Unblock a user
+  async unblockUser(blockerId: number, blockedUserId: number): Promise<{ message: string }> {
+    const block = await this.blockedUsersRepo.findOne({
+      where: { blockerId, blockedUserId },
+    });
+
+    if (!block) {
+      throw new NotFoundException('Block record not found');
+    }
+
+    await this.blockedUsersRepo.remove(block);
+
+    return { message: 'User unblocked successfully' };
+  }
+
+  // MSG-G3: Get list of blocked users
+  async getBlockedUsers(userId: number): Promise<UserEntity[]> {
+    const blocks = await this.blockedUsersRepo.find({
+      where: { blockerId: userId },
+      relations: ['blockedUser'],
+    });
+
+    return blocks.map((b) => this.sanitizeUser(b.blockedUser) as UserEntity);
+  }
+
+  // MSG-G3: Check if user is blocked
+  async isUserBlocked(blockerId: number, blockedUserId: number): Promise<boolean> {
+    const block = await this.blockedUsersRepo.findOne({
+      where: { blockerId, blockedUserId },
+    });
+
+    return !!block;
   }
 }

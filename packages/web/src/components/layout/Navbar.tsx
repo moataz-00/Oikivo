@@ -94,9 +94,9 @@ export function Navbar() {
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex h-9 w-9 items-center justify-center rounded-xl gradient-brand shadow-md shadow-indigo-500/30"
+                className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-indigo-500/30"
               >
-                <span className="text-white text-lg font-bold leading-none">O</span>
+                <img src="/favicon-96x96.png" alt="Oikivo" width={36} height={36} className="h-full w-full object-cover" />
               </motion.div>
               <span className="font-brand text-2xl gradient-brand-text hidden sm:block">Oikivo</span>
             </Link>

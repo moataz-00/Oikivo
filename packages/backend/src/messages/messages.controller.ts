@@ -11,11 +11,15 @@ import {
   UploadedFile,
   ParseIntPipe,
   BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
 import { SendMessageDto } from './dto/send-message.dto';
@@ -122,6 +126,26 @@ export class MessagesController {
     return this.messagesService.sendImageMessage(user.id, conversationId, relativePath);
   }
 
+  @Get('conversations/:id/image/:filename')
+  @ApiOperation({ summary: 'Get message image file (authenticated - conversation participants only)' })
+  async getMessageImage(
+    @Param('id', ParseIntPipe) conversationId: number,
+    @Param('filename') filename: string,
+    @CurrentUser() user: UserEntity,
+    @Res() res: Response,
+  ) {
+    // Verify conversation access - will be checked by service method
+    const conversation = await this.messagesService.verifyConversationAccess(conversationId, user.id);
+
+    // Serve the file
+    const filePath = join(process.cwd(), 'uploads', 'messages', conversationId.toString(), filename);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('Image file not found');
+    }
+
+    res.sendFile(filePath);
+  }
+
   /** Start a new conversation (guest → host) and send first message */
   @Post('conversations')
   @ApiOperation({ summary: 'Start a new conversation or send to existing' })
@@ -143,6 +167,28 @@ export class MessagesController {
     @CurrentUser() user: UserEntity,
   ) {
     return this.messagesService.markRead(conversationId, user.id);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search messages by content (user\'s conversations only)' })
+  @ApiQuery({ name: 'q', required: true, description: 'Search query' })
+  @ApiQuery({ name: 'conversationId', required: false, description: 'Filter by specific conversation' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  searchMessages(
+    @CurrentUser() user: UserEntity,
+    @Query('q') query: string,
+    @Query('conversationId') conversationId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.messagesService.searchMessages(
+      user.id,
+      query,
+      conversationId ? parseInt(conversationId) : undefined,
+      parseInt(page) || 1,
+      parseInt(limit) || 20,
+    );
   }
 
   @Get('unread-count')

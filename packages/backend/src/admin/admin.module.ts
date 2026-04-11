@@ -15,9 +15,18 @@ import { ExperienceBookingEntity } from '../entities/experience-booking.entity';
 import { AdminActivityLogEntity } from '../entities/admin-activity-log.entity';
 import { PlatformSettingEntity } from '../entities/platform-setting.entity';
 import { NotificationEntity } from '../entities/notification.entity';
+import { ConversationEntity } from '../entities/conversation.entity';
+import { MessageEntity } from '../entities/message.entity';
 import { DisputesModule } from '../disputes/disputes.module';
 import { BookingsModule } from '../bookings/bookings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AvailabilityModule } from '../availability/availability.module';
+import { MailModule } from '../mail/mail.module';
+import { CategoryEntity } from '../entities/category.entity';
+import { AmenityEntity } from '../entities/amenity.entity';
+import { ConsultantEntity } from '../entities/consultant.entity';
+import { ConsultationBookingEntity } from '../entities/consultation-booking.entity';
+import { ExpenseEntity } from '../entities/expense.entity';
 
 @Module({
   imports: [
@@ -31,10 +40,21 @@ import { NotificationsModule } from '../notifications/notifications.module';
       DisputeEntity,
       ExperienceBookingEntity,
       AdminActivityLogEntity,
-      PlatformSettingEntity,      NotificationEntity,    ]),
+      PlatformSettingEntity,
+      NotificationEntity,
+      ConversationEntity,
+      MessageEntity,
+      CategoryEntity,
+      AmenityEntity,
+      ConsultantEntity,
+      ConsultationBookingEntity,
+      ExpenseEntity,
+    ]),
     DisputesModule,
     BookingsModule,
     NotificationsModule,
+    AvailabilityModule,
+    MailModule,
   ],
   controllers: [AdminController],
   providers: [AdminService, AdminActivityLogService, AdminLogInterceptor],

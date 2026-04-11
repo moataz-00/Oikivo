@@ -6,8 +6,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { authApi } from '@/lib/api';
@@ -29,7 +30,7 @@ export default function LoginScreen() {
   // ---------------------------------------------------------------------------
   // Form validation
   // ---------------------------------------------------------------------------
-  const isValid = email.trim().length > 0 && password.length >= 6;
+  const isValid = email.trim().length > 0 && password.length >= 8;
 
   // ---------------------------------------------------------------------------
   // Handle login
@@ -59,25 +60,35 @@ export default function LoginScreen() {
   // ---------------------------------------------------------------------------
   return (
     <View className="flex-1 bg-white">
-      <ScreenHeader title="Log in" />
+      <ScreenHeader title="" />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24 }}
+          contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Welcome text */}
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
-            Welcome back
-          </Text>
-          <Text className="text-base text-gray-500 mb-8">
-            Log in to your Sakan account to continue.
-          </Text>
+          {/* Branded header */}
+          <LinearGradient
+            colors={['#4F46E5', '#6366F1']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            className="px-6 pt-6 pb-8 rounded-b-3xl"
+          >
+            <Animated.View entering={FadeInDown.duration(400)}>
+              <Text className="text-3xl font-bold text-white mb-1">
+                Welcome back
+              </Text>
+              <Text className="text-base text-white/70">
+                Log in to your Oikivo account
+              </Text>
+            </Animated.View>
+          </LinearGradient>
 
+          <View className="px-6 pt-8">
           {/* Error message */}
           {error ? (
             <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
@@ -141,6 +152,7 @@ export default function LoginScreen() {
                 Sign up
               </Text>
             </TouchableOpacity>
+          </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -109,7 +109,7 @@ export class BookingEntity {
   @Column({
     name: 'payment_status',
     type: 'enum',
-    enum: ['pending', 'submitted', 'paid', 'refunded', 'declined'],
+    enum: ['pending', 'submitted', 'paid', 'refund_pending', 'refunded', 'declined'],
     default: 'pending',
   })
   paymentStatus: string;
@@ -133,6 +133,9 @@ export class BookingEntity {
 
   @Column({ name: 'stripe_payment_intent_id', type: 'varchar', length: 255, nullable: true })
   stripePaymentIntentId: string | null;
+
+  @Column({ name: 'stripe_refund_id', type: 'varchar', length: 255, nullable: true })
+  stripeRefundId: string | null;
 
   @Column({ name: 'opay_order_reference', type: 'varchar', length: 100, nullable: true })
   opayOrderReference: string | null;
@@ -165,6 +168,18 @@ export class BookingEntity {
 
   @Column({ name: 'special_requests', type: 'text', nullable: true })
   specialRequests: string;
+
+  @Column({ name: 'host_note', type: 'text', nullable: true })
+  hostNote: string | null;
+
+  @Column({ name: 'host_check_in_instructions', type: 'text', nullable: true })
+  hostCheckInInstructions: string | null;
+
+  @Column({ name: 'house_rules_acknowledged', type: 'boolean', default: false, comment: 'Guest acknowledged house rules at booking time' })
+  houseRulesAcknowledged: boolean;
+
+  @Column({ name: 'house_rules_acknowledged_at', type: 'datetime', nullable: true })
+  houseRulesAcknowledgedAt: Date | null;
 
   @Column({ name: 'refund_reason', type: 'varchar', length: 500, nullable: true })
   refundReason: string | null;

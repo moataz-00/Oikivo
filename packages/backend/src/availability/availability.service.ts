@@ -10,6 +10,7 @@ import { AvailabilityEntity } from '../entities/availability.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { PropertyEntity } from '../entities/property.entity';
 import { BlockDatesDto, SeasonalPricingDto } from './dto/block-dates.dto';
+import { BulkBlockDatesDto, BulkSeasonalPricingDto } from './dto/bulk-listing-availability.dto';
 
 @Injectable()
 export class AvailabilityService {
@@ -66,6 +67,7 @@ export class AvailabilityService {
       isBooked: boolean;
       price: number;
       priceOverride: number | null;
+      source: string;
     }> = [];
 
     const avMap = new Map(availabilityRows.map((a) => [a.date, a]));
@@ -87,6 +89,7 @@ export class AvailabilityService {
         isBooked: bookedDates.has(dateStr),
         price: avRow?.priceOverride ? Number(avRow.priceOverride) : defaultPrice,
         priceOverride: avRow?.priceOverride ? Number(avRow.priceOverride) : null,
+        source: bookedDates.has(dateStr) ? 'booking' : (avRow?.source ?? 'host'),
       });
     }
 
@@ -162,6 +165,84 @@ export class AvailabilityService {
       endDate: dto.endDate,
       pricePerNight: dto.pricePerNight,
       datesUpdated: datesUpdated.length,
+    };
+  }
+
+  async bulkBlockDates(hostId: number, dto: BulkBlockDatesDto) {
+    const propertyIds = Array.from(new Set(dto.propertyIds));
+    const properties = await this.propertiesRepo.find({
+      where: { id: In(propertyIds) },
+      select: ['id', 'hostId'],
+    });
+
+    const ownedIds = new Set(properties.filter((p) => p.hostId === hostId).map((p) => p.id));
+    const updated: number[] = [];
+    const failed: number[] = [];
+
+    for (const propertyId of propertyIds) {
+      if (!ownedIds.has(propertyId)) {
+        failed.push(propertyId);
+        continue;
+      }
+
+      try {
+        await this.blockDates(propertyId, hostId, {
+          dates: dto.dates,
+          isBlocked: dto.isBlocked,
+          priceOverride: dto.priceOverride,
+        });
+        updated.push(propertyId);
+      } catch {
+        failed.push(propertyId);
+      }
+    }
+
+    return {
+      action: 'bulk_block_dates',
+      updated,
+      failed,
+      datesCount: dto.dates.length,
+      isBlocked: dto.isBlocked,
+    };
+  }
+
+  async bulkSeasonalPricing(hostId: number, dto: BulkSeasonalPricingDto) {
+    const propertyIds = Array.from(new Set(dto.propertyIds));
+    const properties = await this.propertiesRepo.find({
+      where: { id: In(propertyIds) },
+      select: ['id', 'hostId'],
+    });
+
+    const ownedIds = new Set(properties.filter((p) => p.hostId === hostId).map((p) => p.id));
+    const updated: number[] = [];
+    const failed: number[] = [];
+
+    for (const propertyId of propertyIds) {
+      if (!ownedIds.has(propertyId)) {
+        failed.push(propertyId);
+        continue;
+      }
+
+      try {
+        await this.setSeasonalPricing(propertyId, hostId, {
+          startDate: dto.startDate,
+          endDate: dto.endDate,
+          pricePerNight: dto.pricePerNight,
+          label: dto.label,
+        });
+        updated.push(propertyId);
+      } catch {
+        failed.push(propertyId);
+      }
+    }
+
+    return {
+      action: 'bulk_seasonal_pricing',
+      updated,
+      failed,
+      startDate: dto.startDate,
+      endDate: dto.endDate,
+      pricePerNight: dto.pricePerNight,
     };
   }
 

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Sakan",
-    "slug": "sakan",
+    "name": "Oikivo",
+    "slug": "oikivo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,19 +9,19 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FF385C"
+      "backgroundColor": "#4F46E5"
     },
-    "scheme": "sakan",
+    "scheme": "oikivo",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.sakan.mobile"
+      "bundleIdentifier": "app.oikivo.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FF385C"
+        "backgroundColor": "#4F46E5"
       },
-      "package": "app.sakan.mobile"
+      "package": "app.oikivo.mobile"
     },
     "plugins": [
       "expo-router",
@@ -29,7 +29,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Sakan to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Allow Oikivo to use your location."
         }
       ],
       "expo-image-picker"

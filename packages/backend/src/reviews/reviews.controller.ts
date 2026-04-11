@@ -11,14 +11,47 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFiles,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { ReplyReviewDto } from './dto/reply-review.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserEntity } from '../entities/user.entity';
+
+function ensureDir(dir: string) {
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
+const reviewPhotoStorage = diskStorage({
+  destination: (req, file, cb) => {
+    const reviewId = req.params.id;
+    const dir = join(process.cwd(), 'uploads', 'reviews', reviewId);
+    ensureDir(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `photo-${uniqueSuffix}${extname(file.originalname)}`);
+  },
+});
+
+const imageFilter = (req: Express.Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
+  if (!file.mimetype.match(/\/(jpg|jpeg|png|webp|gif)$/)) {
+    return cb(new BadRequestException('Only image files are allowed'), false);
+  }
+  cb(null, true);
+};
 
 @ApiTags('reviews')
 @Controller('reviews')
@@ -65,6 +98,31 @@ export class ReviewsController {
   @ApiOperation({ summary: 'Get review statistics for a property' })
   getReviewStats(@Param('propertyId', ParseIntPipe) propertyId: number) {
     return this.reviewsService.getReviewStats(propertyId);
+  }
+
+  @Post(':id/photos')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload photos to a review (reviewer only, up to 5 photos)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FilesInterceptor('files', 5, {
+      storage: reviewPhotoStorage,
+      fileFilter: imageFilter,
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per photo
+    }),
+  )
+  async uploadPhotos(
+    @Param('id', ParseIntPipe) reviewId: number,
+    @CurrentUser() user: UserEntity,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No files uploaded');
+    }
+
+    const photoPaths = files.map((f) => `/uploads/reviews/${reviewId}/${f.filename}`);
+    return this.reviewsService.addPhotos(reviewId, user.id, photoPaths);
   }
 
   @Delete(':id')

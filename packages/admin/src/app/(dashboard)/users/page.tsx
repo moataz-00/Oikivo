@@ -6,7 +6,7 @@ import { adminApi, getUploadUrl } from '@/lib/api';
 import {
   Search, ShieldCheck, ShieldOff, UserCheck, UserX,
   ChevronLeft, ChevronRight, BadgeCheck, BadgeX, FileText,
-  CheckSquare, Square, Users,
+  CheckSquare, Square, Users, UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +38,8 @@ export default function UsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [role, setRole] = useState('');
   const [selected, setSelected] = useState<number[]>([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', isHost: false, isAdmin: false });
   const qc = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
@@ -66,6 +68,10 @@ export default function UsersPage() {
       setSelected([]);
     },
   });
+  const createUserMut = useMutation({
+    mutationFn: (data: typeof createForm) => adminApi.createUser(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowCreate(false); setCreateForm({ firstName: '', lastName: '', email: '', password: '', phone: '', isHost: false, isAdmin: false }); },
+  });
 
   const d = data as any;
   const items: any[] = d?.items ?? [];
@@ -90,9 +96,14 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Users</h1>
-        <p className="text-sm text-gray-400 mt-1">Manage all platform users</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Users</h1>
+          <p className="text-sm text-gray-400 mt-1">Manage all platform users</p>
+        </div>
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors">
+          <UserPlus className="h-4 w-4" />Create User
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-3 items-center">
@@ -239,6 +250,32 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {/* Create User Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-2 text-indigo-400 mb-4"><UserPlus className="h-5 w-5" /><h3 className="text-lg font-semibold">Create User</h3></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-gray-500">First Name *</label><input value={createForm.firstName} onChange={e => setCreateForm(f => ({ ...f, firstName: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white mt-1" /></div>
+                <div><label className="text-xs text-gray-500">Last Name *</label><input value={createForm.lastName} onChange={e => setCreateForm(f => ({ ...f, lastName: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white mt-1" /></div>
+              </div>
+              <div><label className="text-xs text-gray-500">Email *</label><input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white mt-1" /></div>
+              <div><label className="text-xs text-gray-500">Password *</label><input type="password" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white mt-1" /></div>
+              <div><label className="text-xs text-gray-500">Phone</label><input value={createForm.phone} onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white mt-1" /></div>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={createForm.isHost} onChange={e => setCreateForm(f => ({ ...f, isHost: e.target.checked }))} className="rounded" />Host</label>
+                <label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={createForm.isAdmin} onChange={e => setCreateForm(f => ({ ...f, isAdmin: e.target.checked }))} className="rounded" />Admin</label>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg">Cancel</button>
+              <button onClick={() => createUserMut.mutate(createForm)} disabled={!createForm.firstName || !createForm.lastName || !createForm.email || !createForm.password || createUserMut.isPending} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg disabled:opacity-50">Create</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

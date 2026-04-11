@@ -3,16 +3,19 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import * as https from 'https';
-import * as http from 'http';
+import { lookup } from 'dns/promises';
+import { isIP } from 'net';
 import { ICalSourceEntity } from '../entities/ical-source.entity';
 import { AvailabilityEntity } from '../entities/availability.entity';
 import { PropertyEntity } from '../entities/property.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // ─── Minimal iCal parser ─────────────────────────────────────────────────────
 
@@ -80,19 +83,94 @@ function parseICalFeed(raw: string): ICalEvent[] {
   return events;
 }
 
-function fetchUrl(url: string): Promise<string> {
+const MAX_ICAL_BYTES = 1 * 1024 * 1024; // 1 MB
+const MAX_REDIRECTS = 3;
+
+function isPrivateOrLocalAddress(address: string): boolean {
+  const ipVersion = isIP(address);
+  if (ipVersion === 4) {
+    const [a, b] = address.split('.').map(Number);
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 169 && b === 254) return true;
+    return false;
+  }
+  if (ipVersion === 6) {
+    const v = address.toLowerCase();
+    if (v === '::1') return true;
+    if (v.startsWith('fe80:')) return true; // link-local
+    if (v.startsWith('fc') || v.startsWith('fd')) return true; // unique local
+    return false;
+  }
+  return true;
+}
+
+async function validateIcalUrlOrThrow(rawUrl: string): Promise<URL> {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new BadRequestException('Invalid iCal URL');
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new BadRequestException('iCal URL must use HTTPS');
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.localhost')) {
+    throw new BadRequestException('Localhost iCal URLs are not allowed');
+  }
+
+  const records = await lookup(host, { all: true, verbatim: true });
+  if (!records.length) {
+    throw new BadRequestException('Could not resolve iCal host');
+  }
+
+  for (const rec of records) {
+    if (isPrivateOrLocalAddress(rec.address)) {
+      throw new BadRequestException('Private/internal iCal hosts are not allowed');
+    }
+  }
+
+  return parsed;
+}
+
+async function fetchUrl(url: string, redirectDepth = 0): Promise<string> {
+  if (redirectDepth > MAX_REDIRECTS) {
+    throw new Error('Too many redirects while fetching iCal feed');
+  }
+
+  const parsed = await validateIcalUrlOrThrow(url);
+
   return new Promise((resolve, reject) => {
-    const client = url.startsWith('https') ? https : http;
-    const req = (client as typeof https).get(url, { timeout: 15000 }, (res) => {
+    const req = https.get(parsed, { timeout: 15000, rejectUnauthorized: true }, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        // Follow single redirect
-        return fetchUrl(res.headers.location).then(resolve).catch(reject);
+        const redirected = new URL(res.headers.location, parsed).toString();
+        return fetchUrl(redirected, redirectDepth + 1).then(resolve).catch(reject);
       }
       if (!res.statusCode || res.statusCode >= 400) {
         return reject(new Error(`HTTP ${res.statusCode ?? 'unknown'} fetching iCal feed`));
       }
+
+      const contentLength = Number(res.headers['content-length'] ?? 0);
+      if (Number.isFinite(contentLength) && contentLength > MAX_ICAL_BYTES) {
+        req.destroy();
+        return reject(new Error('iCal feed too large (max 1MB)'));
+      }
+
       const chunks: Buffer[] = [];
-      res.on('data', (c: Buffer) => chunks.push(c));
+      let totalBytes = 0;
+      res.on('data', (c: Buffer) => {
+        totalBytes += c.length;
+        if (totalBytes > MAX_ICAL_BYTES) {
+          req.destroy();
+          return reject(new Error('iCal feed too large (max 1MB)'));
+        }
+        chunks.push(c);
+      });
       res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
       res.on('error', reject);
     });
@@ -106,6 +184,7 @@ function fetchUrl(url: string): Promise<string> {
 @Injectable()
 export class ICalSyncService {
   private readonly logger = new Logger(ICalSyncService.name);
+  private readonly propertySyncLocks = new Set<number>();
 
   constructor(
     @InjectRepository(ICalSourceEntity)
@@ -114,6 +193,7 @@ export class ICalSyncService {
     private availabilityRepo: Repository<AvailabilityEntity>,
     @InjectRepository(PropertyEntity)
     private propertiesRepo: Repository<PropertyEntity>,
+    private notificationsService: NotificationsService,
   ) {}
 
   // ─── CRUD ──────────────────────────────────────────────────────────────────
@@ -135,10 +215,7 @@ export class ICalSyncService {
     if (!property) throw new NotFoundException('Property not found');
     if (property.hostId !== hostId) throw new ForbiddenException('Not your property');
 
-    // Validate it looks like an iCal URL
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      throw new BadRequestException('URL must start with http:// or https://');
-    }
+    await validateIcalUrlOrThrow(url);
 
     const source = this.sourcesRepo.create({ propertyId, label, url });
     const saved = await this.sourcesRepo.save(source);
@@ -163,8 +240,7 @@ export class ICalSyncService {
     // (We keep host-and booking-blocked dates untouched)
     await this.availabilityRepo.delete({
       propertyId: source.propertyId,
-      source: 'ical',
-      isBlocked: true,
+      icalSourceId: source.id,
     });
 
     await this.sourcesRepo.remove(source);
@@ -183,6 +259,11 @@ export class ICalSyncService {
   // ─── Sync logic ────────────────────────────────────────────────────────────
 
   async syncSource(source: ICalSourceEntity): Promise<ICalSourceEntity> {
+    if (this.propertySyncLocks.has(source.propertyId)) {
+      throw new ConflictException('A calendar sync is already running for this property');
+    }
+    this.propertySyncLocks.add(source.propertyId);
+
     await this.sourcesRepo.update(source.id, { syncStatus: 'syncing', errorMessage: null });
 
     try {
@@ -192,10 +273,9 @@ export class ICalSyncService {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Remove all existing ical-blocked dates for this property (refresh)
+      // Remove all existing ical-blocked dates for THIS feed only (refresh)
       await this.availabilityRepo.delete({
-        propertyId: source.propertyId,
-        source: 'ical',
+        icalSourceId: source.id,
       });
 
       // Re-insert blocked dates from the feed — future dates only
@@ -213,12 +293,14 @@ export class ICalSyncService {
           if (row) {
             row.isBlocked = true;
             row.source = 'ical';
+            row.icalSourceId = source.id;
           } else {
             row = this.availabilityRepo.create({
               propertyId: source.propertyId,
               date,
               isBlocked: true,
               source: 'ical',
+              icalSourceId: source.id,
             });
           }
           toSave.push(row);
@@ -245,6 +327,28 @@ export class ICalSyncService {
         errorMessage: msg,
       });
       this.logger.error(`iCal sync failed for source #${source.id}: ${msg}`);
+
+      // Notify the property host about the sync failure
+      try {
+        const property = await this.propertiesRepo.findOne({ where: { id: source.propertyId } });
+        if (property) {
+          await this.notificationsService.create(
+            property.hostId,
+            'ical_sync_error',
+            'Calendar Sync Failed',
+            'فشل مزامنة التقويم',
+            `Could not sync calendar "${source.label}". Please check the feed URL is still valid.`,
+            `تعذّر مزامنة التقويم "${source.label}". يرجى التحقق من أن رابط التغذية لا يزال صالحاً.`,
+            { sourceId: source.id, propertyId: source.propertyId, error: msg },
+          );
+        }
+      } catch (notifErr) {
+        this.logger.warn(`Could not send sync-failure notification: ${(notifErr as Error).message}`);
+      }
+    }
+
+    finally {
+      this.propertySyncLocks.delete(source.propertyId);
     }
 
     return this.sourcesRepo.findOne({ where: { id: source.id } }) as Promise<ICalSourceEntity>;
@@ -260,6 +364,23 @@ export class ICalSyncService {
         this.logger.error(`Scheduled sync failed for source #${source.id}: ${err.message}`),
       );
     }
+  }
+
+  // ─── Admin methods ─────────────────────────────────────────────────────────
+
+  /** Return all iCal sources across all properties with property info (admin only) */
+  async getSourcesAdmin(): Promise<ICalSourceEntity[]> {
+    return this.sourcesRepo.find({
+      relations: ['property'],
+      order: { propertyId: 'ASC', id: 'ASC' },
+    });
+  }
+
+  /** Force-sync a single source by ID (admin only) */
+  async syncSourceById(id: number): Promise<ICalSourceEntity> {
+    const source = await this.sourcesRepo.findOne({ where: { id } });
+    if (!source) throw new NotFoundException(`iCal source #${id} not found`);
+    return this.syncSource(source);
   }
 
   // ─── Export ────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { AvailabilityEntity } from '../entities/availability.entity';
 import { ICalSourceEntity } from '../entities/ical-source.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { PropertyEntity } from '../entities/property.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PropertyEntity } from '../entities/property.entity';
       BookingEntity,
       PropertyEntity,
     ]),
+    NotificationsModule,
   ],
   controllers: [AvailabilityController],
   providers: [AvailabilityService, ICalSyncService],

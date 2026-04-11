@@ -275,8 +275,27 @@ export class AuthController {
   @Get('google/callback')
   @ApiOperation({ summary: 'Google OAuth callback — redirects to frontend with tokens' })
   googleCallback(@Request() req: any, @Res() res: Response) {
-    const frontendUrlRaw = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
-    const frontendUrl = frontendUrlRaw.split(',')[0]?.trim() || 'http://localhost:3000';
+    const configuredFrontendUrls = (this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000') || '')
+      .split(',')
+      .map((u) => u.trim())
+      .filter(Boolean);
+
+    const fallbackFrontendUrl = configuredFrontendUrls[0] || 'http://localhost:3000';
+
+    // Prefer the origin that actually initiated OAuth (from login page referrer),
+    // but only if it is in the configured FRONTEND_URL allowlist.
+    const referer = String(req?.headers?.referer || '');
+    let frontendUrl = fallbackFrontendUrl;
+    if (referer) {
+      try {
+        const refererOrigin = new URL(referer).origin;
+        if (configuredFrontendUrls.includes(refererOrigin)) {
+          frontendUrl = refererOrigin;
+        }
+      } catch {
+        // keep fallback
+      }
+    }
 
     const failSafe = () => {
       if (!res.headersSent) {
@@ -292,6 +311,10 @@ export class AuthController {
       }
 
       const { accessToken, refreshToken, user } = result as any;
+
+      // Set auth cookies so token refresh works after Google login
+      this.setAuthCookies(res, accessToken, refreshToken);
+
       const params = new URLSearchParams({
         accessToken,
         refreshToken,

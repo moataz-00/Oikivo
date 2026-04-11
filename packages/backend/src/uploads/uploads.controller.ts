@@ -24,7 +24,7 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserEntity } from '../entities/user.entity';
@@ -156,12 +156,31 @@ export class UploadsController {
     @CurrentUser() user: UserEntity,
     @Body() body: { photoOrders: Array<{ id: number; displayOrder: number }> },
   ) {
-    for (const item of body.photoOrders) {
-      const photo = await this.photosRepo.findOne({ where: { id: item.id }, relations: ['property'] });
-      if (photo && photo.property.hostId === user.id) {
-        await this.photosRepo.update(item.id, { displayOrder: item.displayOrder });
-      }
+    const orders = body.photoOrders ?? [];
+    if (!orders.length) {
+      throw new BadRequestException('No photo order payload provided');
     }
+
+    const ids = orders.map((p) => p.id);
+    const photos = await this.photosRepo.find({ where: { id: In(ids) }, relations: ['property'] });
+    if (photos.length !== ids.length) {
+      throw new BadRequestException('One or more photos were not found');
+    }
+
+    const allOwned = photos.every((p) => p.property.hostId === user.id);
+    if (!allOwned) {
+      throw new ForbiddenException('You can only reorder photos for your own listings');
+    }
+
+    const propertyIds = new Set(photos.map((p) => p.propertyId));
+    if (propertyIds.size !== 1) {
+      throw new BadRequestException('Photos must belong to the same property');
+    }
+
+    for (const item of orders) {
+      await this.photosRepo.update(item.id, { displayOrder: item.displayOrder });
+    }
+
     return { message: 'Photos reordered' };
   }
 

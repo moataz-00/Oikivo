@@ -55,6 +55,21 @@ export class PropertiesController {
     return this.propertiesService.getArchivedListings(user.id);
   }
 
+  @Get('host/compare')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Compare performance metrics across host listings' })
+  @ApiQuery({ name: 'ids', required: false, description: 'Comma-separated property IDs' })
+  compareHostListings(
+    @CurrentUser() user: UserEntity,
+    @Query('ids') ids?: string,
+  ) {
+    const parsedIds = ids
+      ? ids.split(',').map((v) => Number(v.trim())).filter((v) => Number.isFinite(v) && v > 0)
+      : undefined;
+    return this.propertiesService.comparePerformance(user.id, parsedIds);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get property by ID or UUID' })
   findOne(@Param('id') id: string) {
@@ -179,6 +194,17 @@ export class PropertiesController {
     return this.propertiesService.getPricePreview(id, checkIn, checkOut, parseInt(guests) || 1);
   }
 
+  @Get(':id/pricing-suggestion')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get smart pricing suggestion for a host listing' })
+  getPricingSuggestion(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.propertiesService.getSmartPricingSuggestion(id, user.id);
+  }
+
   @Post('bulk-action')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -188,6 +214,67 @@ export class PropertiesController {
     @Body() body: { ids: number[]; action: 'publish' | 'archive' | 'delete' },
   ) {
     return this.propertiesService.bulkAction(user.id, body.ids, body.action);
+  }
+
+  @Post('bulk-pricing')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk update pricing fields across listings' })
+  bulkPricing(
+    @CurrentUser() user: UserEntity,
+    @Body() body: {
+      ids: number[];
+      pricePerNight?: number;
+      weekendPrice?: number;
+      weeklyDiscount?: number;
+      monthlyDiscount?: number;
+      lastMinuteDiscountPercent?: number;
+      cleaningFee?: number;
+    },
+  ) {
+    const {
+      ids,
+      pricePerNight,
+      weekendPrice,
+      weeklyDiscount,
+      monthlyDiscount,
+      lastMinuteDiscountPercent,
+      cleaningFee,
+    } = body;
+    return this.propertiesService.bulkUpdatePricing(user.id, ids, {
+      pricePerNight,
+      weekendPrice,
+      weeklyDiscount,
+      monthlyDiscount,
+      lastMinuteDiscountPercent,
+      cleaningFee,
+    });
+  }
+
+  @Post('bulk-settings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk update booking/settings fields across listings' })
+  bulkSettings(
+    @CurrentUser() user: UserEntity,
+    @Body() body: {
+      ids: number[];
+      minNights?: number;
+      maxNights?: number;
+      instantBook?: boolean;
+      bookingMode?: 'instant_book' | 'approve_first_three';
+      cancellationPolicy?: 'flexible' | 'moderate' | 'strict';
+      allowsPets?: boolean;
+      allowsSmoking?: boolean;
+      allowsParties?: boolean;
+      allowsChildren?: boolean;
+      checkInAfter?: string;
+      checkOutBefore?: string;
+      turnoverDays?: number;
+    },
+  ) {
+    const { ids, ...settings } = body;
+    return this.propertiesService.bulkUpdateSettings(user.id, ids, settings);
   }
 
   @Post(':id/transfer')

@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { PropertyEntity } from './property.entity';
+import { ICalSourceEntity } from './ical-source.entity';
 
 export type AvailabilitySource = 'host' | 'ical' | 'booking';
 
@@ -32,4 +33,12 @@ export class AvailabilityEntity {
     default: 'host',
   })
   source: AvailabilitySource;
+
+  /** Which iCal feed blocked this date — null for host/booking sources */
+  @Column({ name: 'ical_source_id', type: 'bigint', unsigned: true, nullable: true })
+  icalSourceId: number | null;
+
+  @ManyToOne(() => ICalSourceEntity, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'ical_source_id' })
+  icalSource: ICalSourceEntity | null;
 }

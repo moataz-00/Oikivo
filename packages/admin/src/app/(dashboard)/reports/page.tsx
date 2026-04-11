@@ -12,6 +12,7 @@ import {
   Loader2,
   CheckCircle2,
   Table,
+  Scale,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -142,6 +143,32 @@ export default function ReportsPage() {
         r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '',
       ],
     },
+    {
+      id: 'disputes',
+      label: 'Disputes',
+      icon: Scale,
+      description: 'All dispute records with status, type, and resolution details',
+      color: 'from-rose-600 to-rose-700',
+      fetchFn: async () => {
+        try {
+          const result = await adminApi.getExportData('disputes');
+          return result?.data ?? result ?? [];
+        } catch {
+          return [];
+        }
+      },
+      columns: ['ID', 'Booking', 'Filed By', 'Against', 'Type', 'Status', 'Amount (EGP)', 'Created'],
+      rowFn: (d: any) => [
+        d.id,
+        d.bookingId ?? '',
+        `${d.filedBy?.firstName ?? ''} ${d.filedBy?.lastName ?? ''}`.trim(),
+        `${d.against?.firstName ?? ''} ${d.against?.lastName ?? ''}`.trim(),
+        d.type ?? d.reason ?? '',
+        d.status ?? '',
+        d.amount ?? 0,
+        d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '',
+      ],
+    },
   ];
 
   async function handleExport(config: ExportConfig) {
@@ -156,7 +183,7 @@ export default function ReportsPage() {
       const rows = items.map(config.rowFn);
       const csv = toCsv(config.columns, rows);
       const dateStr = new Date().toISOString().split('T')[0];
-      downloadCsv(`journey-stay-${config.id}-${dateStr}.csv`, csv);
+      downloadCsv(`oikivo-${config.id}-${dateStr}.csv`, csv);
       toast.success(`Exported ${items.length} ${config.label.toLowerCase()} records`);
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? `Failed to export ${config.label}`);

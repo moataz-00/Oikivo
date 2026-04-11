@@ -25,8 +25,11 @@ export class PayoutEntity {
   @Column({ type: 'enum', enum: ['instapay', 'bank_transfer', 'cash'], default: 'instapay' })
   method: 'instapay' | 'bank_transfer' | 'cash';
 
-  @Column({ name: 'account_details', length: 500, nullable: true })
+  @Column({ name: 'account_details', type: 'text', nullable: true })
   accountDetails: string | null;
+
+  @Column({ name: 'is_auto', default: false })
+  isAuto: boolean;
 
   @Column({ type: 'enum', enum: ['pending', 'processing', 'completed', 'failed'], default: 'pending' })
   status: 'pending' | 'processing' | 'completed' | 'failed';

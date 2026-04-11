@@ -10,6 +10,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     hydrate();
+
+    // Don't fire /auth/me while the OAuth callback page is storing tokens
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/auth/callback')) {
+      return;
+    }
+
     // Refresh user from server so fields like isConsultant, isHost are always current
     const token = localStorage.getItem('access_token');
     if (token) {

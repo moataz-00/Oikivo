@@ -38,11 +38,13 @@ export default function WishlistsScreen() {
   if (!isLoggedIn) {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-        <View className="px-6 pt-6 pb-4">
+        <View className="px-6 pt-6 pb-4 bg-indigo-50 border-b border-indigo-100">
           <Text className="text-2xl font-bold text-gray-900">Wishlists</Text>
         </View>
         <View className="flex-1 items-center justify-center px-6">
-          <Heart size={48} color="#717171" />
+          <View className="w-16 h-16 rounded-2xl bg-brand-50 items-center justify-center">
+            <Heart size={28} color="#4F46E5" />
+          </View>
           <Text className="text-lg font-semibold text-gray-900 mt-4">
             Log in to view your wishlists
           </Text>
@@ -69,8 +71,15 @@ export default function WishlistsScreen() {
       'https://via.placeholder.com/400x300?text=Wishlist';
 
     return (
-      <TouchableOpacity activeOpacity={0.9} className="mb-6 px-6">
-        <View className="rounded-xl overflow-hidden" style={{ height: 200 }}>
+      <TouchableOpacity
+        onPress={() => router.push(`/wishlists/${item.id}`)}
+        activeOpacity={0.9}
+        className="mb-6 px-6"
+      >
+        <View
+          className="rounded-xl overflow-hidden border border-indigo-100"
+          style={{ height: 200 }}
+        >
           <Image
             source={{ uri: coverUrl }}
             style={{ width: '100%', height: '100%' }}
@@ -92,7 +101,7 @@ export default function WishlistsScreen() {
   // ---------------------------------------------------------------------------
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <View className="px-6 pt-6 pb-4">
+      <View className="px-6 pt-6 pb-4 bg-indigo-50 border-b border-indigo-100">
         <Text className="text-2xl font-bold text-gray-900">Wishlists</Text>
       </View>
 
@@ -107,7 +116,9 @@ export default function WishlistsScreen() {
           refreshing={isRefetching}
           ListEmptyComponent={
             <View className="items-center justify-center py-24 px-6">
-              <Heart size={48} color="#717171" />
+              <View className="w-16 h-16 rounded-2xl bg-brand-50 items-center justify-center">
+                <Heart size={28} color="#4F46E5" />
+              </View>
               <Text className="text-lg font-semibold text-gray-900 mt-4">
                 Create your first wishlist
               </Text>

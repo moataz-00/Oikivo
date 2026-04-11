@@ -7,8 +7,8 @@ import { setMemoryToken } from '../lib/api';
 // Storage keys
 // ---------------------------------------------------------------------------
 
-const TOKEN_KEY = 'sakan_access_token';
-const USER_KEY = 'sakan_user';
+const TOKEN_KEY = 'oikivo_access_token';
+const USER_KEY = 'oikivo_user';
 
 // ---------------------------------------------------------------------------
 // State interface

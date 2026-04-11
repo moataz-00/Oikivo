@@ -118,7 +118,7 @@ export default function HostingListingsScreen() {
           <TouchableOpacity
             onPress={() => router.push('/hosting/listing/new')}
           >
-            <Plus size={22} color="#FF385C" />
+            <Plus size={22} color="#4F46E5" />
           </TouchableOpacity>
         }
       />
@@ -138,7 +138,7 @@ export default function HostingListingsScreen() {
                 No listings yet
               </Text>
               <Text className="text-sm text-gray-500 text-center mb-6">
-                Create your first listing to start welcoming guests on Sakan.
+                Create your first listing to start welcoming guests on Oikivo.
               </Text>
               <TouchableOpacity
                 onPress={() => router.push('/hosting/listing/new')}

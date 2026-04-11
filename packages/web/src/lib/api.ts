@@ -86,6 +86,11 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
+        // Never hard-redirect while the OAuth callback page is storing tokens
+        if (window.location.pathname.includes('/auth/callback')) {
+          return Promise.reject(error);
+        }
+
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
           try {
@@ -104,8 +109,24 @@ apiClient.interceptors.response.use(
             window.location.href = getLocalizedLoginPath();
           }
         } else {
-          localStorage.removeItem('access_token');
-          window.location.href = getLocalizedLoginPath();
+          // No refresh token in localStorage — try cookie-based refresh
+          // (backend reads refresh_token from httpOnly cookie automatically)
+          try {
+            const { data } = await axios.post<AuthResponse>(
+              `${BASE_URL}/auth/refresh`,
+              {},
+              { withCredentials: true },
+            );
+            localStorage.setItem('access_token', data.accessToken);
+            if (data.refreshToken) localStorage.setItem('refresh_token', data.refreshToken);
+            if (error.config) {
+              error.config.headers.Authorization = `Bearer ${data.accessToken}`;
+              return apiClient(error.config);
+            }
+          } catch {
+            localStorage.removeItem('access_token');
+            window.location.href = getLocalizedLoginPath();
+          }
         }
       }
     }
@@ -117,8 +138,8 @@ apiClient.interceptors.response.use(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeProperty(raw: any): Property {
   const houseRules = Array.isArray(raw.houseRules)
-    ? raw.houseRules.map((r: { rule: string }) => r.rule).join('\n')
-    : (raw.houseRules ?? undefined);
+    ? raw.houseRules.map((r: { rule: string }) => r.rule).filter(Boolean).join('\n')
+    : (typeof raw.houseRules === 'string' ? raw.houseRules : undefined);
 
   return {
     ...raw,

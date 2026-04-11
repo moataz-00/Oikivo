@@ -139,8 +139,8 @@ export function Footer() {
           <div className="lg:col-span-2 space-y-6">
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-brand shadow-lg shadow-indigo-500/30">
-                  <span className="text-white text-xl font-bold leading-none">O</span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-indigo-500/30">
+                  <img src="/favicon-96x96.png" alt="Oikivo" width={40} height={40} className="h-full w-full object-cover" />
                 </div>
                 <span className="font-brand text-2xl text-white">
                   Oikivo
@@ -199,8 +199,8 @@ export function Footer() {
           </div>
           <div className="relative flex justify-center">
             <div className="bg-neutral-950 px-4">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg gradient-brand">
-                <span className="text-white text-xs font-bold leading-none">O</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg overflow-hidden">
+                <img src="/favicon-96x96.png" alt="Oikivo" width={28} height={28} className="h-full w-full object-cover" />
               </div>
             </div>
           </div>

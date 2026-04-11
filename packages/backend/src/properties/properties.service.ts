@@ -14,6 +14,7 @@ import { AmenityEntity } from '../entities/amenity.entity';
 import { HouseRuleEntity } from '../entities/house-rule.entity';
 import { ReviewEntity } from '../entities/review.entity';
 import { UserEntity } from '../entities/user.entity';
+import { BookingEntity } from '../entities/booking.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 
@@ -74,6 +75,8 @@ export class PropertiesService {
     private reviewsRepo: Repository<ReviewEntity>,
     @InjectRepository(UserEntity)
     private usersRepo: Repository<UserEntity>,
+    @InjectRepository(BookingEntity)
+    private bookingsRepo: Repository<BookingEntity>,
     private dataSource: DataSource,
   ) {}
 
@@ -150,6 +153,8 @@ export class PropertiesService {
     const host = await this.usersRepo.findOne({ where: { id: hostId } });
     const photoCount = property.photos?.length ?? 0;
     const hasCover = property.photos?.some((p) => p.isCover) ?? false;
+    const amenitiesCount = property.amenities?.length ?? 0;
+    const houseRulesCount = property.houseRules?.length ?? 0;
 
     const checks: { key: string; label: string; status: 'pass' | 'fail'; message?: string }[] = [
       {
@@ -196,9 +201,9 @@ export class PropertiesService {
       },
       {
         key: 'photos',
-        label: 'At least 3 photos',
-        status: photoCount >= 3 ? 'pass' : 'fail',
-        ...(photoCount < 3 && { message: `You have ${photoCount} photo${photoCount !== 1 ? 's' : ''}. Add at least ${3 - photoCount} more.` }),
+        label: 'At least 5 photos',
+        status: photoCount >= 5 ? 'pass' : 'fail',
+        ...(photoCount < 5 && { message: `You have ${photoCount} photo${photoCount !== 1 ? 's' : ''}. Add at least ${5 - photoCount} more.` }),
       },
       {
         key: 'cover_photo',
@@ -211,6 +216,20 @@ export class PropertiesService {
         label: 'Cancellation policy',
         status: property.cancellationPolicy ? 'pass' : 'fail',
         ...(!property.cancellationPolicy && { message: 'Choose a cancellation policy.' }),
+      },
+      {
+        key: 'amenities',
+        label: 'At least 3 amenities',
+        status: amenitiesCount >= 3 ? 'pass' : 'fail',
+        ...(amenitiesCount < 3 && {
+          message: `Add at least ${3 - amenitiesCount} more amenit${3 - amenitiesCount === 1 ? 'y' : 'ies'}.`,
+        }),
+      },
+      {
+        key: 'house_rules',
+        label: 'House rules configured',
+        status: houseRulesCount > 0 ? 'pass' : 'fail',
+        ...(houseRulesCount === 0 && { message: 'Add at least one house rule before publishing.' }),
       },
       {
         key: 'host_email',
@@ -251,6 +270,18 @@ export class PropertiesService {
               : 'Uploading a government ID increases guest trust but is not required to publish.',
         }),
       },
+      {
+        key: 'weekend_price_warning',
+        label: 'Weekend pricing sanity check',
+        status:
+          property.weekendPrice == null ||
+          Number(property.weekendPrice) >= Number(property.pricePerNight ?? 0)
+            ? 'pass'
+            : 'info',
+        ...(property.weekendPrice != null && Number(property.weekendPrice) < Number(property.pricePerNight ?? 0) && {
+          message: 'Weekend price is below base nightly price. This is allowed, but may reduce weekend earnings.',
+        }),
+      },
     ];
 
     const passCount = checks.filter((c) => c.status === 'pass').length;
@@ -281,21 +312,18 @@ export class PropertiesService {
     if (!host?.avatarUrl) {
       throw new BadRequestException('Profile photo required before publishing. Upload a photo in your profile settings.');
     }
-
-    // Minimum listing checks — structural fields the wizard always collects
-    if (!property.pricePerNight || Number(property.pricePerNight) <= 0) {
-      throw new BadRequestException('Price per night must be set before publishing');
+    if (host?.idVerificationStatus !== 'approved') {
+      throw new BadRequestException('Government ID verification is required before publishing your first listing.');
     }
-    if (!property.title) throw new BadRequestException('Listing title is required');
-
-    if (!property.categoryId) {
-      throw new BadRequestException('Property category is required');
+    const cancellations = Number((host as any).hostCancelledBookingsCount ?? 0);
+    if (cancellations >= 8) {
+      throw new BadRequestException('Publishing is temporarily restricted due to repeated host-initiated cancellations. Please contact support.');
     }
 
-    // Photo checks
-    const photoCount = property.photos?.length ?? 0;
-    if (photoCount < 1) {
-      throw new BadRequestException('At least one photo is required');
+    const readiness = await this.verifyListing(id, hostId);
+    if (!readiness.canPublish) {
+      const firstError = readiness.checks.find((c) => c.status === 'fail');
+      throw new BadRequestException(firstError?.message || 'Listing is incomplete and cannot be published yet');
     }
 
     property.status = 'pending_review';
@@ -308,6 +336,32 @@ export class PropertiesService {
     if (property.hostId !== hostId) {
       throw new ForbiddenException('You do not own this property');
     }
+
+    const today = new Date().toISOString().split('T')[0];
+    const futureBookings = await this.bookingsRepo.find({
+      where: {
+        propertyId: property.id,
+        status: In(['pending', 'confirmed'] as any),
+      } as any,
+    });
+
+    const targetedBookings = futureBookings.filter((b) => b.checkIn >= today);
+    if (targetedBookings.length > 0) {
+      for (const b of targetedBookings) {
+        const amountPaid = Number(b.totalAmount ?? 0);
+        const needsRefund = (b.paymentStatus === 'paid' || b.paymentStatus === 'submitted') && amountPaid > 0;
+        await this.bookingsRepo.update(b.id, {
+          status: 'cancelled',
+          cancelledBy: 'host',
+          cancelledAt: new Date(),
+          cancellationReason: 'Listing archived by host. Booking cancelled with full refund.',
+          refundAmount: needsRefund ? amountPaid : 0,
+          cancellationFee: 0,
+          paymentStatus: needsRefund ? 'refund_pending' : b.paymentStatus,
+        } as any);
+      }
+    }
+
     property.status = 'archived';
     property.isActive = false;
     property.archivedAt = new Date();
@@ -610,5 +664,214 @@ export class PropertiesService {
     }
 
     return { succeeded, failed };
+  }
+
+  async bulkUpdatePricing(
+    hostId: number,
+    ids: number[],
+    payload: Partial<Pick<PropertyEntity, 'pricePerNight' | 'weekendPrice' | 'weeklyDiscount' | 'monthlyDiscount' | 'lastMinuteDiscountPercent' | 'cleaningFee'>>,
+  ): Promise<{ updated: number[]; failed: number[] }> {
+    const updated: number[] = [];
+    const failed: number[] = [];
+
+    for (const id of ids) {
+      try {
+        const property = await this.findOne(id);
+        if (property.hostId !== hostId) throw new ForbiddenException('You do not own this property');
+
+        if (payload.weeklyDiscount != null && (payload.weeklyDiscount < 0 || payload.weeklyDiscount > 80)) {
+          throw new BadRequestException('Weekly discount must be between 0 and 80');
+        }
+        if (payload.monthlyDiscount != null && (payload.monthlyDiscount < 0 || payload.monthlyDiscount > 80)) {
+          throw new BadRequestException('Monthly discount must be between 0 and 80');
+        }
+        if (payload.lastMinuteDiscountPercent != null && (payload.lastMinuteDiscountPercent < 0 || payload.lastMinuteDiscountPercent > 80)) {
+          throw new BadRequestException('Last-minute discount must be between 0 and 80');
+        }
+
+        Object.assign(property, payload);
+        await this.propertiesRepo.save(property);
+        updated.push(id);
+      } catch {
+        failed.push(id);
+      }
+    }
+
+    return { updated, failed };
+  }
+
+  async bulkUpdateSettings(
+    hostId: number,
+    ids: number[],
+    settings: Partial<Pick<PropertyEntity,
+      | 'minNights'
+      | 'maxNights'
+      | 'instantBook'
+      | 'bookingMode'
+      | 'cancellationPolicy'
+      | 'allowsPets'
+      | 'allowsSmoking'
+      | 'allowsParties'
+      | 'allowsChildren'
+      | 'checkInAfter'
+      | 'checkOutBefore'
+      | 'turnoverDays'
+    >>,
+  ): Promise<{ updated: number[]; failed: number[] }> {
+    const updated: number[] = [];
+    const failed: number[] = [];
+
+    for (const id of ids) {
+      try {
+        const property = await this.findOne(id);
+        if (property.hostId !== hostId) throw new ForbiddenException('You do not own this property');
+
+        if (settings.minNights != null && settings.minNights < 1) {
+          throw new BadRequestException('minNights must be at least 1');
+        }
+        if (settings.maxNights != null && settings.maxNights < 1) {
+          throw new BadRequestException('maxNights must be at least 1');
+        }
+        if (
+          settings.minNights != null && settings.maxNights != null
+          && settings.maxNights < settings.minNights
+        ) {
+          throw new BadRequestException('maxNights must be greater than or equal to minNights');
+        }
+        if (
+          settings.cancellationPolicy != null
+          && !['flexible', 'moderate', 'strict'].includes(settings.cancellationPolicy)
+        ) {
+          throw new BadRequestException('Invalid cancellation policy');
+        }
+        if (
+          settings.bookingMode != null
+          && !['instant_book', 'approve_first_three'].includes(settings.bookingMode)
+        ) {
+          throw new BadRequestException('Invalid booking mode');
+        }
+        if (settings.turnoverDays != null && settings.turnoverDays < 0) {
+          throw new BadRequestException('turnoverDays must be 0 or greater');
+        }
+
+        Object.assign(property, settings);
+        await this.propertiesRepo.save(property);
+        updated.push(id);
+      } catch {
+        failed.push(id);
+      }
+    }
+
+    return { updated, failed };
+  }
+
+  async comparePerformance(hostId: number, ids?: number[]) {
+    const where: any = { hostId };
+    if (ids?.length) where.id = In(ids);
+
+    const properties = await this.propertiesRepo.find({
+      where,
+      select: ['id', 'title', 'city', 'avgRating', 'reviewCount', 'viewCount', 'impressionCount'],
+    });
+    if (!properties.length) return [];
+
+    const propertyIds = properties.map((p) => p.id);
+    const bookings = await this.bookingsRepo.find({
+      where: { propertyId: In(propertyIds) },
+      select: ['propertyId', 'status', 'totalAmount', 'serviceFee', 'nights'],
+    });
+
+    const byId: Record<number, any> = Object.fromEntries(
+      properties.map((p) => [p.id, {
+        propertyId: p.id,
+        title: p.title,
+        city: p.city,
+        avgRating: Number(p.avgRating ?? 0),
+        reviewCount: Number(p.reviewCount ?? 0),
+        views: Number(p.viewCount ?? 0),
+        impressions: Number(p.impressionCount ?? 0),
+        bookings: 0,
+        completedBookings: 0,
+        completionRate: 0,
+        nights: 0,
+        revenue: 0,
+      }]),
+    );
+
+    for (const b of bookings) {
+      const row = byId[b.propertyId];
+      if (!row) continue;
+      row.bookings += 1;
+      row.nights += Number(b.nights ?? 0);
+      if (b.status === 'completed') row.completedBookings += 1;
+      if (b.status === 'completed' || b.status === 'confirmed') {
+        row.revenue += Number(b.totalAmount ?? 0) - Number(b.serviceFee ?? 0);
+      }
+    }
+
+    return Object.values(byId)
+      .map((r: any) => ({
+        ...r,
+        completionRate: r.bookings > 0 ? Math.round((r.completedBookings / r.bookings) * 100) : 0,
+      }))
+      .sort((a: any, b: any) => b.revenue - a.revenue);
+  }
+
+  async getSmartPricingSuggestion(id: number, hostId: number) {
+    const property = await this.findOne(id);
+    if (property.hostId !== hostId) {
+      throw new ForbiddenException('You do not own this property');
+    }
+
+    const now = new Date();
+    const horizon = 60;
+    const start = new Date(now);
+    const end = new Date(now);
+    end.setDate(end.getDate() + horizon);
+    const startStr = start.toISOString().split('T')[0];
+    const endStr = end.toISOString().split('T')[0];
+
+    const upcoming = await this.bookingsRepo.find({
+      where: {
+        propertyId: property.id,
+        status: In(['pending', 'confirmed', 'in_progress'] as any),
+      },
+      select: ['checkIn', 'checkOut'],
+    });
+
+    const bookedNights = upcoming.reduce((sum, b) => {
+      const inDate = new Date(b.checkIn);
+      const outDate = new Date(b.checkOut);
+      if (outDate < start || inDate > end) return sum;
+      const overlapStart = inDate > start ? inDate : start;
+      const overlapEnd = outDate < end ? outDate : end;
+      const nights = Math.max(0, Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)));
+      return sum + nights;
+    }, 0);
+
+    const occupancy = Math.min(100, Math.round((bookedNights / horizon) * 100));
+    let suggestedMultiplier = 1;
+    if (occupancy >= 80) suggestedMultiplier = 1.15;
+    else if (occupancy >= 60) suggestedMultiplier = 1.08;
+    else if (occupancy <= 20) suggestedMultiplier = 0.9;
+    else if (occupancy <= 35) suggestedMultiplier = 0.96;
+
+    const currentPrice = Number(property.pricePerNight ?? 0);
+    const suggestedPrice = Math.max(1, Math.round(currentPrice * suggestedMultiplier));
+
+    return {
+      propertyId: property.id,
+      horizonDays: horizon,
+      occupancyPercent: occupancy,
+      currentPrice,
+      suggestedPrice,
+      delta: suggestedPrice - currentPrice,
+      recommendation:
+        suggestedPrice > currentPrice
+          ? 'High upcoming occupancy. Consider increasing nightly rate.'
+          : suggestedPrice < currentPrice
+          ? 'Lower upcoming occupancy. Consider a small rate reduction to improve conversion.'
+          : 'Current rate looks balanced for upcoming demand.',
+    };
   }
 }

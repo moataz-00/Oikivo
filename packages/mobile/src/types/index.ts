@@ -19,6 +19,7 @@ export interface User {
   isPhoneVerified: boolean;
   isIdVerified: boolean;
   isAdmin: boolean;
+  isConsultant?: boolean;
   preferredLanguage: Language;
   createdAt: string;
 }
@@ -163,11 +164,19 @@ export interface Message {
   createdAt: string;
 }
 
+export interface WishlistItem {
+  id: number;
+  propertyId: number;
+  property: PropertyListItem;
+  createdAt: string;
+}
+
 export interface Wishlist {
   id: number;
   name: string;
   coverPhoto?: string;
   itemCount: number;
+  items?: WishlistItem[];
   createdAt: string;
 }
 
@@ -177,6 +186,85 @@ export interface Notification {
   title: string;
   body: string;
   isRead: boolean;
+  createdAt: string;
+}
+
+export type ConsultationDeliveryMode =
+  | 'video_call'
+  | 'in_person'
+  | 'phone'
+  | 'chat';
+
+export interface Consultant {
+  id: number;
+  uuid: string;
+  userId: number;
+  displayName: string;
+  bio?: string;
+  specializations?: string[];
+  yearsExperience: number;
+  languages?: string[];
+  hourlyRate: number | string;
+  currency: string;
+  avgRating: number | string;
+  reviewCount: number;
+  totalSessions: number;
+  status: string;
+  timezone?: string;
+  isFeatured?: boolean;
+  user?: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatarUrl'>;
+}
+
+export interface ConsultantAvailabilitySlot {
+  id: number;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+
+export interface ConsultationReview {
+  id: number;
+  bookingId: number;
+  reviewerId: number;
+  consultantId: number;
+  overallRating: number;
+  expertiseRating?: number;
+  communicationRating?: number;
+  valueRating?: number;
+  comment?: string;
+  createdAt: string;
+  reviewer?: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatarUrl'>;
+}
+
+export interface ConsultantPublicProfile {
+  consultant: Consultant;
+  reviews: ConsultationReview[];
+  availability: ConsultantAvailabilitySlot[];
+}
+
+export interface ConsultationSlotsResponse {
+  slots: string[];
+  consultantTimezone: string;
+}
+
+export interface ConsultationBooking {
+  id: number;
+  consultantId: number;
+  clientId: number;
+  consultant?: Consultant;
+  client?: Pick<User, 'id' | 'firstName' | 'lastName' | 'avatarUrl'>;
+  scheduledAt: string;
+  durationMinutes: number;
+  price: number | string;
+  currency: string;
+  status: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  meetingLink?: string;
+  clientNote?: string;
+  consultantNote?: string;
+  deliveryMode: ConsultationDeliveryMode;
   createdAt: string;
 }
 

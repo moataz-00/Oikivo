@@ -265,6 +265,69 @@ export class MessagesService {
     return { message: 'Messages marked as read' };
   }
 
+  /**
+   * Verify that a user has access to a conversation (is a participant).
+   * Used for authenticated file serving.
+   * @throws NotFoundException if conversation doesn't exist
+   * @throws ForbiddenException if user is not a participant
+   */
+  async verifyConversationAccess(conversationId: number, userId: number): Promise<ConversationEntity> {
+    const conversation = await this.conversationsRepo.findOne({
+      where: { id: conversationId },
+    });
+    if (!conversation) throw new NotFoundException('Conversation not found');
+    if (conversation.guestId !== userId && conversation.hostId !== userId) {
+      throw new ForbiddenException('Not part of this conversation');
+    }
+    return conversation;
+  }
+
+  /**
+   * MSG-G4: Search messages by content across user's conversations
+   * @param userId - User performing the search (only searches their own conversations)
+   * @param query - Search term (case-insensitive)
+   * @param conversationId - Optional: filter by specific conversation
+   * @param page - Page number (default 1)
+   * @param limit - Results per page (default 20)
+   */
+  async searchMessages(
+    userId: number,
+    query: string,
+    conversationId?: number,
+    page = 1,
+    limit = 20,
+  ) {
+    if (!query || query.trim().length === 0) {
+      throw new BadRequestException('Search query cannot be empty');
+    }
+
+    const queryBuilder = this.messagesRepo
+      .createQueryBuilder('msg')
+      .leftJoinAndSelect('msg.sender', 'sender')
+      .leftJoinAndSelect('msg.conversation', 'conv')
+      .where('(conv.guestId = :userId OR conv.hostId = :userId)', { userId })
+      .andWhere('msg.body LIKE :query', { query: `%${query}%` })
+      .orderBy('msg.createdAt', 'DESC');
+
+    // Optional: filter by specific conversation
+    if (conversationId) {
+      queryBuilder.andWhere('msg.conversationId = :conversationId', { conversationId });
+    }
+
+    const [items, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async getUnreadCount(userId: number): Promise<{ count: number }> {
     const row: { total: string } = await this.messagesRepo
       .createQueryBuilder('msg')

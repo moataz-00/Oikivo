@@ -17,6 +17,11 @@ import {
   Amenity,
   PaginatedResponse,
   PriceBreakdown,
+  Consultant,
+  ConsultantPublicProfile,
+  ConsultationSlotsResponse,
+  ConsultationBooking,
+  ConsultationDeliveryMode,
 } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -24,7 +29,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3001/api';
-const TOKEN_KEY = 'sakan_access_token';
+const TOKEN_KEY = 'oikivo_access_token';
 
 // ---------------------------------------------------------------------------
 // In-memory token cache (used by the sync interceptor so we don't have to
@@ -148,8 +153,8 @@ export const propertiesApi = {
   },
 
   getHostListings: async (): Promise<PropertyListItem[]> => {
-    const res = await api.get<PropertyListItem[]>('/properties/my-listings');
-    return res.data;
+    const res = await api.get<{ data: PropertyListItem[] }>('/properties/host/listings');
+    return res.data.data ?? res.data as any;
   },
 };
 
@@ -185,7 +190,7 @@ export const searchApi = {
     params: SearchParams,
   ): Promise<PaginatedResponse<PropertyListItem>> => {
     const res = await api.get<PaginatedResponse<PropertyListItem>>(
-      '/properties/search',
+      '/search',
       { params },
     );
     return res.data;
@@ -275,12 +280,84 @@ export const reviewsApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Consultations
+// ---------------------------------------------------------------------------
+
+export interface ConsultationSearchParams {
+  search?: string;
+  specialization?: string;
+  minRating?: number;
+  maxPrice?: number;
+  page?: number;
+  limit?: number;
+}
+
+export const consultationsApi = {
+  listConsultants: async (
+    params: ConsultationSearchParams = {},
+  ): Promise<PaginatedResponse<Consultant>> => {
+    const res = await api.get<PaginatedResponse<Consultant>>(
+      '/consultations/consultants',
+      { params },
+    );
+    return res.data;
+  },
+
+  getConsultant: async (id: number): Promise<ConsultantPublicProfile> => {
+    const res = await api.get<ConsultantPublicProfile>(
+      `/consultations/consultants/${id}`,
+    );
+    return res.data;
+  },
+
+  getConsultantSlots: async (
+    consultantId: number,
+    date: string,
+    durationMinutes = 60,
+  ): Promise<ConsultationSlotsResponse> => {
+    const res = await api.get<ConsultationSlotsResponse>(
+      `/consultations/consultants/${consultantId}/slots`,
+      { params: { date, durationMinutes } },
+    );
+    return res.data;
+  },
+
+  bookConsultation: async (data: {
+    consultantId: number;
+    durationMinutes: number;
+    scheduledAt: string;
+    deliveryMode?: ConsultationDeliveryMode;
+    clientNote?: string;
+    clientTimezone?: string;
+  }): Promise<ConsultationBooking> => {
+    const res = await api.post<ConsultationBooking>('/consultations/book', data);
+    return res.data;
+  },
+
+  getMyBookings: async (
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedResponse<ConsultationBooking>> => {
+    const res = await api.get<PaginatedResponse<ConsultationBooking>>(
+      '/consultations/my-bookings',
+      { params: { page, limit } },
+    );
+    return res.data;
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Wishlists
 // ---------------------------------------------------------------------------
 
 export const wishlistsApi = {
   getWishlists: async (): Promise<Wishlist[]> => {
     const res = await api.get<Wishlist[]>('/wishlists');
+    return res.data;
+  },
+
+  getWishlist: async (id: number): Promise<Wishlist> => {
+    const res = await api.get<Wishlist>(`/wishlists/${id}`);
     return res.data;
   },
 
@@ -293,14 +370,14 @@ export const wishlistsApi = {
     wishlistId: number,
     propertyId: number,
   ): Promise<void> => {
-    await api.post(`/wishlists/${wishlistId}/properties/${propertyId}`);
+    await api.post(`/wishlists/${wishlistId}/items`, { propertyId });
   },
 
   removeFromWishlist: async (
     wishlistId: number,
     propertyId: number,
   ): Promise<void> => {
-    await api.delete(`/wishlists/${wishlistId}/properties/${propertyId}`);
+    await api.delete(`/wishlists/${wishlistId}/items/${propertyId}`);
   },
 
   checkWishlisted: async (
@@ -396,6 +473,11 @@ export const usersApi = {
   getPublicProfile: async (userId: number): Promise<User> => {
     const res = await api.get<User>(`/users/${userId}`);
     return res.data;
+  },
+
+  getUserListings: async (userId: number): Promise<PropertyListItem[]> => {
+    const res = await api.get<{ data: PropertyListItem[] }>(`/users/${userId}/listings`);
+    return res.data.data ?? res.data as any;
   },
 };
 

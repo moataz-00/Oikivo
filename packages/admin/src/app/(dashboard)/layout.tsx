@@ -27,6 +27,13 @@ import {
   Activity,
   Mail,
   GraduationCap,
+  Wifi,
+  FolderTree,
+  MessageSquare,
+  Sparkles,
+  Sun,
+  Moon,
+  FileText,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { adminApi } from '@/lib/api';
@@ -41,7 +48,6 @@ const NAV_SECTIONS = [
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
       { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/reports', label: 'Reports & Export', icon: FileDown },
     ],
   },
   {
@@ -50,14 +56,22 @@ const NAV_SECTIONS = [
       { href: '/users', label: 'Users', icon: Users },
       { href: '/properties', label: 'Properties', icon: Building2 },
       { href: '/bookings', label: 'Bookings', icon: CalendarCheck },
-      { href: '/experience-bookings', label: 'Experiences', icon: Ticket },
+      // { href: '/experience-bookings', label: 'Experiences', icon: Ticket }, // Coming Soon
       { href: '/reviews', label: 'Reviews', icon: Star },
+      { href: '/messages', label: 'Messages', icon: MessageSquare },
     ],
   },
   {
     label: 'Marketplace',
     items: [
       { href: '/consultations', label: 'Consultations', icon: GraduationCap },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { href: '/categories', label: 'Categories', icon: FolderTree },
+      { href: '/amenities', label: 'Amenities', icon: Sparkles },
     ],
   },
   {
@@ -72,7 +86,6 @@ const NAV_SECTIONS = [
     items: [
       { href: '/disputes', label: 'Disputes', icon: Scale, badge: 'openDisputes' as BadgeKey },
       { href: '/host-verification', label: 'Host Verification', icon: ShieldCheck, badge: 'pendingVerifications' as BadgeKey },
-      { href: '/content-moderation', label: 'Content Moderation', icon: ShieldAlert },
     ],
   },
   {
@@ -80,8 +93,8 @@ const NAV_SECTIONS = [
     items: [
       { href: '/notifications', label: 'Notifications', icon: Bell },
       { href: '/activity-log', label: 'Activity Log', icon: ClipboardList },
-      { href: '/system-health', label: 'System Health', icon: Activity },
-      { href: '/user-communication', label: 'User Communication', icon: Mail },
+      { href: '/system-health', label: 'System Health', icon: Activity },      { href: '/ical-sync', label: 'iCal Feeds', icon: Wifi },      { href: '/user-communication', label: 'User Communication', icon: Mail },
+      { href: '/email-templates', label: 'Email Templates', icon: FileText },
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -92,8 +105,33 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => { hydrate(); }, [hydrate]);
+
+  // Hydrate theme from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('admin_theme');
+    if (stored === 'light') {
+      setDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('admin_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('admin_theme', 'light');
+    }
+  };
 
   useEffect(() => {
     if (!_hasHydrated) return;
@@ -151,11 +189,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       >
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-5 border-b border-gray-800">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold shadow-lg shadow-indigo-900/40">
-            JS
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-indigo-900/40">
+            <img src="/logo.png" alt="Oikivo" className="h-full w-full object-cover" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white tracking-tight">Journey Stay</p>
+            <p className="text-sm font-bold text-white tracking-tight">Oikivo</p>
             <p className="text-xs text-indigo-400 font-medium">Admin Panel</p>
           </div>
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
@@ -247,6 +285,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" title="Backend online" />
             <span className="text-xs text-gray-500 hidden sm:inline">API connected</span>
+            <div className="h-4 w-px bg-gray-700" />
+            <button
+              onClick={toggleTheme}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <div className="h-4 w-px bg-gray-700" />
             <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center text-xs font-bold text-white uppercase">

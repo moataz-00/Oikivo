@@ -12,6 +12,7 @@ import { PropertyPhotoEntity } from '../entities/property-photo.entity';
 import { ExperienceEntity } from '../entities/experience.entity';
 import { ExperiencePhotoEntity } from '../entities/experience-photo.entity';
 import { MessageEntity } from '../entities/message.entity';
+import { BlockedUserEntity } from '../entities/blocked-user.entity';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MessageEntity } from '../entities/message.entity';
       ExperienceEntity,
       ExperiencePhotoEntity,
       MessageEntity,
+      BlockedUserEntity,
     ]),
   ],
   controllers: [UsersController],

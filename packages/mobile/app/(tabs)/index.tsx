@@ -7,16 +7,19 @@ import {
   Image,
   RefreshControl,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import Animated, { FadeInDown, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { Heart, Star } from 'lucide-react-native';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { Star } from 'lucide-react-native';
 import { searchApi, categoriesApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { getImageUrl, formatPrice } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
 import { SearchBar } from '@/components/SearchBar';
+import { WishlistHeart } from '@/components/WishlistHeart';
 import type { Category, PropertyListItem } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -36,23 +39,30 @@ export default function HomeScreen() {
   });
 
   // ---------------------------------------------------------------------------
-  // Fetch properties
+  // Fetch properties (infinite scroll)
   // ---------------------------------------------------------------------------
   const {
-    data: propertiesResponse,
+    data: propertiesPages,
     isLoading,
     refetch,
     isRefetching,
-  } = useQuery({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['properties', 'home', selectedCategory],
-    queryFn: () =>
+    queryFn: ({ pageParam = 1 }) =>
       searchApi.searchProperties({
         categoryId: selectedCategory ?? undefined,
         limit: 20,
+        page: pageParam,
       }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
   });
 
-  const properties = propertiesResponse?.data ?? [];
+  const properties = propertiesPages?.pages.flatMap((p) => p.data) ?? [];
 
   // ---------------------------------------------------------------------------
   // Category row
@@ -88,12 +98,13 @@ export default function HomeScreen() {
   // Property card
   // ---------------------------------------------------------------------------
   const renderPropertyCard = useCallback(
-    ({ item }: { item: PropertyListItem }) => {
+    ({ item, index }: { item: PropertyListItem; index: number }) => {
       const imageUrl =
         getImageUrl(item.coverPhoto) ??
         'https://via.placeholder.com/400x300?text=No+Image';
 
       return (
+        <Animated.View entering={FadeInDown.delay(index * 80).duration(400)}>
         <TouchableOpacity
           onPress={() => router.push(`/rooms/${item.id}`)}
           activeOpacity={0.95}
@@ -101,7 +112,7 @@ export default function HomeScreen() {
         >
           {/* Image */}
           <View
-            className="relative rounded-xl overflow-hidden"
+            className="relative rounded-xl overflow-hidden border border-indigo-100"
             style={{ height: SCREEN_WIDTH - 48 }}
           >
             <Image
@@ -111,22 +122,9 @@ export default function HomeScreen() {
             />
 
             {/* Heart button */}
-            <TouchableOpacity
-              onPress={() => {
-                if (!isLoggedIn) {
-                  router.push('/auth/login');
-                }
-              }}
-              activeOpacity={0.8}
-              className="absolute top-3 right-3 w-9 h-9 items-center justify-center"
-            >
-              <Heart
-                size={24}
-                color="#fff"
-                fill="transparent"
-                strokeWidth={2}
-              />
-            </TouchableOpacity>
+            <View className="absolute top-3 right-3">
+              <WishlistHeart propertyId={item.id} />
+            </View>
 
             {/* Superhost badge */}
             {item.isSuperhost && (
@@ -147,11 +145,11 @@ export default function HomeScreen() {
               >
                 {item.city}, {item.country}
               </Text>
-              {item.avgRating > 0 && (
+              {Number(item.avgRating) > 0 && (
                 <View className="flex-row items-center ml-2">
                   <Star size={13} color="#222" fill="#222" />
                   <Text className="text-sm text-gray-900 ml-1">
-                    {item.avgRating.toFixed(1)}
+                    {Number(item.avgRating).toFixed(1)}
                   </Text>
                 </View>
               )}
@@ -172,6 +170,7 @@ export default function HomeScreen() {
             </Text>
           </View>
         </TouchableOpacity>
+        </Animated.View>
       );
     },
     [isLoggedIn, router],
@@ -184,7 +183,7 @@ export default function HomeScreen() {
     () => (
       <View>
         {/* Search bar */}
-        <View className="mt-3 mb-4">
+        <View className="mt-4 mb-4">
           <SearchBar />
         </View>
 
@@ -211,9 +210,12 @@ export default function HomeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       {/* Logo header */}
-      <View className="px-6 pt-2 pb-1">
-        <Text className="text-2xl font-bold text-brand">Sakan</Text>
-      </View>
+      <Animated.View
+        entering={FadeIn.duration(500)}
+        className="px-6 pt-3 pb-3 bg-indigo-50 border-b border-indigo-100"
+      >
+        <Text className="text-2xl font-bold text-brand">Oikivo</Text>
+      </Animated.View>
 
       {isLoading ? (
         <Spinner />
@@ -227,7 +229,7 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor="#FF385C"
+              tintColor="#4F46E5"
             />
           }
           ListEmptyComponent={
@@ -236,6 +238,17 @@ export default function HomeScreen() {
                 No properties found
               </Text>
             </View>
+          }
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View className="py-6">
+                <ActivityIndicator color="#4F46E5" />
+              </View>
+            ) : null
           }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 20 }}
