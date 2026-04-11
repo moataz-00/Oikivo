@@ -470,12 +470,18 @@ export const bookingsApi = {
         checkOut: payload.checkOut,
         guestsCount: payload.guests,
         guestNote: payload.message,
+        displayCurrency: payload.displayCurrency,
       })
       .then((r) => normalizeBooking(r.data)),
 
   getMyTrips: (status?: string) =>
     apiClient
       .get<Booking[]>('/bookings/my-trips', { params: { status } })
+      .then((r) => (r.data ?? []).map(normalizeBooking)),
+
+  getMyPaymentHistory: () =>
+    apiClient
+      .get<Booking[]>('/bookings/my-payments')
       .then((r) => (r.data ?? []).map(normalizeBooking)),
 
   getHostReservations: (status?: string) =>
@@ -505,8 +511,8 @@ export const bookingsApi = {
   declineBooking: (id: number) =>
     apiClient.patch<Booking>(`/bookings/${id}/decline`, {}).then((r) => normalizeBooking(r.data)),
 
-  cancelBooking: (id: number) =>
-    apiClient.patch<Booking>(`/bookings/${id}/cancel`, {}).then((r) => normalizeBooking(r.data)),
+  cancelBooking: (id: number, reason?: string) =>
+    apiClient.patch<Booking>(`/bookings/${id}/cancel`, { reason }).then((r) => normalizeBooking(r.data)),
 
   getCancellationPreview: (id: number) =>
     apiClient.get(`/bookings/${id}/cancellation-preview`).then((r) => r.data),
@@ -523,8 +529,10 @@ export const bookingsApi = {
   getHostPendingPayments: () =>
     apiClient.get<Booking[]>('/bookings/host/pending-payments').then((r) => (r.data ?? []).map(normalizeBooking)),
 
-  modifyBooking: (id: number, data: { checkIn: string; checkOut: string }) =>
-    apiClient.patch<Booking>(`/bookings/${id}/modify`, data).then((r) => normalizeBooking(r.data)),
+
+
+  downloadInvoice: (id: number) =>
+    apiClient.get(`/bookings/${id}/invoice`, { responseType: 'blob' }).then((r) => r.data),
 };
 
 // ─── Reviews ─────────────────────────────────────────────────────────────────
@@ -541,6 +549,9 @@ export const reviewsApi = {
 
   replyReview: (id: number, reply: string) =>
     apiClient.patch<Review>(`/reviews/${id}/reply`, { reply }).then((r) => r.data),
+
+  updateReview: (id: number, payload: Partial<CreateReviewPayload>) =>
+    apiClient.patch<Review>(`/reviews/${id}`, payload).then((r) => r.data),
 
   deleteReview: (id: number) =>
     apiClient.delete(`/reviews/${id}`).then((r) => r.data),
@@ -757,6 +768,12 @@ export const notificationsApi = {
 
   getUnreadCount: () =>
     apiClient.get<{ count: number }>('/notifications/unread-count').then((r) => r.data),
+
+  registerPushToken: (token: string) =>
+    apiClient.post('/notifications/push-token', { token }).then((r) => r.data),
+
+  removePushToken: () =>
+    apiClient.delete('/notifications/push-token').then((r) => r.data),
 };
 
 // ─── Search ───────────────────────────────────────────────────────────────────
@@ -868,6 +885,14 @@ export const payoutsApi = {
 export const disputesApi = {
   create: (payload: { bookingId: number; category: string; title: string; description: string }) =>
     apiClient.post('/disputes', payload).then((r) => r.data),
+
+  uploadEvidence: (disputeId: number, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return apiClient.post(`/disputes/${disputeId}/evidence`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data);
+  },
 
   getMyDisputes: () =>
     apiClient.get('/disputes').then((r) => r.data),
@@ -1277,4 +1302,18 @@ export const savedSearchesApi = {
 
   delete: (id: number) =>
     apiClient.delete<{ message: string }>(`/saved-searches/${id}`).then((r) => r.data),
+
+  toggleAlert: (id: number) =>
+    apiClient.patch<any>(`/saved-searches/${id}/toggle-alert`).then((r) => r.data),
+};
+
+export const priceAlertsApi = {
+  getMyAlerts: () =>
+    apiClient.get<any[]>('/price-alerts').then((r) => r.data),
+
+  create: (propertyId: number, targetPrice: number) =>
+    apiClient.post<any>('/price-alerts', { propertyId, targetPrice }).then((r) => r.data),
+
+  delete: (id: number) =>
+    apiClient.delete<{ message: string }>(`/price-alerts/${id}`).then((r) => r.data),
 };

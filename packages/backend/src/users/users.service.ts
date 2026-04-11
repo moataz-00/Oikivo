@@ -17,6 +17,7 @@ import { MessageEntity } from '../entities/message.entity';
 import { BlockedUserEntity } from '../entities/blocked-user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EGYPTIAN_PHONE_REGEX } from './dto/update-profile.dto';
+import { tplHostActivationRequest } from '../mail/mail.service';
 
 @Injectable()
 export class UsersService {
@@ -116,7 +117,7 @@ export class UsersService {
 
     if (!user.phone || !EGYPTIAN_PHONE_REGEX.test(user.phone)) {
       throw new BadRequestException(
-        'A verified Egyptian mobile number is required to host on Journey Stay. Please add your Egyptian number (+2010x / 010x) in your profile settings.',
+        'A verified Egyptian mobile number is required to host on Oikivo. Please add your Egyptian number (+2010x / 010x) in your profile settings.',
       );
     }
     if (!user.isPhoneVerified) {
@@ -212,37 +213,9 @@ export class UsersService {
     });
 
     const isArabic = locale === 'ar';
-    const subject = isArabic ? 'تفعيل الاستضافة في Journey Stay' : 'Activate your Journey Stay hosting account';
-    const heading = isArabic ? `مرحباً ${user.firstName}،` : `Hi ${user.firstName},`;
-    const body = isArabic
-      ? 'اضغط على الزر أدناه لتفعيل حساب الاستضافة والبدء بإنشاء إعلانك.'
-      : 'Click the button below to activate hosting and start creating your listing.';
-    const cta = isArabic ? 'تفعيل الاستضافة' : 'Activate Hosting';
-    const footer = isArabic
-      ? 'إذا لم تطلب هذا الإجراء، يمكنك تجاهل هذه الرسالة.'
-      : 'If you did not request this, you can safely ignore this email.';
+    const subject = isArabic ? 'تفعيل الاستضافة في Oikivo' : 'Activate your Oikivo hosting account';
 
-    const html = `
-      <div style="font-family:Arial,sans-serif;background:#f6f7fb;padding:24px;color:#111827;">
-        <table role="presentation" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
-          <tr>
-            <td style="padding:24px;background:linear-gradient(135deg,#0f766e,#0ea5e9);color:#fff;">
-              <h1 style="margin:0;font-size:24px;">Journey Stay</h1>
-              <p style="margin:8px 0 0;font-size:14px;opacity:.95;">${isArabic ? 'تفعيل حساب المضيف' : 'Host Account Activation'}</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:24px;">
-              <p style="margin:0 0 12px;font-size:16px;">${heading}</p>
-              <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#374151;">${body}</p>
-              <a href="${activationUrl}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700;">${cta}</a>
-              <p style="margin:20px 0 0;font-size:13px;color:#6b7280;word-break:break-all;">${activationUrl}</p>
-              <p style="margin:16px 0 0;font-size:13px;color:#6b7280;">${footer}</p>
-            </td>
-          </tr>
-        </table>
-      </div>
-    `;
+    const html = tplHostActivationRequest(user.firstName, isArabic, activationUrl);
 
     try {
       await transporter.sendMail({

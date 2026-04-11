@@ -278,10 +278,6 @@ function BookingCard({
   const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const queryClient = useQueryClient();
-  const [modifyOpen, setModifyOpen] = useState(false);
-  const [modifyCheckIn, setModifyCheckIn] = useState('');
-  const [modifyCheckOut, setModifyCheckOut] = useState('');
-  const [modifyPending, setModifyPending] = useState(false);
   const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
   const [photoInput, setPhotoInput] = useState('');
   // G9: human-readable short code
@@ -319,21 +315,6 @@ function BookingCard({
       toast.error(err?.response?.data?.message ?? t('failedSubmitReview'));
     } finally {
       setSubmittingReview(false);
-    }
-  };
-
-  const handleModifyDates = async () => {
-    if (modifyPending || !modifyCheckIn || !modifyCheckOut) return;
-    setModifyPending(true);
-    try {
-      await bookingsApi.modifyBooking(booking.id, { checkIn: modifyCheckIn, checkOut: modifyCheckOut });
-      toast.success(t('datesUpdated'));
-      setModifyOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['myTrips'] });
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? t('modifyFailed'));
-    } finally {
-      setModifyPending(false);
     }
   };
 
@@ -465,18 +446,7 @@ function BookingCard({
               {t('cancelTrip')}
             </button>
           ) : null}
-          {booking.status === 'confirmed' && new Date(booking.checkIn) > new Date() && (
-            <button
-              onClick={() => {
-                setModifyCheckIn(booking.checkIn.split('T')[0]);
-                setModifyCheckOut(booking.checkOut.split('T')[0]);
-                setModifyOpen(true);
-              }}
-              className="flex items-center gap-1.5 text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
-            >
-              ✏️ {t('modifyDates')}
-            </button>
-          )}
+
           {(booking.status === 'completed' ||
             (booking.status === 'confirmed' && new Date(booking.checkOut) < new Date())) &&
             !(booking as any).review && (
@@ -635,47 +605,6 @@ function BookingCard({
       </div>
     </Modal>
 
-    {/* Modify Dates Modal */}
-    <Modal open={modifyOpen} onOpenChange={setModifyOpen}>
-      <div className="p-6 space-y-4 max-w-sm">
-        <h3 className="text-lg font-bold text-neutral-900">{t('modifyDatesTitle')}</h3>
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">{t('checkIn')}</label>
-          <input
-            type="date"
-            value={modifyCheckIn}
-            onChange={(e) => setModifyCheckIn(e.target.value)}
-            min={new Date().toISOString().split('T')[0]}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">{t('checkOut')}</label>
-          <input
-            type="date"
-            value={modifyCheckOut}
-            onChange={(e) => setModifyCheckOut(e.target.value)}
-            min={modifyCheckIn || new Date().toISOString().split('T')[0]}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900"
-          />
-        </div>
-        <div className="flex gap-3 pt-1">
-          <button
-            onClick={() => setModifyOpen(false)}
-            className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition"
-          >
-            {tCommon('cancel')}
-          </button>
-          <button
-            onClick={handleModifyDates}
-            disabled={modifyPending || !modifyCheckIn || !modifyCheckOut}
-            className="flex-1 rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50 transition"
-          >
-            {modifyPending ? t('saving') : t('confirmModify')}
-          </button>
-        </div>
-      </div>
-    </Modal>
     </>
   );
 }
@@ -694,6 +623,19 @@ export default function TripsPage() {
   const [cancelPreviewId, setCancelPreviewId] = useState<number | null>(null);
   const [cancelPreviewData, setCancelPreviewData] = useState<any>(null);
   const [cancelPreviewLoading, setCancelPreviewLoading] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const CANCEL_REASONS = [
+    { value: '', label: 'Select a reason…' },
+    { value: 'plans_changed', label: 'My plans changed' },
+    { value: 'found_alternative', label: 'Found a better alternative' },
+    { value: 'host_unresponsive', label: 'Host is unresponsive' },
+    { value: 'pricing_issue', label: 'Pricing issue' },
+    { value: 'personal_emergency', label: 'Personal / family emergency' },
+    { value: 'travel_restrictions', label: 'Travel restrictions' },
+    { value: 'property_concerns', label: 'Concerns about the property' },
+    { value: 'other', label: 'Other' },
+  ];
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -751,12 +693,13 @@ export default function TripsPage() {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: bookingsApi.cancelBooking,
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) => bookingsApi.cancelBooking(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success(t('bookingCancelled'));
       setCancelPreviewId(null);
       setCancelPreviewData(null);
+      setCancelReason('');
     },
     onError: () => toast.error(t('couldNotCancel')),
   });
@@ -1041,7 +984,7 @@ export default function TripsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); }}
+            onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); setCancelReason(''); }}
           >
             <motion.div
               className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
@@ -1090,15 +1033,31 @@ export default function TripsPage() {
                 </p>
               )}
 
+              <div className="mb-4">
+                <label htmlFor="cancelReason" className="block text-sm font-medium text-neutral-700 mb-1">
+                  {t('cancellationReason')}
+                </label>
+                <select
+                  id="cancelReason"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus:border-neutral-400 focus:outline-none"
+                >
+                  {CANCEL_REASONS.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex gap-3">
                 <button
-                  onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); }}
+                  onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); setCancelReason(''); }}
                   className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
                 >
                   {t('keepReservation')}
                 </button>
                 <button
-                  onClick={() => cancelPreviewId && cancelMutation.mutate(cancelPreviewId)}
+                  onClick={() => cancelPreviewId && cancelMutation.mutate({ id: cancelPreviewId, reason: cancelReason || undefined })}
                   disabled={cancelMutation.isPending}
                   className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >

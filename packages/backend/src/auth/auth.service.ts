@@ -194,7 +194,7 @@ export class AuthService {
     const frontendUrl = frontendUrlRaw.split(',')[0]?.trim() || 'http://localhost:3000';
     const resetUrl = `${frontendUrl.replace(/\/$/, '')}/en/reset-password?token=${encodeURIComponent(token)}`;
 
-    await this.mail.send(user.email, 'Reset your password — Sakan', tplPasswordReset(user.firstName, resetUrl));
+    await this.mail.send(user.email, 'Reset your password — Oikivo', tplPasswordReset(user.firstName, resetUrl));
 
     return {
       message: 'If that email exists, a reset link has been sent.',
@@ -318,7 +318,7 @@ export class AuthService {
     const frontendUrl = frontendUrlRaw.split(',')[0]?.trim() || 'http://localhost:3000';
     const verifyUrl = `${frontendUrl.replace(/\/$/, '')}/en/auth/verify-email?token=${encodeURIComponent(token)}`;
 
-    await this.mail.send(user.email, 'Verify your email — Sakan', tplEmailVerification(user.firstName, verifyUrl));
+    await this.mail.send(user.email, 'Verify your email — Oikivo', tplEmailVerification(user.firstName, verifyUrl));
 
     return { message: 'Verification email sent.' };
   }
@@ -385,19 +385,19 @@ export class AuthService {
 
     if (!isDev && whysmsConfigured) {
       // ── Production: send via WhySMS ────────────────────────────────────
-      const message = `Your Journey Stay verification code is: ${code}. Valid for 10 minutes. Do not share it with anyone.`;
+      const message = `Your Oikivo verification code is: ${code}. Valid for 10 minutes. Do not share it with anyone.`;
       try {
         await this.sms.send(user.phone!, message);
       } catch (err: any) {
         // SMS delivery failure — fall back to email so the user isn't blocked
         this.sms['logger']?.warn?.(`SMS failed for user ${userId}, falling back to email: ${err.message}`);
-        await this.mail.send(user.email, 'Your verification code — Journey Stay', tplPhoneOtp(user.firstName, user.phone!, code));
+        await this.mail.send(user.email, 'Your verification code — Oikivo', tplPhoneOtp(user.firstName, user.phone!, code));
       }
       return { message: 'Verification code sent to your phone number.' };
     }
 
     // ── Development / no SMS provider: send via email ─────────────────────
-    await this.mail.send(user.email, 'Your phone verification code — Journey Stay', tplPhoneOtp(user.firstName, user.phone!, code));
+    await this.mail.send(user.email, 'Your phone verification code — Oikivo', tplPhoneOtp(user.firstName, user.phone!, code));
     return {
       message: 'Verification code sent to your email address.',
       ...(isDev && { devCode: code }),
@@ -463,7 +463,7 @@ export class AuthService {
     const frontendUrl = frontendUrlRaw.split(',')[0]?.trim() || 'http://localhost:3000';
     const confirmUrl = `${frontendUrl.replace(/\/$/, '')}/en/account?action=confirm-email&token=${encodeURIComponent(token)}`;
 
-    await this.mail.send(newEmail, 'Confirm your new email — Journey Stay', tplConfirmEmailChange(user.firstName, newEmail, confirmUrl));
+    await this.mail.send(newEmail, 'Confirm your new email — Oikivo', tplConfirmEmailChange(user.firstName, newEmail, confirmUrl));
 
     const isDev = this.config.get('NODE_ENV', 'development') === 'development';
     return {
@@ -539,7 +539,7 @@ export class AuthService {
     const secret = authenticator.generateSecret();
     await this.usersRepo.update(userId, { totpSecret: secret } as any);
 
-    const otpauth = authenticator.keyuri(user.email, 'Sakan', secret);
+    const otpauth = authenticator.keyuri(user.email, 'Oikivo', secret);
     const qrDataUrl = await QRCode.toDataURL(otpauth);
 
     return { secret, qrDataUrl };

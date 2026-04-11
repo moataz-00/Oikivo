@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
@@ -41,6 +41,7 @@ import { FadeIn, SlideIn, FloatIn, ScaleIn } from '@/components/ui/Motion';
 import { propertiesApi, reviewsApi, messagesApi } from '@/lib/api';
 import { getAvatarUrl, formatDate, formatRating, toFiniteNumber } from '@/lib/utils';
 import { ContactHostModal } from '@/components/ui/ContactHostModal';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import type { ReviewStats } from '@/types';
 import dynamic from 'next/dynamic';
 
@@ -77,9 +78,9 @@ export default function PropertyDetailPage() {
     queryKey: ['property', uuid],
     queryFn: () => propertiesApi.getPropertyByUuid(uuid),
     enabled: !!uuid,
-    staleTime: 0,               // always re-validate
-    refetchInterval: 60 * 1000, // poll every 60 s so availability stays fresh
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,      // cache for 5 min — property data rarely changes
+    gcTime: 10 * 60 * 1000,        // keep in cache for 10 min
+    refetchOnWindowFocus: false,    // no refetch on tab switch
   });
 
   const propertyId = property?.id;
@@ -88,15 +89,23 @@ export default function PropertyDetailPage() {
     queryKey: ['reviews', propertyId],
     queryFn: () => reviewsApi.getPropertyReviews(propertyId!, 1, 100),
     enabled: !!propertyId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
-
-  // allReviewsData removed — we now fetch all upfront
 
   const { data: reviewStatsData } = useQuery<ReviewStats>({
     queryKey: ['reviewStats', propertyId],
     queryFn: () => reviewsApi.getReviewStats(propertyId!),
     enabled: !!propertyId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
+
+  /* G16: Track recently viewed */
+  const { trackView } = useRecentlyViewed();
+  useEffect(() => {
+    if (property) trackView(property);
+  }, [property?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <FullPageSpinner />;
 

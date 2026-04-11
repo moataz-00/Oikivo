@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { User, Shield, Bell, Globe, Camera, Eye, EyeOff, X, Trash2, AlertTriangle, ChevronDown, Search, Home, GraduationCap, ArrowRight, Smartphone, MonitorSmartphone, LogOut, Download, Unlink, QrCode, Check } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
-import { authApi, usersApi } from '@/lib/api';
+import { authApi, usersApi, bookingsApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/ui/Avatar';
 import { Input } from '@/components/ui/Input';
@@ -390,6 +390,17 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
   const router = useRouter();
   const { logout } = useAuth();
 
+  /* G10: check for active bookings before allowing deletion */
+  const activeBookingsQuery = useQuery({
+    queryKey: ['active-bookings-check'],
+    queryFn: async () => {
+      const trips = await bookingsApi.getMyTrips();
+      return trips.filter((b: any) => ['pending', 'confirmed', 'in_progress'].includes(b.status));
+    },
+    enabled: open,
+  });
+  const activeBookings = activeBookingsQuery.data ?? [];
+
   const mutation = useMutation({
     mutationFn: usersApi.deleteAccount,
     onSuccess: () => {
@@ -427,12 +438,22 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
             </button>
           </div>
 
+          {/* G10: Active bookings warning */}
+          {activeBookings.length > 0 && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 mb-4 text-sm text-amber-800">
+              <p className="font-medium">⚠ You have {activeBookings.length} active booking{activeBookings.length > 1 ? 's' : ''}</p>
+              <p className="text-amber-700 mt-1">Please cancel or complete your active bookings before deleting your account. Deleting now may result in loss of deposits and booking guarantees.</p>
+            </div>
+          )}
+
           <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 mb-5 text-sm space-y-1 text-red-800">
             <p className="font-medium">What will be deleted:</p>
             <ul className="list-disc list-inside space-y-0.5 text-red-700">
               <li>Your profile, name, email and phone number</li>
               <li>Your photo and any uploaded documents</li>
               <li>Your listings will be archived</li>
+              <li>All booking history and messages</li>
+              <li>Reviews you have written</li>
             </ul>
           </div>
 
@@ -458,7 +479,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
               type="button"
               size="md"
               className="flex-1 !bg-red-600 hover:!bg-red-700"
-              disabled={confirmText !== 'DELETE' || mutation.isPending}
+              disabled={confirmText !== 'DELETE' || mutation.isPending || activeBookings.length > 0}
               isLoading={mutation.isPending}
               onClick={() => mutation.mutate()}
             >
@@ -1028,6 +1049,19 @@ function AccountPageContent() {
                     )}
                   </>
                 )}
+              </div>
+
+              {/* G11: Payment History link */}
+              <div className="bg-white rounded-2xl border border-neutral-200 p-6 mt-2">
+                <h3 className="text-base font-semibold text-neutral-900 mb-1">Payment History</h3>
+                <p className="text-sm text-neutral-500 mb-3">View all your booking payments and transactions.</p>
+                <Link
+                  href={`/${locale}/account/payments`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  View Payment History
+                </Link>
               </div>
 
               {/* Danger zone */}

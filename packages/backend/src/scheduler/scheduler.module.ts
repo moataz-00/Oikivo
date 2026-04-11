@@ -8,6 +8,9 @@ import { ConsultationBookingEntity } from '../entities/consultation-booking.enti
 import { DisputeEntity } from '../entities/dispute.entity';
 import { WishlistItemEntity } from '../entities/wishlist-item.entity';
 import { WishlistEntity } from '../entities/wishlist.entity';
+import { SavedSearchEntity } from '../entities/saved-search.entity';
+import { UserEntity } from '../entities/user.entity';
+import { PriceAlertEntity } from '../entities/price-alert.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MailModule } from '../mail/mail.module';
 import { PayoutsModule } from '../payouts/payouts.module';
@@ -22,6 +25,9 @@ import { PayoutsModule } from '../payouts/payouts.module';
       DisputeEntity,
       WishlistItemEntity,
       WishlistEntity,
+      SavedSearchEntity,
+      UserEntity,
+      PriceAlertEntity,
     ]),
     NotificationsModule,
     MailModule,

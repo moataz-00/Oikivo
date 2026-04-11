@@ -9,6 +9,9 @@ import { HouseRuleEntity } from '../entities/house-rule.entity';
 import { ReviewEntity } from '../entities/review.entity';
 import { UserEntity } from '../entities/user.entity';
 import { BookingEntity } from '../entities/booking.entity';
+import { PriceAlertEntity } from '../entities/price-alert.entity';
+import { PriceAlertController } from './price-alert.controller';
+import { PriceAlertService } from './price-alert.service';
 
 @Module({
   imports: [
@@ -20,10 +23,11 @@ import { BookingEntity } from '../entities/booking.entity';
       ReviewEntity,
       UserEntity,
       BookingEntity,
+      PriceAlertEntity,
     ]),
   ],
-  controllers: [PropertiesController],
-  providers: [PropertiesService],
+  controllers: [PropertiesController, PriceAlertController],
+  providers: [PropertiesService, PriceAlertService],
   exports: [PropertiesService],
 })
 export class PropertiesModule {}

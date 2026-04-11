@@ -7,7 +7,8 @@ import Image from 'next/image';
 import { useLocale } from 'next-intl';
 import { Star, X } from 'lucide-react';
 import { Spinner } from '@/components/ui/Spinner';
-import { getImageUrl, formatPrice, formatRating } from '@/lib/utils';
+import { getImageUrl, formatRating } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { Property } from '@/types';
 
 interface MapViewProps {
@@ -38,6 +39,7 @@ const mapOptions: google.maps.MapOptions = {
 
 export function MapView({ properties, center, zoom = 12, onBoundsChange }: MapViewProps) {
   const locale = useLocale();
+  const { formatPrice } = useCurrency();
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
 

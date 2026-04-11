@@ -102,7 +102,7 @@ export class CohostsService {
       const invitesUrl = `${fe.replace(/\/+$/, '')}/en/account/invites`;
       await this.mailService.send(
         invitee.email,
-        `You've been invited as a ${roleLabel} — Journey Stay`,
+        `You've been invited as a ${roleLabel} — Oikivo`,
         tplCohostInvite(
           invitee.firstName,
           `${host?.firstName ?? ''} ${host?.lastName ?? ''}`.trim(),
@@ -175,7 +175,7 @@ export class CohostsService {
         const fe = (this.config.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
         await this.mailService.send(
           invitee.email,
-          `Re-invitation as ${roleLabel} — Journey Stay`,
+          `Re-invitation as ${roleLabel} — Oikivo`,
           tplCohostInvite(
             invitee.firstName,
             `${host?.firstName ?? ''} ${host?.lastName ?? ''}`.trim(),

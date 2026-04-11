@@ -23,6 +23,7 @@ import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler'; // FIX BUG-GC1
 import { BookingsService } from './bookings.service';
+import { InvoiceService } from './invoice.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -33,7 +34,10 @@ import { UserEntity } from '../entities/user.entity';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BookingsController {
-  constructor(private readonly bookingsService: BookingsService) {}
+  constructor(
+    private readonly bookingsService: BookingsService,
+    private readonly invoiceService: InvoiceService,
+  ) {}
 
   @Post()
   @Throttle({ default: { ttl: 3600000, limit: 5 } }) // FIX BUG-GC1: Max 5 bookings per hour
@@ -47,6 +51,12 @@ export class BookingsController {
   @ApiQuery({ name: 'status', required: false, enum: ['pending', 'confirmed', 'completed', 'cancelled', 'declined'] })
   getMyTrips(@CurrentUser() user: UserEntity, @Query('status') status?: string) {
     return this.bookingsService.getGuestBookings(user.id, status);
+  }
+
+  @Get('my-payments')
+  @ApiOperation({ summary: 'Get guest payment history' })
+  getMyPaymentHistory(@CurrentUser() user: UserEntity) {
+    return this.bookingsService.getGuestPaymentHistory(user.id);
   }
 
   @Get('host/reservations')
@@ -76,6 +86,30 @@ export class BookingsController {
     return this.bookingsService.getHostAnalytics(user.id);
   }
 
+  @Get('host/forecast')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'H13: Revenue forecast for next 90 days based on confirmed bookings + historical data' })
+  getRevenueForecast(@CurrentUser() user: UserEntity) {
+    return this.bookingsService.getRevenueForecast(user.id);
+  }
+
+  @Get('host/market-insights')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'H12: Market benchmarking insights — compare your listings with area averages' })
+  getMarketInsights(@CurrentUser() user: UserEntity) {
+    return this.bookingsService.getMarketInsights(user.id);
+  }
+
+  @Get('host/ranking-tips/:propertyId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'H14: Get ranking improvement tips for a specific property' })
+  getRankingTips(@CurrentUser() user: UserEntity, @Param('propertyId', ParseIntPipe) propertyId: number) {
+    return this.bookingsService.getRankingTips(propertyId, user.id);
+  }
+
   @Get('ref/:uuid')
   @ApiOperation({ summary: 'Get booking by UUID reference' })
   async findOneByRef(
@@ -87,6 +121,26 @@ export class BookingsController {
       throw new ForbiddenException('Not authorized to view this booking');
     }
     return booking;
+  }
+
+  @Get(':id/invoice')
+  @ApiOperation({ summary: 'Download booking invoice as PDF' })
+  async getInvoice(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+    @Res() res: Response,
+  ) {
+    const booking = await this.bookingsService.findOne(id);
+    if (booking.guestId !== user.id && booking.hostId !== user.id && !user.isAdmin) {
+      throw new ForbiddenException('Not authorized');
+    }
+    const pdfBuffer = await this.invoiceService.generateInvoice(booking);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${booking.bookingUuid || booking.id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
   }
 
   @Get(':id')

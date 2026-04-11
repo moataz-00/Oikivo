@@ -37,20 +37,24 @@ export function getInitials(firstName: string, lastName?: string): string {
   return `${first}${last}`;
 }
 
+// Memoize base URL — computed once per process
+const _imageBase = (() => {
+  const raw = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_API_URL : undefined;
+  return raw?.replace('/api', '') || 'http://localhost:3001';
+})();
+
 export function getAvatarUrl(avatar: string | null | undefined): string {
   if (!avatar) return '';
   if (avatar.startsWith('http')) return avatar;
-  const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-  if (avatar.startsWith('/')) return `${base}${avatar}`;
-  return `${base}/uploads/${avatar}`;
+  if (avatar.startsWith('/')) return `${_imageBase}${avatar}`;
+  return `${_imageBase}/uploads/${avatar}`;
 }
 
 export function getImageUrl(path: string | null | undefined): string {
   if (!path) return '/placeholder.jpg';
   if (path.startsWith('http')) return path;
-  const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-  if (path.startsWith('/')) return `${base}${path}`;
-  return `${base}/uploads/${path}`;
+  if (path.startsWith('/')) return `${_imageBase}${path}`;
+  return `${_imageBase}/uploads/${path}`;
 }
 
 export function truncate(str: string, length: number): string {

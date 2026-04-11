@@ -2,7 +2,10 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
+  Delete,
   Param,
+  Body,
   Query,
   UseGuards,
   ParseIntPipe,
@@ -12,6 +15,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
 import { NotificationsService } from './notifications.service';
+import { PushService } from './push.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserEntity } from '../entities/user.entity';
@@ -21,7 +25,10 @@ import { UserEntity } from '../entities/user.entity';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly pushService: PushService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get user notifications' })
@@ -68,5 +75,20 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Server-Sent Events stream for real-time notifications' })
   streamNotifications(@CurrentUser() user: UserEntity): Observable<MessageEvent> {
     return this.notificationsService.stream(user.id);
+  }
+
+  @Post('push-token')
+  @ApiOperation({ summary: 'Register FCM push token for mobile notifications' })
+  registerPushToken(
+    @CurrentUser() user: UserEntity,
+    @Body('token') token: string,
+  ) {
+    return this.pushService.registerToken(user.id, token);
+  }
+
+  @Delete('push-token')
+  @ApiOperation({ summary: 'Remove FCM push token' })
+  removePushToken(@CurrentUser() user: UserEntity) {
+    return this.pushService.removeToken(user.id);
   }
 }

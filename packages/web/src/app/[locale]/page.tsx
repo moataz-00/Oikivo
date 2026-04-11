@@ -11,6 +11,7 @@ import { SearchBar } from '@/components/search/SearchBar';
 import { PropertyCard } from '@/components/property/PropertyCard';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/Motion';
 import { propertiesApi } from '@/lib/api';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { cn } from '@/lib/utils';
 
 
@@ -129,6 +130,9 @@ export default function HomePage() {
       refetchOnWindowFocus: false,
     })),
   });
+
+  /* G16: Recently viewed */
+  const { recentlyViewed } = useRecentlyViewed();
 
   return (
     <div>
@@ -283,6 +287,41 @@ export default function HomePage() {
 
       {/* ── Scrollable sections ── */}
       <div className="py-8 space-y-10 bg-white">
+        {/* G16: Recently Viewed */}
+        {activeTab === 'homes' && recentlyViewed.length > 0 && (
+          <FadeIn className="py-2">
+            <div className="flex items-center justify-between mb-4 px-4 sm:px-6 lg:px-8">
+              <h2 className="text-xl font-bold text-neutral-900">
+                🕐 {isAr ? 'شوهدت مؤخراً' : 'Recently Viewed'}
+              </h2>
+            </div>
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 lg:px-8 pb-2">
+              {recentlyViewed.slice(0, 10).map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/${locale}/rooms/${item.uuid}`}
+                  className="flex-shrink-0 w-56 group"
+                >
+                  <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100">
+                    {item.image ? (
+                      <img
+                        src={item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_API_URL ?? ''}/uploads/properties/${item.image}`}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-neutral-400">
+                        <Home className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-neutral-900 truncate">{isAr && item.titleAr ? item.titleAr : item.title}</p>
+                  <p className="text-xs text-neutral-500">{item.city}</p>
+                </Link>
+              ))}
+            </div>
+          </FadeIn>
+        )}
         {activeTab === 'homes' && SECTIONS.map((s, i) => {
           const res = results[i];
           const props = (res.data as any)?.data ?? [];

@@ -33,11 +33,20 @@ export class WishlistsService {
   }
 
   async findAll(userId: number): Promise<WishlistEntity[]> {
-    return this.wishlistsRepo.find({
+    const wishlists = await this.wishlistsRepo.find({
       where: { userId },
       relations: ['items', 'items.property', 'items.property.photos'],
       order: { createdAt: 'DESC' },
     });
+    // GW4: Filter out unpublished/archived properties, show "no longer available" for missing
+    for (const wl of wishlists) {
+      if (wl.items) {
+        wl.items = wl.items.filter(
+          (item) => item.property && item.property.status === 'published' && item.property.isActive,
+        );
+      }
+    }
+    return wishlists;
   }
 
   async findOne(id: number, userId: number): Promise<WishlistEntity> {
@@ -48,6 +57,12 @@ export class WishlistsService {
     if (!wishlist) throw new NotFoundException('Wishlist not found');
     if (wishlist.userId !== userId && wishlist.visibility !== 'public') {
       throw new ForbiddenException('Not authorized to view this wishlist');
+    }
+    // GW4: Filter out unpublished/archived properties
+    if (wishlist.items) {
+      wishlist.items = wishlist.items.filter(
+        (item) => item.property && item.property.status === 'published' && item.property.isActive,
+      );
     }
     return wishlist;
   }

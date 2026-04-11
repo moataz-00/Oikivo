@@ -218,7 +218,7 @@ export class PayoutsService {
           const earningsUrl = `${fe.replace(/\/+$/, '')}/en/hosting/earnings`;
           await this.mail.send(
             host.email,
-            'Payout request received — Journey Stay',
+            'Payout request received — Oikivo',
             tplPayoutNotification(
               host.firstName,
               dto.amount.toFixed(2),

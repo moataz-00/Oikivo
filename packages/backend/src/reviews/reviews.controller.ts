@@ -22,6 +22,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { UpdateReviewDto } from './dto/update-review.dto';
 import { ReplyReviewDto } from './dto/reply-review.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -64,6 +65,18 @@ export class ReviewsController {
   @ApiOperation({ summary: 'Create a review for a completed booking' })
   create(@CurrentUser() user: UserEntity, @Body() dto: CreateReviewDto) {
     return this.reviewsService.create(user.id, dto);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Edit a review within 48 hours of submission (G1)' })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: UpdateReviewDto,
+  ) {
+    return this.reviewsService.updateReview(id, user.id, dto);
   }
 
   @Patch(':id/reply')

@@ -417,7 +417,7 @@ export class ICalSyncService {
     return [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Journey Stay//EN',
+      'PRODID:-//Oikivo//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       ...vevents,

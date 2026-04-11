@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Loader2, ImagePlus, X } from 'lucide-react';
 import Link from 'next/link';
 import { disputesApi, bookingsApi } from '@/lib/api';
 import { toast } from '@/components/ui/Toast';
@@ -28,7 +28,7 @@ export default function OpenDisputePage() {
   const [category, setCategory]     = useState('');
   const [title, setTitle]           = useState('');
   const [description, setDescription] = useState('');
-
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const { data: booking, isLoading: bookingLoading } = useQuery({
     queryKey: ['booking', bookingId],
     queryFn: () => bookingsApi.getBooking(bookingId),
@@ -36,7 +36,13 @@ export default function OpenDisputePage() {
   });
 
   const mutation = useMutation({
-    mutationFn: () => disputesApi.create({ bookingId, category, title, description }),
+    mutationFn: async () => {
+      const dispute = await disputesApi.create({ bookingId, category, title, description });
+      if (evidenceFiles.length > 0) {
+        await disputesApi.uploadEvidence(dispute.id, evidenceFiles);
+      }
+      return dispute;
+    },
     onSuccess: () => {
       toast.success('Dispute opened. Our team will review it within 5 business days.');
       router.push(`/${locale}/trips`);
@@ -164,6 +170,52 @@ export default function OpenDisputePage() {
                 className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition resize-none"
               />
               <p className="text-xs text-neutral-400 mt-1 text-right">{description.length}/5000</p>
+            </div>
+
+            {/* Evidence photos */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+                Evidence photos
+                <span className="text-neutral-400 font-normal ml-1">(optional, up to 10)</span>
+              </label>
+              <div className="flex flex-wrap gap-2.5">
+                {evidenceFiles.map((file, idx) => (
+                  <div key={idx} className="relative h-20 w-20 rounded-xl overflow-hidden border border-neutral-200 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEvidenceFiles((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-0.5 right-0.5 rounded-full bg-black/60 p-0.5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {evidenceFiles.length < 10 && (
+                  <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 hover:border-neutral-400 transition-colors">
+                    <ImagePlus className="h-5 w-5 text-neutral-400" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        setEvidenceFiles((prev) => [...prev, ...files].slice(0, 10));
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              {evidenceFiles.length > 0 && (
+                <p className="text-xs text-neutral-400 mt-1">{evidenceFiles.length}/10 photos selected</p>
+              )}
             </div>
 
             {/* Info box */}

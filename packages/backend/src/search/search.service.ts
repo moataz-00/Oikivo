@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { PropertyEntity } from '../entities/property.entity';
+import { PropertyPhotoEntity } from '../entities/property-photo.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { AvailabilityEntity } from '../entities/availability.entity';
 import { SearchDto } from './search.dto';
@@ -11,6 +12,8 @@ export class SearchService {
   constructor(
     @InjectRepository(PropertyEntity)
     private propertiesRepo: Repository<PropertyEntity>,
+    @InjectRepository(PropertyPhotoEntity)
+    private photosRepo: Repository<PropertyPhotoEntity>,
     @InjectRepository(BookingEntity)
     private bookingsRepo: Repository<BookingEntity>,
     @InjectRepository(AvailabilityEntity)
@@ -18,15 +21,39 @@ export class SearchService {
     private dataSource: DataSource,
   ) {}
 
+  // ── Impression batch queue — flush every 30 s instead of per-request writes ──
+  private impressionQueue: number[] = [];
+  private impressionTimer: ReturnType<typeof setInterval> | null = null;
+
+  private enqueueImpressions(ids: number[]) {
+    this.impressionQueue.push(...ids);
+    if (!this.impressionTimer) {
+      this.impressionTimer = setInterval(() => this.flushImpressions(), 30_000);
+    }
+  }
+
+  private async flushImpressions() {
+    if (this.impressionQueue.length === 0) return;
+    const ids = [...new Set(this.impressionQueue)];
+    this.impressionQueue = [];
+    try {
+      await this.propertiesRepo
+        .createQueryBuilder()
+        .update()
+        .set({ impressionCount: () => 'impression_count + 1' })
+        .whereInIds(ids)
+        .execute();
+    } catch { /* swallow — non-critical */ }
+  }
+
   async search(dto: SearchDto) {
     const page = dto.page || 1;
     const limit = dto.limit || 20;
 
+    // Phase 1: fetch property IDs only (no cartesian product from photos join)
     const query = this.propertiesRepo
       .createQueryBuilder('property')
-      .leftJoinAndSelect('property.photos', 'photos')
-      .leftJoinAndSelect('property.host', 'host')
-      .leftJoinAndSelect('property.category', 'category')
+      .select('property.id', 'id')
       .where('property.status = :status', { status: 'published' })
       .andWhere('property.isActive = true');
 
@@ -126,30 +153,43 @@ export class SearchService {
       query.setParameter('avCheckOut', dto.checkOut);
     }
 
-    // Amenities filter (all must be present)
+    // Amenities filter — single subquery with COUNT instead of N EXISTS
     if (dto.amenityIds && dto.amenityIds.length > 0) {
-      for (let i = 0; i < dto.amenityIds.length; i++) {
-        const amenityId = dto.amenityIds[i];
-        const alias = `pa${i}`;
-        query.andWhere(
-          `EXISTS (SELECT 1 FROM property_amenities ${alias} WHERE ${alias}.property_id = property.id AND ${alias}.amenity_id = :amenityId${i})`,
-          { [`amenityId${i}`]: amenityId },
-        );
-      }
+      query.andWhere(
+        `property.id IN (
+          SELECT pa.property_id FROM property_amenities pa
+          WHERE pa.amenity_id IN (:...amenityIds)
+          GROUP BY pa.property_id
+          HAVING COUNT(DISTINCT pa.amenity_id) = :amenityCount
+        )`,
+        { amenityIds: dto.amenityIds, amenityCount: dto.amenityIds.length },
+      );
     }
 
-    // Sorting
+    // Phase 1: get matching IDs + total count
+    const countQuery = query.clone();
+    const total = await countQuery.getCount();
+
+    // Sorting — applied to ID query
     switch (dto.sortBy) {
       case 'price_asc':
+        query.addSelect('property.pricePerNight', 'pricePerNight');
         query.orderBy('property.pricePerNight', 'ASC');
         break;
       case 'price_desc':
+        query.addSelect('property.pricePerNight', 'pricePerNight');
         query.orderBy('property.pricePerNight', 'DESC');
         break;
       case 'newest':
+        query.addSelect('property.createdAt', 'createdAt');
         query.orderBy('property.createdAt', 'DESC');
         break;
       default:
+        query
+          .addSelect('property.avgRating', 'avgRating')
+          .addSelect('property.reviewCount', 'reviewCount')
+          .addSelect('property.impressionCount', 'impressionCount')
+          .addSelect('property.createdAt', 'createdAt');
         query
           .orderBy('property.avgRating', 'DESC')
           .addOrderBy('property.reviewCount', 'DESC')
@@ -157,21 +197,45 @@ export class SearchService {
           .addOrderBy('property.createdAt', 'DESC');
     }
 
-    const [items, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+    const rawIds = await query
+      .offset((page - 1) * limit)
+      .limit(limit)
+      .getRawMany();
 
-    // Fire-and-forget: increment impression_count for each returned property
-    if (items.length > 0) {
-      const ids = items.map((p) => p.id);
-      this.propertiesRepo.createQueryBuilder()
-        .update()
-        .set({ impressionCount: () => 'impression_count + 1' })
-        .whereInIds(ids)
-        .execute()
-        .catch(() => {});
+    const ids: number[] = rawIds.map((r) => r.id);
+
+    if (ids.length === 0) {
+      return { data: [], total, page, limit, totalPages: Math.ceil(total / limit) };
     }
+
+    // Phase 2: load full entities for the matched IDs (no cartesian product)
+    const items = await this.propertiesRepo.find({
+      where: { id: In(ids) },
+      relations: ['photos', 'host', 'category'],
+      select: {
+        id: true, uuid: true, title: true, description: true,
+        city: true, state: true, country: true, countryCode: true, address: true,
+        latitude: true, longitude: true,
+        pricePerNight: true, weekendPrice: true, currency: true,
+        cleaningFee: true, serviceFeePercent: true, securityDeposit: true,
+        weeklyDiscount: true, monthlyDiscount: true,
+        spaceType: true, propertyKind: true, bedrooms: true, beds: true, bathrooms: true,
+        maxGuests: true, minNights: true, maxNights: true,
+        instantBook: true, avgRating: true, reviewCount: true,
+        status: true, isActive: true, hostId: true, categoryId: true,
+        createdAt: true, updatedAt: true,
+        cancellationPolicy: true, bookingMode: true,
+        newListingPromotionEnabled: true, lastMinuteDiscountPercent: true,
+        host: { id: true, firstName: true, lastName: true, avatarUrl: true, isIdVerified: true },
+      },
+    });
+
+    // Preserve sort order from Phase 1
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    items.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0));
+
+    // Batch impression increment (non-blocking)
+    this.enqueueImpressions(ids);
 
     return {
       data: items,

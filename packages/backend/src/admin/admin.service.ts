@@ -526,7 +526,7 @@ export class AdminService {
           : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         await this.mail.send(
           host.email,
-          `Payout of ${amountStr} ${currency} processed — Journey Stay`,
+          `Payout of ${amountStr} ${currency} processed — Oikivo`,
           tplPayoutProcessed(
             host.firstName,
             amountStr,

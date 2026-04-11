@@ -275,6 +275,7 @@ export interface CreateBookingPayload {
   checkOut: string;
   guests: number;
   message?: string;
+  displayCurrency?: string;
 }
 
 // ─── Review ──────────────────────────────────────────────────────────────────

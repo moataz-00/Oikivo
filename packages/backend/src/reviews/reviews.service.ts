@@ -12,6 +12,7 @@ import { BookingEntity } from '../entities/booking.entity';
 import { PropertyEntity } from '../entities/property.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { UpdateReviewDto } from './dto/update-review.dto';
 import { ReplyReviewDto } from './dto/reply-review.dto';
 
 @Injectable()
@@ -38,6 +39,16 @@ export class ReviewsService {
     }
     if (booking.status !== 'completed') {
       throw new BadRequestException('You can only review completed bookings');
+    }
+
+    // G2: Enforce 14-day review window after checkout
+    const checkOutDate = new Date(booking.checkOut);
+    const reviewDeadline = new Date(checkOutDate);
+    reviewDeadline.setDate(reviewDeadline.getDate() + 14);
+    if (new Date() > reviewDeadline) {
+      throw new BadRequestException(
+        'The review window has closed. Reviews must be submitted within 14 days of checkout.',
+      );
     }
 
     const existing = await this.reviewsRepo.findOne({
@@ -95,6 +106,44 @@ export class ReviewsService {
     review.hostReply = dto.hostReply;
     review.hostRepliedAt = new Date();
     return this.reviewsRepo.save(review);
+  }
+
+  /** G1: Allow guest to edit their review within 48 hours of submission */
+  async updateReview(reviewId: number, reviewerId: number, dto: UpdateReviewDto): Promise<ReviewEntity> {
+    const review = await this.reviewsRepo.findOne({
+      where: { id: reviewId },
+      relations: ['property'],
+    });
+    if (!review) throw new NotFoundException('Review not found');
+    if (review.reviewerId !== reviewerId) {
+      throw new ForbiddenException('You can only edit your own reviews');
+    }
+
+    // Enforce 48-hour edit window
+    const editDeadline = new Date(review.createdAt);
+    editDeadline.setHours(editDeadline.getHours() + 48);
+    if (new Date() > editDeadline) {
+      throw new BadRequestException(
+        'The edit window has closed. Reviews can only be edited within 48 hours of submission.',
+      );
+    }
+
+    // Apply partial updates
+    if (dto.overallRating !== undefined) review.overallRating = dto.overallRating;
+    if (dto.cleanlinessRating !== undefined) review.cleanlinessRating = dto.cleanlinessRating;
+    if (dto.accuracyRating !== undefined) review.accuracyRating = dto.accuracyRating;
+    if (dto.communicationRating !== undefined) review.communicationRating = dto.communicationRating;
+    if (dto.locationRating !== undefined) review.locationRating = dto.locationRating;
+    if (dto.valueRating !== undefined) review.valueRating = dto.valueRating;
+    if (dto.checkinRating !== undefined) review.checkinRating = dto.checkinRating;
+    if (dto.comment !== undefined) review.comment = dto.comment;
+
+    const saved = await this.reviewsRepo.save(review);
+
+    // Recalculate property avg rating after edit
+    await this.updatePropertyRating(review.propertyId);
+
+    return saved;
   }
 
   async getPropertyReviews(propertyId: number, page = 1, limit = 10) {

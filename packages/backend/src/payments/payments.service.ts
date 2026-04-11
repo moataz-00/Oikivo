@@ -16,6 +16,7 @@ import { ExperienceBookingEntity } from '../entities/experience-booking.entity';
 import { EarningEntity } from '../entities/earning.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailService, tplPaymentInvoice, tplRefundNotification } from '../mail/mail.service';
+import { CurrencyService } from '../common/currency.service';
 
 @Injectable()
 export class PaymentsService {
@@ -40,6 +41,7 @@ export class PaymentsService {
     private readonly notificationsService: NotificationsService,
     private readonly config: ConfigService,
     private readonly mail: MailService,
+    private readonly currencyService: CurrencyService,
   ) {
     // FIX BUG-GC2: Fail fast in production if Stripe key is missing
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
@@ -204,7 +206,7 @@ export class PaymentsService {
         const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
         await this.mail.send(
           bookingWithGuest.guest.email,
-          'Your refund is being processed — Journey Stay',
+          'Your refund is being processed — Oikivo',
           tplRefundNotification(
             bookingWithGuest.guest.firstName,
             Number(bookingWithGuest.refundAmount ?? bookingWithGuest.totalAmount).toFixed(2),
@@ -347,9 +349,12 @@ export class PaymentsService {
           const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
           const nights = Number(booking.nights) || 1;
           const baseAmount = Number(booking.baseAmount);
+          const curr = booking.currency ?? 'EGP';
+          const dc = booking.displayCurrency;
+          const fmtAmt = (v: number) => this.currencyService.convertAndFormat(v, curr, dc);
           await this.mail.send(
             booking.guest.email,
-            'Your payment receipt — Journey Stay',
+            'Your payment receipt — Oikivo',
             tplPaymentInvoice(
               booking.guest.firstName,
               `#${id}`,
@@ -358,11 +363,11 @@ export class PaymentsService {
               booking.checkIn,
               booking.checkOut,
               nights,
-              (baseAmount / nights).toFixed(2),
-              Number(booking.cleaningFee).toFixed(2),
-              Number(booking.serviceFee).toFixed(2),
-              Number(booking.totalAmount).toFixed(2),
-              booking.currency ?? 'EGP',
+              fmtAmt(baseAmount / nights),
+              fmtAmt(Number(booking.cleaningFee)),
+              fmtAmt(Number(booking.serviceFee)),
+              fmtAmt(Number(booking.totalAmount)),
+              '',
               booking.paymentMethod ?? 'Card',
               intent.id,
               tripsUrl,
@@ -487,6 +492,10 @@ export class PaymentsService {
     if (booking.paymentStatus === 'paid') {
       throw new BadRequestException('Booking is already paid');
     }
+    // Issue #8: Block duplicate payment attempts
+    if (booking.paymentStatus === 'submitted') {
+      throw new BadRequestException('An InstaPay payment is pending admin verification. Please wait for confirmation or contact support.');
+    }
 
     const reference = this.opayRef(bookingType, bookingId);
     // OPay amounts are in smallest currency unit (piastres for EGP: 1 EGP = 100 piastres)
@@ -513,7 +522,7 @@ export class PaymentsService {
       },
       payMethod: 'BankCard',
       product: {
-        name: `Journey Stay booking #${bookingId}`,
+        name: `Oikivo booking #${bookingId}`,
         description: bookingType === 'stay' ? 'Property stay booking' : 'Experience booking',
       },
       userInfo: {
@@ -543,11 +552,31 @@ export class PaymentsService {
     this.logger.log(`OPay card payment response for booking #${bookingId}: code=${resp.code} message=${resp.message} status=${resp.data?.status ?? 'N/A'} orderNo=${resp.data?.orderNo ?? 'N/A'} failureReason=${resp.data?.failureReason ?? 'N/A'}`);
 
     if (resp.code === '00000' && resp.data?.status === 'SUCCESS') {
-      // Payment succeeded immediately — mark booking as paid
-      await (repo as Repository<any>).update(bookingId, {
-        paymentStatus: 'paid',
-        ...(bookingType === 'stay' ? { status: 'confirmed' } : {}),
-      });
+      // Issue #5: wrap UPDATE + EarningEntity creation in a single transaction
+      if (bookingType === 'stay') {
+        await this.bookingsRepo.manager.transaction(async (em) => {
+          await em.update(BookingEntity, bookingId, { paymentStatus: 'paid', status: 'confirmed' as any });
+          const existingEarning = await em.findOne(EarningEntity, { where: { bookingId } });
+          if (!existingEarning) {
+            const totalAmount = Number(booking.totalAmount);
+            const serviceFee = Number(booking.serviceFee);
+            const checkOutDate = new Date(booking.checkOut);
+            const availableAt = new Date(checkOutDate);
+            availableAt.setDate(availableAt.getDate() + 1);
+            await em.save(EarningEntity, em.create(EarningEntity, {
+              hostId: booking.hostId,
+              bookingId,
+              amount: parseFloat((totalAmount - serviceFee).toFixed(2)),
+              platformFee: serviceFee,
+              currency: (booking.currency ?? 'EGP'),
+              status: new Date() >= availableAt ? 'available' : 'pending',
+              availableAt,
+            }));
+          }
+        });
+      } else {
+        await (repo as Repository<any>).update(bookingId, { paymentStatus: 'paid' });
+      }
 
       this.logger.log(`OPay card payment SUCCESS for ${bookingType} booking #${bookingId}, ref: ${reference}`);
       return { status: 'success', orderNo: resp.data.orderNo };
@@ -572,7 +601,7 @@ export class PaymentsService {
       if (booking.guest?.email) {
         await this.mail.send(
           booking.guest.email,
-          'Payment unsuccessful — please retry — Journey Stay',
+          'Payment unsuccessful — please retry — Oikivo',
           `<p>Hi ${booking.guest.firstName},</p>
 <p>Your OPay card payment for booking <strong>#${bookingId}</strong> could not be processed.</p>
 <p><strong>Reason:</strong> ${failureReason}</p>
@@ -658,7 +687,7 @@ export class PaymentsService {
           : (booking.experience?.title ?? 'Experience');
         await this.mail.send(
           guestEmail,
-          'Your refund is being processed — Journey Stay',
+          'Your refund is being processed — Oikivo',
           tplRefundNotification(
             booking.guest.firstName,
             (Number(booking.refundAmount ?? booking.totalAmount)).toFixed(2),
@@ -694,7 +723,7 @@ export class PaymentsService {
     }
     const backendUrl = this.config.get<string>('BACKEND_URL', 'http://localhost:3001/api').replace(/\/+$/, '');
     // Use a timestamp suffix to avoid reference collisions on retry
-    const refundRef = `${opayOrderReference}-r${Date.now().toString(36)}`;
+    const refundRef = `${opayOrderReference}-r${crypto.randomBytes(4).toString('hex')}`;
     const refundTotal = Math.round(refundAmountEGP * 100);
     const body = {
       country: 'EG',

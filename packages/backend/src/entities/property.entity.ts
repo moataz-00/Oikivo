@@ -155,6 +155,15 @@ export class PropertyEntity {
   @Column({ name: 'check_in_instructions', type: 'text', nullable: true, comment: 'WiFi passwords, door codes, entry instructions' })
   checkInInstructions: string | null;
 
+  @Column({ name: 'wifi_name', type: 'varchar', length: 100, nullable: true })
+  wifiName: string | null;
+
+  @Column({ name: 'wifi_password', type: 'varchar', length: 100, nullable: true })
+  wifiPassword: string | null;
+
+  @Column({ name: 'door_code', type: 'varchar', length: 50, nullable: true })
+  doorCode: string | null;
+
   @Column({ name: 'allows_pets', default: false })
   allowsPets: boolean;
 
@@ -186,7 +195,13 @@ export class PropertyEntity {
     default: 'flexible',
   })
   cancellationPolicy: string;
+  /** H4: Only verified guests can book this listing */
+  @Column({ name: 'require_verified_guest', default: false })
+  requireVerifiedGuest: boolean;
 
+  /** H5: Minimum guest rating required to book (null = no restriction) */
+  @Column({ name: 'min_guest_rating', type: 'decimal', precision: 2, scale: 1, nullable: true, default: null })
+  minGuestRating: number | null;
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

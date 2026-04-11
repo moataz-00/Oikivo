@@ -29,6 +29,8 @@ import { SmsModule } from './sms/sms.module';
 import { ConsultationsModule } from './consultations/consultations.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
+import { CommonModule } from './common/common.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 // Entities
 import { UserEntity } from './entities/user.entity';
@@ -72,10 +74,32 @@ import { SavedSearchEntity } from './entities/saved-search.entity';
 import { PlatformSettingEntity } from './entities/platform-setting.entity';
 import { AdminActivityLogEntity } from './entities/admin-activity-log.entity';
 import { ExpenseEntity } from './entities/expense.entity';
+import { ConsultantEarningEntity } from './entities/consultant-earning.entity';
+import { ConsultantVacationBlockEntity } from './entities/consultant-vacation-block.entity';
+import { ConsultantPayoutRequestEntity } from './entities/consultant-payout-request.entity';
+import { PriceAlertEntity } from './entities/price-alert.entity';
+import { PropertyPriceHistoryEntity } from './entities/property-price-history.entity';
+import { UserReportEntity } from './entities/user-report.entity';
+import { BlockedUserEntity } from './entities/blocked-user.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // P1: Use Redis when REDIS_URL is set, otherwise in-memory
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      useFactory: async (config: ConfigService) => {
+        const redisUrl = config.get<string>('REDIS_URL');
+        if (redisUrl) {
+          const { redisStore } = await import('cache-manager-redis-yet');
+          return { store: redisStore, url: redisUrl, ttl: 60_000 };
+        }
+        return { ttl: 60_000, max: 200 };
+      },
+      inject: [ConfigService],
+    }),
 
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
 
@@ -130,6 +154,13 @@ import { ExpenseEntity } from './entities/expense.entity';
           PlatformSettingEntity,
           AdminActivityLogEntity,
           ExpenseEntity,
+          ConsultantEarningEntity,
+          ConsultantVacationBlockEntity,
+          ConsultantPayoutRequestEntity,
+          PriceAlertEntity,
+          PropertyPriceHistoryEntity,
+          UserReportEntity,
+          BlockedUserEntity,
         ],
         synchronize: false,  // schema managed via schema.sql
         charset: 'utf8mb4',
@@ -140,6 +171,7 @@ import { ExpenseEntity } from './entities/expense.entity';
     }),
 
     ScheduleModule.forRoot(),
+    CommonModule,
     AuthModule,
     UsersModule,
     PropertiesModule,

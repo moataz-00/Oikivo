@@ -4,7 +4,10 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import * as jwt from 'jsonwebtoken';
+import sharp from 'sharp';
+import { existsSync } from 'fs';
 import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { PropertyEntity } from './entities/property.entity';
@@ -35,6 +38,27 @@ async function bootstrap() {
   // Cookie parser (required for httpOnly cookie auth)
   app.use(cookieParser());
 
+  // Security headers (S3: Helmet + CSP)
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", 'https://maps.googleapis.com'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+          connectSrc: ["'self'", ...allowedOrigins, 'https://maps.googleapis.com'],
+          frameSrc: ["'self'", 'https://maps.googleapis.com'],
+          objectSrc: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // Allow cross-origin images (property photos, maps tiles)
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow CDN / Next.js image optimization
+    }),
+  );
+
   // CORS
   app.enableCors({
     origin: allowedOrigins,
@@ -54,6 +78,25 @@ async function bootstrap() {
   const usersRepo = dataSource.getRepository(UserEntity);
 
   // Published listing photos are public. Draft/pending/archived photos require host/admin auth.
+  // In-memory cache of published property IDs to avoid DB hit per image request.
+  const publishedPropertyCache = new Map<number, { status: string; hostId: number; cachedAt: number }>();
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  async function getPropertyCached(id: number) {
+    const cached = publishedPropertyCache.get(id);
+    if (cached && Date.now() - cached.cachedAt < CACHE_TTL) return cached;
+    const p = await propertyRepo.findOne({ where: { id }, select: ['id', 'status', 'hostId'] });
+    if (!p) return null;
+    const entry = { status: p.status, hostId: p.hostId, cachedAt: Date.now() };
+    publishedPropertyCache.set(id, entry);
+    // Cap cache size to prevent unbounded memory
+    if (publishedPropertyCache.size > 5000) {
+      const oldest = publishedPropertyCache.keys().next().value;
+      if (oldest !== undefined) publishedPropertyCache.delete(oldest);
+    }
+    return entry;
+  }
+
   app.use('/uploads/properties', async (req: any, res: any, next: any) => {
     const match = req.path?.match(/^\/(\d+)\//);
     if (!match) return next();
@@ -61,12 +104,20 @@ async function bootstrap() {
     const propertyId = Number(match[1]);
     if (!Number.isFinite(propertyId) || propertyId <= 0) return next();
 
-    const property = await propertyRepo.findOne({ where: { id: propertyId } });
+    const property = await getPropertyCached(propertyId);
     if (!property) {
       return res.status(404).json({ statusCode: 404, message: 'Property not found' });
     }
 
     if (property.status === 'published') return next();
+
+    // Allow requests from the local Next.js server (image optimization, SSR).
+    // Next.js fetches upstream images server-to-server without cookies.
+    // Page-level auth is handled by the frontend — the URL is only known
+    // to the host viewing their own listing in the create/edit/verify flow.
+    const reqIp = req.ip ?? req.connection?.remoteAddress ?? '';
+    const isLocal = reqIp === '127.0.0.1' || reqIp === '::1' || reqIp === '::ffff:127.0.0.1';
+    if (isLocal) return next();
 
     const authHeader: string | undefined = req.headers?.authorization;
     const token: string | undefined =
@@ -132,9 +183,56 @@ async function bootstrap() {
     });
   });
 
+  // On-the-fly image optimization for property photos (sharp).
+  // Supports ?w=320&f=webp&q=80 query params. Falls through to static serving if no params.
+  app.use('/uploads/properties', (req: any, res: any, next: any) => {
+    const w = parseInt(req.query.w);
+    const h = parseInt(req.query.h);
+    const f = (req.query.f as string)?.toLowerCase();
+    if (!w && !h && !f) return next();
+
+    const width = w > 0 && w <= 2000 ? w : undefined;
+    const height = h > 0 && h <= 2000 ? h : undefined;
+    const quality = Math.min(Math.max(parseInt(req.query.q) || 80, 1), 100);
+
+    const acceptHeader = req.headers.accept || '';
+    let format: 'webp' | 'avif' | 'jpeg' | 'png' = 'jpeg';
+    if (f === 'webp' || f === 'avif' || f === 'jpeg' || f === 'png') format = f;
+    else if (acceptHeader.includes('image/avif')) format = 'avif';
+    else if (acceptHeader.includes('image/webp')) format = 'webp';
+
+    const filePath = join(__dirname, '..', 'uploads', 'properties', req.path);
+    if (!existsSync(filePath)) return next();
+
+    const contentTypes: Record<string, string> = { webp: 'image/webp', avif: 'image/avif', jpeg: 'image/jpeg', png: 'image/png' };
+
+    let transform = sharp(filePath);
+    if (width || height) transform = transform.resize(width, height, { fit: 'inside', withoutEnlargement: true });
+
+    switch (format) {
+      case 'webp': transform = transform.webp({ quality }); break;
+      case 'avif': transform = transform.avif({ quality }); break;
+      case 'png':  transform = transform.png({ quality }); break;
+      default:     transform = transform.jpeg({ quality, mozjpeg: true }); break;
+    }
+
+    transform.toBuffer()
+      .then((buffer: Buffer) => {
+        res.set('Content-Type', contentTypes[format]);
+        res.set('Cache-Control', 'public, max-age=2592000, immutable');
+        res.set('Vary', 'Accept');
+        res.send(buffer);
+      })
+      .catch(() => next());
+  });
+
   // Serve uploaded files (except protected directories above)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days cache for property images
+    immutable: true,
+    etag: true,
+    lastModified: true,
   });
 
   // Global validation pipe

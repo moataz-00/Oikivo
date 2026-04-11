@@ -355,7 +355,7 @@ export class ExperienceBookingsService {
         const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
         await this.mail.send(
           booking.guest.email,
-          'Your Stripe refund is being processed — Journey Stay',
+          'Your Stripe refund is being processed — Oikivo',
           tplRefundNotification(
             booking.guest.firstName,
             Number(booking.totalAmount).toFixed(2),

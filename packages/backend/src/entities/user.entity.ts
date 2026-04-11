@@ -118,6 +118,14 @@ export class UserEntity {
   @Column({ name: 'last_host_cancellation_at', type: 'datetime', nullable: true })
   lastHostCancellationAt: Date | null;
 
+  /** H9: Average response time in minutes for booking requests */
+  @Column({ name: 'average_response_minutes', type: 'decimal', precision: 10, scale: 1, default: 0 })
+  averageResponseMinutes: number;
+
+  /** H9: Percentage of bookings responded to within 24h (0-100) */
+  @Column({ name: 'response_rate', type: 'decimal', precision: 5, scale: 2, default: 100 })
+  responseRate: number;
+
   @Column({ name: 'auto_payout_enabled', default: false })
   autoPayoutEnabled: boolean;
 
@@ -165,6 +173,18 @@ export class UserEntity {
     newReview?: boolean;
     promotionsAndUpdates?: boolean;
   } | null;
+
+  /** H2: Auto-reply when host is unavailable */
+  @Column({ name: 'auto_reply_enabled', default: false })
+  autoReplyEnabled: boolean;
+
+  /** H2: Auto-reply message text */
+  @Column({ name: 'auto_reply_message', type: 'varchar', length: 500, nullable: true })
+  autoReplyMessage: string | null;
+
+  /** G4: FCM push notification token (mobile device) */
+  @Column({ name: 'fcm_token', type: 'varchar', length: 500, nullable: true })
+  fcmToken: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

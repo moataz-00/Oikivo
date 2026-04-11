@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
+import { InvoiceService } from './invoice.service';
 import { BookingEntity } from '../entities/booking.entity';
 import { PropertyEntity } from '../entities/property.entity';
 import { UserEntity } from '../entities/user.entity';
@@ -31,7 +32,7 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
     AuditLogModule,
   ],
   controllers: [BookingsController],
-  providers: [BookingsService],
+  providers: [BookingsService, InvoiceService],
   exports: [BookingsService],
 })
 export class BookingsModule {}

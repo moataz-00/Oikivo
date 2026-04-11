@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, MoreThanOrEqual, In } from 'typeorm';
+import { DataSource, Repository, MoreThanOrEqual, In, LessThanOrEqual } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { BookingEntity } from '../entities/booking.entity';
@@ -17,48 +17,15 @@ import { AvailabilityEntity } from '../entities/availability.entity';
 import { EarningEntity } from '../entities/earning.entity';
 import { AvailabilityService } from '../availability/availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { MailService, tplBookingRequestReceived, tplBookingRequestSubmitted, tplBookingConfirmed, tplBookingCancelled, tplInstapayPaymentConfirmed, tplInstapayPaymentDeclined, tplRefundNotification, tplInstapayRefundPending, tplInstapayRefundCompleted, tplHostCancelledRebooking } from '../mail/mail.service';
+import { MailService, tplBookingRequestReceived, tplBookingRequestSubmitted, tplBookingConfirmed, tplBookingAccepted, tplBookingCancelled, tplInstapayPaymentConfirmed, tplInstapayPaymentDeclined, tplRefundNotification, tplInstapayRefundPending, tplInstapayRefundCompleted, tplHostCancelledRebooking } from '../mail/mail.service';
 import { CoHostEntity } from '../entities/cohost.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { CurrencyService } from '../common/currency.service';
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 import { startOfDay } from 'date-fns';
-
-// ─── Egyptian public holiday data ────────────────────────────────────────────
-// Fixed Gregorian dates [month (1-based), day]
-const EG_FIXED_HOLIDAYS: [number, number][] = [
-  [1, 7],   // Coptic Christmas
-  [1, 25],  // Revolution Day / National Police Day
-  [4, 25],  // Sinai Liberation Day
-  [5, 1],   // Labour Day
-  [6, 30],  // June 30 Revolution Day
-  [7, 23],  // July 23 Revolution Day
-  [10, 6],  // Armed Forces Day
-];
-
-// Approximate Gregorian dates for lunar Islamic holidays per year
-const EG_ISLAMIC_HOLIDAYS: Record<number, [number, number][]> = {
-  2025: [
-    [3, 30], [3, 31], [4, 1], [4, 2],   // Eid al-Fitr
-    [6, 6],  [6, 7],  [6, 8],           // Eid al-Adha
-    [6, 27],                             // Islamic New Year
-    [9, 4],                              // Mawlid (Prophet's Birthday)
-  ],
-  2026: [
-    [3, 20], [3, 21], [3, 22],           // Eid al-Fitr
-    [5, 27], [5, 28], [5, 29],           // Eid al-Adha
-    [6, 17],                             // Islamic New Year
-    [8, 25],                             // Mawlid
-  ],
-  2027: [
-    [3, 9],  [3, 10], [3, 11],           // Eid al-Fitr
-    [5, 16], [5, 17], [5, 18],           // Eid al-Adha
-    [6, 6],                              // Islamic New Year
-    [8, 14],                             // Mawlid
-  ],
-};
-// ─────────────────────────────────────────────────────────────────────────────
+import { isEgyptianPublicHoliday } from '../common/holidays.util';
 
 @Injectable()
 export class BookingsService {
@@ -84,6 +51,7 @@ export class BookingsService {
     private mail: MailService,
     private paymentsService: PaymentsService,
     private auditLog: AuditLogService,
+    private currencyService: CurrencyService,
     private dataSource: DataSource,
   ) {
     // FIX BUG-GC2: Fail fast in production if Stripe key is missing
@@ -97,15 +65,9 @@ export class BookingsService {
     });
   }
 
-  /** Returns true when the date falls on an Egyptian public holiday. */
-  private isEgyptianPublicHoliday(d: Date): boolean {
-    const m = d.getMonth() + 1; // 1-based
-    const day = d.getDate();
-    if (EG_FIXED_HOLIDAYS.some(([hm, hd]) => hm === m && hd === day)) return true;
-    const yr = d.getFullYear();
-    const islamic = EG_ISLAMIC_HOLIDAYS[yr];
-    if (islamic && islamic.some(([hm, hd]) => hm === m && hd === day)) return true;
-    return false;
+  /** Egyptian holiday check — delegated to shared util. */
+  private isEgyptianPublicHolidayCheck(d: Date): boolean {
+    return isEgyptianPublicHoliday(d);
   }
 
   async create(guestId: number, dto: CreateBookingDto): Promise<BookingEntity> {
@@ -149,6 +111,29 @@ export class BookingsService {
     if (!property) throw new NotFoundException('Property not found or not available');
     if (property.hostId === guestId) {
       throw new ForbiddenException('You cannot book your own property');
+    }
+
+    // H4: Host requires only verified guests
+    if (property.requireVerifiedGuest && !guest.isIdVerified) {
+      throw new ForbiddenException(
+        'This property only accepts bookings from ID-verified guests. Please complete identity verification first.',
+      );
+    }
+
+    // H5: Host requires minimum guest rating
+    if (property.minGuestRating != null) {
+      const guestAvg = await this.bookingsRepo
+        .createQueryBuilder('b')
+        .innerJoin('b.review', 'r')
+        .select('AVG(r.rating)', 'avg')
+        .where('b.guestId = :guestId', { guestId })
+        .getRawOne();
+      const avgRating = guestAvg?.avg ? parseFloat(guestAvg.avg) : null;
+      if (avgRating !== null && avgRating < Number(property.minGuestRating)) {
+        throw new ForbiddenException(
+          `This property requires a minimum guest rating of ${property.minGuestRating}. Your current rating is ${avgRating.toFixed(1)}.`,
+        );
+      }
     }
 
     // No listing-type validation needed (all listings are short-term)
@@ -206,7 +191,7 @@ export class BookingsService {
     for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
       const dow = d.getDay(); // 5=Friday, 6=Saturday
       const isWeekend = dow === 5 || dow === 6;
-      const isPeak = isWeekend || this.isEgyptianPublicHoliday(d);
+      const isPeak = isWeekend || this.isEgyptianPublicHolidayCheck(d);
       baseAmount += isPeak && weekendPrice != null ? weekendPrice : pricePerNight;
     }
     baseAmount = parseFloat(baseAmount.toFixed(2));
@@ -272,7 +257,9 @@ export class BookingsService {
       depositStatus,
       depositClaimDeadline,
       currency: property.currency,
+      displayCurrency: dto.displayCurrency || null,
       status,
+      confirmedAt: effectiveInstantBook ? new Date() : null,
       cancellationPolicy: property.cancellationPolicy ?? 'flexible',
       guestNote: dto.guestNote,
       specialRequests: dto.specialRequests,
@@ -341,13 +328,13 @@ export class BookingsService {
       metadata: { propertyId: dto.propertyId, checkIn: dto.checkIn, checkOut: dto.checkOut, totalAmount, status },
     }).catch(() => {});
 
-    // Send email to host
+    // Send email to host (always in property currency)
     try {
       const feBase = this.getFrontendBaseUrl();
       const reservationsUrl = `${feBase}/en/hosting/reservations`;
       await this.mail.send(
         property.host.email,
-        'New booking request — Journey Stay',
+        'New booking request — Oikivo',
         tplBookingRequestReceived(
           property.host.firstName,
           guest.firstName,
@@ -355,34 +342,37 @@ export class BookingsService {
           saved.checkIn,
           saved.checkOut,
           saved.guestsCount,
-          Number(saved.totalAmount).toFixed(2),
-          saved.currency ?? 'EGP',
+          this.currencyService.formatForEmail(Number(saved.totalAmount), saved.currency ?? 'EGP'),
+          '',
           reservationsUrl,
-          saved.specialRequests, // Include special requests in host email
+          saved.specialRequests,
         ),
       );
     } catch (e) {
       this.logger.error(`Failed to send booking request email: ${(e as Error).message}`);
     }
 
-    // Send acknowledgment/confirmation email to guest
+    // Send acknowledgment/confirmation email to guest (in guest's display currency)
     try {
       const feBase = this.getFrontendBaseUrl();
       const tripsUrl = `${feBase}/en/trips`;
+      const guestAmount = this.currencyService.convertAndFormat(
+        Number(saved.totalAmount), saved.currency ?? 'EGP', saved.displayCurrency,
+      );
       if (property.instantBook) {
-        // Instant-book: booking is already confirmed — send the booking confirmed email
+        // Instant-book: booking is confirmed — please pay now
         await this.mail.send(
           guest.email,
-          'Your booking is confirmed — Journey Stay',
-          tplBookingConfirmed(
+          'Your booking is confirmed — please complete payment — Oikivo',
+          tplBookingAccepted(
             guest.firstName,
             property.title,
             saved.checkIn,
             saved.checkOut,
             saved.guestsCount,
-            Number(saved.totalAmount).toFixed(2),
-            saved.currency ?? 'EGP',
-            `JS-${saved.id}`,
+            guestAmount,
+            '',
+            `#${saved.id}`,
             tripsUrl,
           ),
         );
@@ -390,15 +380,15 @@ export class BookingsService {
         // Normal flow: booking is pending host approval — send request submitted email
         await this.mail.send(
           guest.email,
-          'Booking request received — Journey Stay',
+          'Booking request received — Oikivo',
           tplBookingRequestSubmitted(
             guest.firstName,
             property.title,
             saved.checkIn,
             saved.checkOut,
             saved.guestsCount,
-            Number(saved.totalAmount).toFixed(2),
-            saved.currency ?? 'EGP',
+            guestAmount,
+            '',
             `JS-${saved.id}`,
             saved.cancellationPolicy ?? 'flexible',
             tripsUrl,
@@ -453,7 +443,7 @@ export class BookingsService {
         throw new ConflictException('Dates are no longer available for this booking.');
       }
 
-      await txBookingsRepo.update(bookingId, { status: 'confirmed' });
+      await txBookingsRepo.update(bookingId, { status: 'confirmed', confirmedAt: new Date() } as any);
 
       const pendingToReject = overlapping.filter((b) => b.status === 'pending').map((b) => b.id);
       if (pendingToReject.length > 0) {
@@ -507,6 +497,9 @@ export class BookingsService {
       { bookingId },
     );
 
+    // H9: update host response metrics
+    this.updateHostResponseMetrics(hostId, booking.createdAt).catch(() => {});
+
     // B6 — notify accepted cleaners of the new cleaning job
     try {
       const cleaners = await this.cohostsRepo.find({
@@ -527,27 +520,30 @@ export class BookingsService {
       this.logger.error(`Failed to notify cleaners: ${(e as Error).message}`);
     }
 
-    // Send confirmation email to guest
+    // Send acceptance + pay-now email to guest (Issue #1 fix)
     try {
       const feBase = this.getFrontendBaseUrl();
       const tripsUrl = `${feBase}/en/trips`;
+      const guestAmount = this.currencyService.convertAndFormat(
+        Number(booking.totalAmount), booking.currency ?? 'EGP', booking.displayCurrency,
+      );
       await this.mail.send(
         booking.guest.email,
-        'Your booking is confirmed — Journey Stay',
-        tplBookingConfirmed(
+        'Host accepted your booking — complete payment to lock in your stay — Oikivo',
+        tplBookingAccepted(
           booking.guest.firstName,
           booking.property.title,
           booking.checkIn,
           booking.checkOut,
           booking.guestsCount,
-          Number(booking.totalAmount).toFixed(2),
-          booking.currency ?? 'EGP',
+          guestAmount,
+          '',
           `#${bookingId}`,
           tripsUrl,
         ),
       );
     } catch (e) {
-      this.logger.error(`Failed to send booking confirmation email: ${(e as Error).message}`);
+      this.logger.error(`Failed to send booking accepted email: ${(e as Error).message}`);
     }
 
     return this.findOne(bookingId);
@@ -578,7 +574,46 @@ export class BookingsService {
       { bookingId },
     );
 
+    // H9: update host response metrics
+    this.updateHostResponseMetrics(hostId, booking.createdAt).catch(() => {});
+
     return this.findOne(bookingId);
+  }
+
+  /** H9: Recalculate and store host average response time & response rate */
+  private async updateHostResponseMetrics(hostId: number, _bookingCreatedAt: Date): Promise<void> {
+    try {
+      const result = await this.dataSource.query(
+        `SELECT
+           COUNT(*) AS total,
+           SUM(CASE WHEN status IN ('confirmed','declined') THEN 1 ELSE 0 END) AS responded,
+           AVG(
+             CASE WHEN status IN ('confirmed','declined')
+             THEN TIMESTAMPDIFF(MINUTE, created_at, updated_at)
+             ELSE NULL END
+           ) AS avgMinutes,
+           SUM(
+             CASE WHEN status IN ('confirmed','declined')
+               AND TIMESTAMPDIFF(HOUR, created_at, updated_at) <= 24
+             THEN 1 ELSE 0 END
+           ) AS within24h
+         FROM bookings
+         WHERE host_id = ? AND status IN ('pending','confirmed','declined','completed','in_progress','cancelled')`,
+        [hostId],
+      );
+      const row = result[0];
+      const responded = Number(row.responded ?? 0);
+      const total = Number(row.total ?? 0);
+      const avgMinutes = Math.round((Number(row.avgMinutes ?? 0)) * 10) / 10;
+      const responseRate = total > 0 ? Math.round((Number(row.within24h ?? 0) / total) * 10000) / 100 : 100;
+
+      await this.usersRepo.update(hostId, {
+        averageResponseMinutes: avgMinutes,
+        responseRate,
+      });
+    } catch (e) {
+      this.logger.error(`Failed to update response metrics for host ${hostId}: ${(e as Error).message}`);
+    }
   }
 
   async cancel(bookingId: number, userId: number, reason?: string): Promise<BookingEntity> {
@@ -616,10 +651,7 @@ export class BookingsService {
     if (booking.stripePaymentIntentId && booking.paymentStatus === 'paid' && refundInfo.refundAmount > 0) {
       try {
         const currency = (booking.currency ?? 'EGP').toLowerCase();
-        const isZeroDecimal = ['jpy', 'krw', 'vnd'].includes(currency);
-        const refundAmountSmallest = isZeroDecimal
-          ? Math.round(refundInfo.refundAmount)
-          : Math.round(refundInfo.refundAmount * 100);
+        const refundAmountSmallest = this.currencyService.toSmallestUnit(refundInfo.refundAmount, currency);
         await this.stripe.refunds.create({
           payment_intent: booking.stripePaymentIntentId,
           amount: refundAmountSmallest,
@@ -762,18 +794,20 @@ export class BookingsService {
       const feBase = this.getFrontendBaseUrl();
       const curr = booking.currency ?? 'EGP';
       const ref = `#${bookingId}`;
-      const refundStr = refundInfo.refundAmount > 0 ? refundInfo.refundAmount.toFixed(2) : undefined;
+      const refundStr = refundInfo.refundAmount > 0
+        ? this.currencyService.convertAndFormat(refundInfo.refundAmount, curr, booking.displayCurrency)
+        : undefined;
       const selfUser = cancelledBy === 'guest' ? booking.guest : booking.host;
       const otherRole: 'guest' | 'host' = cancelledBy === 'guest' ? 'host' : 'guest';
       const otherUser = cancelledBy === 'guest' ? booking.host : booking.guest;
       await this.mail.send(
         selfUser.email,
-        'Booking cancelled — Journey Stay',
-        tplBookingCancelled(selfUser.firstName, cancelledBy, booking.property.title, booking.checkIn, booking.checkOut, ref, refundStr, curr),
+        'Booking cancelled — Oikivo',
+        tplBookingCancelled(selfUser.firstName, cancelledBy, booking.property.title, booking.checkIn, booking.checkOut, ref, refundStr, ''),
       );
       await this.mail.send(
         otherUser.email,
-        'Booking cancelled — Journey Stay',
+        'Booking cancelled — Oikivo',
         tplBookingCancelled(otherUser.firstName, otherRole, booking.property.title, booking.checkIn, booking.checkOut, ref),
       );
     } catch (e) {
@@ -785,13 +819,16 @@ export class BookingsService {
       try {
         const feBase = this.getFrontendBaseUrl();
         const tripsUrl = `${feBase}/en/trips`;
+        const refundDisplay = this.currencyService.convertAndFormat(
+          refundInfo.refundAmount, booking.currency ?? 'EGP', booking.displayCurrency,
+        );
         await this.mail.send(
           booking.guest.email,
-          'Your Stripe refund is being processed — Journey Stay',
+          'Your Stripe refund is being processed — Oikivo',
           tplRefundNotification(
             booking.guest.firstName,
-            refundInfo.refundAmount.toFixed(2),
-            booking.currency ?? 'EGP',
+            refundDisplay,
+            '',
             booking.property.title,
             `#${bookingId}`,
             new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -809,13 +846,16 @@ export class BookingsService {
       try {
         const feBase = this.getFrontendBaseUrl();
         const tripsUrl = `${feBase}/en/trips`;
+        const refundDisplay = this.currencyService.convertAndFormat(
+          refundInfo.refundAmount, booking.currency ?? 'EGP', booking.displayCurrency,
+        );
         await this.mail.send(
           booking.guest.email,
-          'Your OPay refund is being processed — Journey Stay',
+          'Your OPay refund is being processed — Oikivo',
           tplRefundNotification(
             booking.guest.firstName,
-            refundInfo.refundAmount.toFixed(2),
-            booking.currency ?? 'EGP',
+            refundDisplay,
+            '',
             booking.property.title,
             `#${bookingId}`,
             new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -837,14 +877,17 @@ export class BookingsService {
       try {
         const feBase = this.getFrontendBaseUrl();
         const tripsUrl = `${feBase}/en/trips`;
+        const refundDisplay = this.currencyService.convertAndFormat(
+          refundInfo.refundAmount, booking.currency ?? 'EGP', booking.displayCurrency,
+        );
         await this.mail.send(
           booking.guest.email,
-          'Your InstaPay refund is being arranged — Journey Stay',
+          'Your InstaPay refund is being arranged — Oikivo',
           tplInstapayRefundPending(
             booking.guest.firstName,
             booking.property.title,
-            refundInfo.refundAmount.toFixed(2),
-            booking.currency ?? 'EGP',
+            refundDisplay,
+            '',
             `#${bookingId}`,
             tripsUrl,
           ),
@@ -939,7 +982,7 @@ export class BookingsService {
         const propertyUrl = `${feBase}/en/properties/${booking.propertyId}`;
         await this.mail.send(
           booking.guest.email,
-          `Your stay at ${booking.property.title} was cancelled — Journey Stay`,
+          `Your stay at ${booking.property.title} was cancelled — Oikivo`,
           tplHostCancelledRebooking(
             booking.guest.firstName,
             booking.property.title,
@@ -1303,6 +1346,31 @@ export class BookingsService {
       status: booking.status === 'pending' ? 'confirmed' : booking.status,
     });
 
+    // Issue #5 fix — create EarningEntity for InstaPay confirmed payments
+    try {
+      const existingEarning = await this.earningsRepo.findOne({ where: { bookingId } });
+      if (!existingEarning) {
+        const totalAmount = Number(booking.totalAmount);
+        const serviceFee = Number(booking.serviceFee);
+        const checkOutDate = new Date(booking.checkOut);
+        const availableAt = new Date(checkOutDate);
+        availableAt.setDate(availableAt.getDate() + 1);
+        await this.earningsRepo.save(
+          this.earningsRepo.create({
+            hostId: booking.hostId,
+            bookingId,
+            amount: parseFloat((totalAmount - serviceFee).toFixed(2)),
+            platformFee: serviceFee,
+            currency: booking.currency ?? 'EGP',
+            status: new Date() >= availableAt ? 'available' : 'pending',
+            availableAt,
+          }),
+        );
+      }
+    } catch (e) {
+      this.logger.error(`[confirmPayment] Failed to create EarningEntity for booking #${bookingId}: ${(e as Error).message}`);
+    }
+
     this.auditLog.log({
       eventType: 'payment.confirmed',
       actorId: userId,
@@ -1325,17 +1393,20 @@ export class BookingsService {
     try {
       const feBase = this.getFrontendBaseUrl();
       const tripsUrl = `${feBase}/en/trips`;
+      const guestAmount = this.currencyService.convertAndFormat(
+        Number(booking.totalAmount), booking.currency ?? 'EGP', booking.displayCurrency,
+      );
       await this.mail.send(
         booking.guest.email,
-        'Your InstaPay payment is confirmed — Journey Stay',
+        'Your InstaPay payment is confirmed — Oikivo',
         tplInstapayPaymentConfirmed(
           booking.guest.firstName,
           `#${bookingId}`,
           booking.property.title,
           booking.checkIn,
           booking.checkOut,
-          Number(booking.totalAmount).toFixed(2),
-          booking.currency ?? 'EGP',
+          guestAmount,
+          '',
           tripsUrl,
         ),
       );
@@ -1381,7 +1452,7 @@ export class BookingsService {
       const tripsUrl = `${feBase}/en/trips`;
       await this.mail.send(
         booking.guest.email,
-        'Payment could not be verified — Journey Stay',
+        'Payment could not be verified — Oikivo',
         tplInstapayPaymentDeclined(
           booking.guest.firstName,
           `#${bookingId}`,
@@ -1468,15 +1539,18 @@ export class BookingsService {
     try {
       const feBase = this.getFrontendBaseUrl();
       const tripsUrl = `${feBase}/en/trips`;
-      const refundAmt = (booking.refundAmount != null ? Number(booking.refundAmount) : Number(booking.totalAmount)).toFixed(2);
+      const refundRaw = booking.refundAmount != null ? Number(booking.refundAmount) : Number(booking.totalAmount);
+      const refundDisplay = this.currencyService.convertAndFormat(
+        refundRaw, booking.currency ?? 'EGP', booking.displayCurrency,
+      );
       await this.mail.send(
         booking.guest.email,
-        'Your InstaPay refund has been sent — Journey Stay',
+        'Your InstaPay refund has been sent — Oikivo',
         tplInstapayRefundCompleted(
           booking.guest.firstName,
           booking.property.title,
-          refundAmt,
-          booking.currency ?? 'EGP',
+          refundDisplay,
+          '',
           `#${bookingId}`,
           tripsUrl,
         ),
@@ -1496,6 +1570,23 @@ export class BookingsService {
       where,
       relations: ['property', 'property.photos'],
       order: { createdAt: 'DESC' },
+    });
+  }
+
+  /** G11: Guest payment history — all bookings with payment info */
+  async getGuestPaymentHistory(guestId: number) {
+    return this.bookingsRepo.find({
+      where: { guestId },
+      select: [
+        'id', 'bookingUuid', 'checkIn', 'checkOut', 'guestsCount',
+        'baseAmount', 'serviceFee', 'cleaningFee', 'totalAmount',
+        'depositAmount', 'currency', 'status', 'paymentStatus',
+        'paymentMethod', 'paymentReference', 'createdAt',
+        'refundAmount', 'cancelledAt',
+      ],
+      relations: ['property'],
+      order: { createdAt: 'DESC' },
+      take: 200,
     });
   }
 
@@ -1735,166 +1826,6 @@ export class BookingsService {
     };
   }
 
-  async modify(
-    bookingId: number,
-    guestId: number,
-    dto: { checkIn: string; checkOut: string; guestsCount?: number },
-  ): Promise<BookingEntity> {
-    const booking = await this.findOne(bookingId);
-
-    if (booking.guestId !== guestId) {
-      throw new ForbiddenException('Only the guest can modify this booking');
-    }
-    if (!['pending', 'confirmed'].includes(booking.status)) {
-      throw new BadRequestException('Only pending or confirmed bookings can be modified');
-    }
-
-    const checkInDate = new Date(dto.checkIn);
-    const checkOutDate = new Date(dto.checkOut);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (checkInDate < today) {
-      throw new BadRequestException('Check-in date cannot be in the past');
-    }
-    if (checkOutDate <= checkInDate) {
-      throw new BadRequestException('Check-out must be after check-in');
-    }
-
-    const nights = Math.ceil(
-      (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24),
-    );
-
-    const property = await this.propertiesRepo.findOne({ where: { id: booking.propertyId } });
-    if (!property) throw new NotFoundException('Property not found');
-
-    if (nights < property.minNights) {
-      throw new BadRequestException(`Minimum stay is ${property.minNights} nights`);
-    }
-    if (nights > property.maxNights) {
-      throw new BadRequestException(`Maximum stay is ${property.maxNights} nights`);
-    }
-
-    const guestsCount = dto.guestsCount ?? booking.guestsCount;
-    if (guestsCount > property.maxGuests) {
-      throw new BadRequestException(`Maximum ${property.maxGuests} guests allowed`);
-    }
-
-    // Check availability excluding this booking's dates
-    const conflictCount = await this.bookingsRepo
-      .createQueryBuilder('b')
-      .where('b.propertyId = :propertyId', { propertyId: booking.propertyId })
-      .andWhere('b.id != :bookingId', { bookingId })
-      .andWhere('b.status IN (:...statuses)', { statuses: ['pending', 'confirmed'] })
-      .andWhere('b.checkIn < :checkOut', { checkOut: dto.checkOut })
-      .andWhere('b.checkOut > :checkIn', { checkIn: dto.checkIn })
-      .getCount();
-
-    if (conflictCount > 0) {
-      throw new BadRequestException('Property is not available for the selected dates');
-    }
-
-    // Also check manually blocked availability slots (excluding the ones for this booking)
-    await this.unblockDates(booking.propertyId, booking.checkIn, booking.checkOut);
-
-    // Check blocked dates for new range
-    const blockedCount = await this.availabilityRepo
-      .createQueryBuilder('av')
-      .where('av.propertyId = :propertyId', { propertyId: booking.propertyId })
-      .andWhere('av.date >= :checkIn', { checkIn: dto.checkIn })
-      .andWhere('av.date < :checkOut', { checkOut: dto.checkOut })
-      .andWhere('av.isBlocked = true')
-      .getCount();
-
-    if (blockedCount > 0) {
-      // Re-block the old dates since we unblocked them above and new dates aren't available
-      const oldCi = new Date(booking.checkIn);
-      const oldCo = new Date(booking.checkOut);
-      for (let d = new Date(oldCi); d < oldCo; d.setDate(d.getDate() + 1)) {
-        const date = d.toISOString().split('T')[0];
-        await this.availabilityRepo.update(
-          { propertyId: booking.propertyId, date },
-          { isBlocked: true },
-        );
-      }
-      throw new BadRequestException('Selected dates include blocked periods');
-    }
-
-    // Recalculate price
-    const pricePerNight = Number(property.pricePerNight ?? 0);
-    const weekendPrice =
-      property.weekendPrice != null ? Number(property.weekendPrice) : null;
-
-    let baseAmount = 0;
-    for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
-      const dow = d.getDay();
-      const isWeekend = dow === 5 || dow === 6;
-      const isPeak = isWeekend || this.isEgyptianPublicHoliday(d);
-      baseAmount += isPeak && weekendPrice != null ? weekendPrice : pricePerNight;
-    }
-    baseAmount = parseFloat(baseAmount.toFixed(2));
-
-    const weeklyDiscount = Number(property.weeklyDiscount ?? 0);
-    const monthlyDiscount = Number(property.monthlyDiscount ?? 0);
-    let discountPercent = 0;
-    if (nights >= 28 && monthlyDiscount > 0) discountPercent = monthlyDiscount;
-    else if (nights >= 7 && weeklyDiscount > 0) discountPercent = weeklyDiscount;
-    if (discountPercent > 0) {
-      const disc = parseFloat(((baseAmount * discountPercent) / 100).toFixed(2));
-      baseAmount = parseFloat((baseAmount - disc).toFixed(2));
-    }
-
-    const cleaningFee = Number(property.cleaningFee ?? 0);
-    const serviceFee = parseFloat(
-      ((baseAmount * Number(property.serviceFeePercent ?? 14)) / 100).toFixed(2),
-    );
-    const totalAmount = parseFloat((baseAmount + cleaningFee + serviceFee).toFixed(2));
-
-    // Block new dates
-    for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
-      const date = d.toISOString().split('T')[0];
-      let av = await this.availabilityRepo.findOne({
-        where: { propertyId: booking.propertyId, date },
-      });
-      if (av) {
-        av.isBlocked = true;
-      } else {
-        av = this.availabilityRepo.create({
-          propertyId: booking.propertyId,
-          date,
-          isBlocked: true,
-        });
-      }
-      await this.availabilityRepo.save(av);
-    }
-
-    await this.bookingsRepo.update(bookingId, {
-      checkIn: dto.checkIn,
-      checkOut: dto.checkOut,
-      nights,
-      guestsCount,
-      baseAmount,
-      cleaningFee,
-      serviceFee,
-      totalAmount,
-    });
-
-    // Append modification history entry
-    const changes: Array<{ field: string; from: unknown; to: unknown }> = [];
-    if (dto.checkIn !== booking.checkIn) changes.push({ field: 'checkIn', from: booking.checkIn, to: dto.checkIn });
-    if (dto.checkOut !== booking.checkOut) changes.push({ field: 'checkOut', from: booking.checkOut, to: dto.checkOut });
-    if (guestsCount !== booking.guestsCount) changes.push({ field: 'guestsCount', from: booking.guestsCount, to: guestsCount });
-    if (Number(totalAmount) !== Number(booking.totalAmount)) changes.push({ field: 'totalAmount', from: Number(booking.totalAmount), to: Number(totalAmount) });
-    if (changes.length > 0) {
-      const historyEntry = { changedAt: new Date().toISOString(), changedBy: 'guest', changes };
-      const current = await this.bookingsRepo.findOne({ where: { id: bookingId }, select: ['modificationHistory'] });
-      const history = current?.modificationHistory ?? [];
-      await this.bookingsRepo.update(bookingId, { modificationHistory: [...history, historyEntry] });
-    }
-
-    return this.findOne(bookingId);
-  }
-
   async findOneByRef(bookingUuid: string): Promise<BookingEntity> {
     const booking = await this.bookingsRepo.findOne({
       where: { bookingUuid },
@@ -1977,7 +1908,7 @@ export class BookingsService {
         const tripsUrl = `${feBase}/en/trips`;
         await this.mail.send(
           booking.guest.email,
-          'Your InstaPay refund is being arranged — Journey Stay',
+          'Your InstaPay refund is being arranged — Oikivo',
           tplInstapayRefundPending(
             booking.guest.firstName,
             booking.property.title,
@@ -2066,5 +1997,241 @@ export class BookingsService {
   private getFrontendBaseUrl(): string {
     const raw = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
     return (raw.split(',')[0]?.trim() || 'http://localhost:3000').replace(/\/+$/, '');
+  }
+
+  /** H13: Revenue forecast based on upcoming bookings + historical occupancy */
+  async getRevenueForecast(hostId: number) {
+    const now = new Date();
+    const horizonDays = 90;
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + horizonDays);
+    const startStr = now.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+
+    // Confirmed upcoming bookings
+    const upcoming = await this.bookingsRepo.find({
+      where: {
+        hostId,
+        status: In(['confirmed', 'in_progress'] as any),
+        checkIn: LessThanOrEqual(endStr) as any,
+      },
+      select: ['id', 'propertyId', 'checkIn', 'checkOut', 'totalAmount', 'serviceFee', 'nights'],
+    });
+
+    let confirmedRevenue = 0;
+    let confirmedNights = 0;
+    for (const b of upcoming) {
+      if (new Date(b.checkOut) > now) {
+        confirmedRevenue += Number(b.totalAmount ?? 0) - Number(b.serviceFee ?? 0);
+        confirmedNights += Number(b.nights ?? 0);
+      }
+    }
+
+    // Historical occupancy rate (last 90 days)
+    const past90 = new Date(now);
+    past90.setDate(past90.getDate() - 90);
+    const pastStr = past90.toISOString().split('T')[0];
+    const histResult = await this.dataSource.query(
+      `SELECT COUNT(*) as totalBookings,
+              SUM(nights) as totalNights,
+              AVG(total_amount - service_fee) as avgRevPerBooking
+       FROM bookings
+       WHERE host_id = ? AND status IN ('completed','confirmed','in_progress')
+         AND check_in >= ?`,
+      [hostId, pastStr],
+    );
+    const hist = histResult[0] ?? {};
+    const historicalAvgNights = Number(hist.totalNights ?? 0);
+    const historicalAvgRev = Number(hist.avgRevPerBooking ?? 0);
+
+    // Get total property count
+    const propCount = await this.propertiesRepo.count({ where: { hostId, status: 'published' as any } });
+    const totalAvailableNights = propCount * horizonDays;
+    const historicalOccupancyRate = totalAvailableNights > 0 && historicalAvgNights > 0
+      ? Math.min(1, historicalAvgNights / totalAvailableNights)
+      : 0;
+
+    // Projected: confirmed + estimated from unbooked nights
+    const unbookedNights = Math.max(0, totalAvailableNights - confirmedNights);
+    const projectedAdditionalBookings = Math.round(unbookedNights * historicalOccupancyRate);
+    const projectedAdditionalRevenue = projectedAdditionalBookings * historicalAvgRev;
+
+    // Monthly breakdown
+    const forecastMonths: Array<{ month: string; confirmed: number; projected: number }> = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthStart = d;
+      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+
+      const monthConfirmed = upcoming
+        .filter((b) => {
+          const ci = new Date(b.checkIn);
+          return ci >= monthStart && ci <= monthEnd;
+        })
+        .reduce((sum, b) => sum + Number(b.totalAmount ?? 0) - Number(b.serviceFee ?? 0), 0);
+
+      const daysInMonth = monthEnd.getDate();
+      const monthProjected = Math.round(propCount * daysInMonth * historicalOccupancyRate * historicalAvgRev / (Number(hist.totalNights ?? 1) || 1));
+
+      forecastMonths.push({
+        month: key,
+        confirmed: Math.round(monthConfirmed),
+        projected: Math.max(Math.round(monthProjected), Math.round(monthConfirmed)),
+      });
+    }
+
+    return {
+      horizonDays,
+      confirmedRevenue: Math.round(confirmedRevenue),
+      confirmedNights,
+      projectedTotalRevenue: Math.round(confirmedRevenue + projectedAdditionalRevenue),
+      historicalOccupancyRate: Math.round(historicalOccupancyRate * 100),
+      totalProperties: propCount,
+      forecastMonths,
+    };
+  }
+
+  /** H12: Market benchmarking insights for host */
+  async getMarketInsights(hostId: number) {
+    const properties = await this.propertiesRepo.find({
+      where: { hostId, status: 'published' as any },
+      select: ['id', 'title', 'city', 'pricePerNight', 'avgRating', 'reviewCount', 'viewCount'],
+    });
+    if (!properties.length) return { insights: [], properties: [] };
+
+    const cities = [...new Set(properties.map((p) => p.city).filter(Boolean))];
+    if (!cities.length) return { insights: [], properties: [] };
+
+    const placeholders = cities.map(() => '?').join(',');
+    const marketData: Array<{ city: string; avgPrice: number; avgRating: number; avgReviews: number; totalListings: number }> =
+      await this.dataSource.query(
+        `SELECT city,
+                ROUND(AVG(price_per_night), 2) AS avgPrice,
+                ROUND(AVG(avg_rating), 2) AS avgRating,
+                ROUND(AVG(review_count), 1) AS avgReviews,
+                COUNT(*) AS totalListings
+         FROM properties
+         WHERE city IN (${placeholders}) AND status = 'published'
+         GROUP BY city`,
+        cities,
+      );
+
+    const marketByCity = Object.fromEntries(marketData.map((m) => [m.city, m]));
+
+    const propertyInsights = properties.map((p) => {
+      const market = marketByCity[p.city];
+      if (!market) return { propertyId: p.id, title: p.title, city: p.city, tips: [] };
+
+      const tips: string[] = [];
+      const price = Number(p.pricePerNight ?? 0);
+      const mktPrice = Number(market.avgPrice ?? 0);
+
+      if (mktPrice > 0 && price > 0) {
+        const diff = Math.round(((price - mktPrice) / mktPrice) * 100);
+        if (diff > 15) tips.push(`Your price is ${diff}% above similar listings in ${p.city}. Consider lowering it to attract more bookings.`);
+        else if (diff < -15) tips.push(`Your price is ${Math.abs(diff)}% below the market average in ${p.city}. You could increase it.`);
+      }
+
+      const rating = Number(p.avgRating ?? 0);
+      const mktRating = Number(market.avgRating ?? 0);
+      if (rating > 0 && mktRating > 0 && rating < mktRating - 0.3) {
+        tips.push(`Your rating (${rating.toFixed(1)}) is below the ${p.city} average (${mktRating.toFixed(1)}). Focus on guest experience to improve.`);
+      }
+
+      const reviews = Number(p.reviewCount ?? 0);
+      const mktReviews = Number(market.avgReviews ?? 0);
+      if (reviews < mktReviews * 0.5) {
+        tips.push(`You have fewer reviews than average. Encourage guests to leave reviews after their stay.`);
+      }
+
+      return { propertyId: p.id, title: p.title, city: p.city, tips };
+    });
+
+    return {
+      marketData: marketData.map((m) => ({
+        city: m.city,
+        avgPrice: Number(m.avgPrice),
+        avgRating: Number(m.avgRating),
+        avgReviews: Number(m.avgReviews),
+        totalListings: Number(m.totalListings),
+      })),
+      properties: propertyInsights,
+    };
+  }
+
+  /** H14: Ranking tips for a specific property */
+  async getRankingTips(propertyId: number, hostId: number) {
+    const property = await this.propertiesRepo.findOne({
+      where: { id: propertyId, hostId },
+      relations: ['photos', 'amenities'],
+    });
+    if (!property) throw new NotFoundException('Property not found');
+
+    const tips: Array<{ category: string; priority: 'high' | 'medium' | 'low'; tip: string; current: string }> = [];
+
+    // Photos
+    const photoCount = (property as any).photos?.length ?? 0;
+    if (photoCount < 5) {
+      tips.push({ category: 'photos', priority: 'high', tip: 'Add more photos. Listings with 5+ photos get significantly more views.', current: `${photoCount} photos` });
+    } else if (photoCount < 10) {
+      tips.push({ category: 'photos', priority: 'medium', tip: 'Consider adding more photos (10+ recommended). Showcase different rooms and angles.', current: `${photoCount} photos` });
+    }
+
+    // Rating
+    const rating = Number(property.avgRating ?? 0);
+    const reviewCount = Number(property.reviewCount ?? 0);
+    if (reviewCount === 0) {
+      tips.push({ category: 'reviews', priority: 'high', tip: 'Get your first review! Great service leads to great reviews which boost your ranking.', current: 'No reviews yet' });
+    } else if (rating < 4.0) {
+      tips.push({ category: 'reviews', priority: 'high', tip: 'Focus on improving your guest experience. High ratings significantly boost search ranking.', current: `${rating.toFixed(1)} avg rating` });
+    } else if (rating < 4.5) {
+      tips.push({ category: 'reviews', priority: 'medium', tip: 'You\'re doing well! Small improvements in cleanliness and communication can push your rating higher.', current: `${rating.toFixed(1)} avg rating` });
+    }
+
+    // Response time
+    const host = await this.usersRepo.findOne({ where: { id: hostId }, select: ['id', 'averageResponseMinutes', 'responseRate'] });
+    const avgResponse = Number(host?.averageResponseMinutes ?? 0);
+    const responseRate = Number(host?.responseRate ?? 100);
+    if (avgResponse > 120) {
+      tips.push({ category: 'response_time', priority: 'high', tip: 'Respond to booking requests faster. Hosts who respond within 1 hour rank higher.', current: `${Math.round(avgResponse)} min avg response` });
+    } else if (avgResponse > 60) {
+      tips.push({ category: 'response_time', priority: 'medium', tip: 'Great response time! Under 30 minutes is ideal for top ranking.', current: `${Math.round(avgResponse)} min avg response` });
+    }
+    if (responseRate < 90) {
+      tips.push({ category: 'response_rate', priority: 'high', tip: 'Your response rate is below 90%. Respond to all booking requests within 24 hours.', current: `${responseRate}% response rate` });
+    }
+
+    // Price comparison with area
+    const cityAvg = await this.dataSource.query(
+      `SELECT ROUND(AVG(price_per_night), 2) as avgPrice FROM properties WHERE city = ? AND status = 'published' AND id != ?`,
+      [property.city, propertyId],
+    );
+    const mktPrice = Number(cityAvg[0]?.avgPrice ?? 0);
+    const price = Number(property.pricePerNight ?? 0);
+    if (mktPrice > 0 && price > mktPrice * 1.3) {
+      tips.push({ category: 'pricing', priority: 'medium', tip: `Your price (EGP ${price}) is significantly above the area average (EGP ${mktPrice}). Consider competitive pricing.`, current: `EGP ${price}/night` });
+    }
+
+    // Instant book
+    if (!(property as any).instantBook) {
+      tips.push({ category: 'instant_book', priority: 'low', tip: 'Enable Instant Book to appear higher in search results and attract more guests.', current: 'Manual approval' });
+    }
+
+    // Amenities
+    const amenityCount = (property as any).amenities?.length ?? 0;
+    if (amenityCount < 5) {
+      tips.push({ category: 'amenities', priority: 'medium', tip: 'Add more amenities to your listing. Guests filter by amenities when searching.', current: `${amenityCount} amenities` });
+    }
+
+    return {
+      propertyId,
+      title: property.title,
+      overallScore: Math.min(100, Math.max(0, 100 - tips.filter((t) => t.priority === 'high').length * 15 - tips.filter((t) => t.priority === 'medium').length * 8)),
+      tips: tips.sort((a, b) => {
+        const order = { high: 0, medium: 1, low: 2 };
+        return order[a.priority] - order[b.priority];
+      }),
+    };
   }
 }

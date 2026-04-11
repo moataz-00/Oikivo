@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Home,
   AlertCircle,
+  Navigation,
+  FileDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -349,6 +351,43 @@ export default function BookingHistoryPage() {
           </ol>
         </div>
 
+        {/* Check-in instructions (G6) — shown when booking is confirmed */}
+        {(booking.status === 'confirmed' || booking.status === 'in_progress') && (
+          booking.property?.checkInInstructions ||
+          (booking.property as any)?.wifiName ||
+          (booking.property as any)?.doorCode
+        ) && (
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
+            <h2 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+              <Home className="h-4 w-4" /> Check-in information
+            </h2>
+
+            {/* Structured fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              {(booking.property as any)?.doorCode && (
+                <div className="bg-white/70 rounded-xl px-4 py-3 border border-blue-100">
+                  <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Door Code</p>
+                  <p className="text-lg font-mono font-bold text-blue-900 mt-0.5">{(booking.property as any).doorCode}</p>
+                </div>
+              )}
+              {(booking.property as any)?.wifiName && (
+                <div className="bg-white/70 rounded-xl px-4 py-3 border border-blue-100">
+                  <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">WiFi</p>
+                  <p className="text-sm font-semibold text-blue-900 mt-0.5">{(booking.property as any).wifiName}</p>
+                  {(booking.property as any)?.wifiPassword && (
+                    <p className="text-xs text-blue-700 mt-0.5">Password: <span className="font-mono font-semibold">{(booking.property as any).wifiPassword}</span></p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Freeform instructions */}
+            {booking.property?.checkInInstructions && (
+              <p className="text-sm text-blue-800 whitespace-pre-line">{booking.property.checkInInstructions}</p>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
@@ -357,6 +396,18 @@ export default function BookingHistoryPage() {
           >
             View property
           </Link>
+          {/* G5: Get Directions — links to Google Maps with property coordinates */}
+          {booking.property?.lat && booking.property?.lng && (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${booking.property.lat},${booking.property.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors inline-flex items-center justify-center gap-1.5"
+            >
+              <Navigation className="h-3.5 w-3.5" />
+              Get directions
+            </a>
+          )}
           {booking.status !== 'cancelled' && booking.status !== 'completed' && booking.status !== 'declined' && (
             <Link
               href={`/${locale}/trips/dispute/${booking.id}`}
@@ -365,6 +416,24 @@ export default function BookingHistoryPage() {
               Open dispute
             </Link>
           )}
+          {/* G3: Invoice PDF Download */}
+          <button
+            onClick={async () => {
+              try {
+                const blob = await bookingsApi.downloadInvoice(booking.id);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `invoice-${booking.bookingRef || booking.id}.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch { /* silently fail */ }
+            }}
+            className="flex-1 text-center rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors inline-flex items-center justify-center gap-1.5"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            Invoice
+          </button>
         </div>
       </div>
     </FadeIn>

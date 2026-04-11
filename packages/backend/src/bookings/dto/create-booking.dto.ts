@@ -48,4 +48,10 @@ export class CreateBookingDto {
   @IsOptional()
   @IsBoolean()
   houseRulesAcknowledged?: boolean;
+
+  @ApiProperty({ required: false, example: 'USD', description: 'Guest preferred display currency for emails and receipts' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(3)
+  displayCurrency?: string;
 }

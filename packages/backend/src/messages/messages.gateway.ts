@@ -94,6 +94,22 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
     client.leave(room);
   }
 
+  /** G14: Typing indicator — broadcast to other participants in the room */
+  @SubscribeMessage('typing')
+  handleTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: number; isTyping: boolean },
+  ) {
+    const userId = this.connectedUsers.get(client.id);
+    if (!userId || !data?.conversationId) return;
+    const room = `conversation:${data.conversationId}`;
+    client.to(room).emit('user-typing', {
+      conversationId: data.conversationId,
+      userId,
+      isTyping: data.isTyping,
+    });
+  }
+
   // ─── Outbound: called by MessagesService after saving a message ───────────
 
   emitMessage(conversationId: number, message: Record<string, unknown>) {
@@ -109,5 +125,12 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
         this.server.to(socketId).emit('conversation-update', payload);
       }
     }
+  }
+
+  /** G13: Emit read receipt to conversation room so sender sees ✓✓ read */
+  emitReadReceipt(conversationId: number, readBy: number, messageIds: number[]) {
+    this.server
+      .to(`conversation:${conversationId}`)
+      .emit('messages-read', { conversationId, readBy, messageIds });
   }
 }

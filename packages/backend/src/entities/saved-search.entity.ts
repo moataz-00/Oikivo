@@ -25,6 +25,12 @@ export class SavedSearchEntity {
   @Column({ type: 'json' })
   filters: Record<string, unknown>;
 
+  @Column({ name: 'alert_enabled', default: false })
+  alertEnabled: boolean;
+
+  @Column({ name: 'last_alerted_at', type: 'datetime', nullable: true })
+  lastAlertedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

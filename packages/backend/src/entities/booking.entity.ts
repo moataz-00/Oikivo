@@ -99,6 +99,9 @@ export class BookingEntity {
   @Column({ length: 3, default: 'EGP' })
   currency: string;
 
+  @Column({ name: 'display_currency', length: 3, nullable: true, comment: 'Guest preferred display currency for emails and receipts' })
+  displayCurrency: string | null;
+
   @Column({
     type: 'enum',
     enum: ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'declined'],
@@ -183,6 +186,12 @@ export class BookingEntity {
 
   @Column({ name: 'refund_reason', type: 'varchar', length: 500, nullable: true })
   refundReason: string | null;
+
+  @Column({ name: 'confirmed_at', type: 'datetime', nullable: true, comment: 'Set when booking moves to confirmed (instant-book creation or host accept)' })
+  confirmedAt: Date | null;
+
+  @Column({ name: 'payment_reminder_sent_at', type: 'datetime', nullable: true, comment: 'Timestamp of the +4h payment reminder email; prevents duplicate sends' })
+  paymentReminderSentAt: Date | null;
 
   /**
    * JSON array of modification snapshots.

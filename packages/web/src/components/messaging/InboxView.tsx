@@ -107,6 +107,9 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
   });
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [newTemplate, setNewTemplate] = useState('');
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingEmitRef = useRef(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -169,9 +172,35 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
 
     socket.on('new-message', handleNewMessage);
     socket.on('conversation-update', handleConvUpdate);
+
+    // G14: Typing indicator
+    const handleTyping = (data: { conversationId: number; userId: number; isTyping: boolean }) => {
+      if (data.conversationId === activeConvIdRef.current && data.userId !== user?.id) {
+        setIsOtherTyping(data.isTyping);
+        if (data.isTyping) {
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsOtherTyping(false), 4000);
+        }
+      }
+    };
+    socket.on('user-typing', handleTyping);
+
+    // G13: Real-time read receipts
+    const handleMessagesRead = (data: { conversationId: number; readBy: number; messageIds: number[] }) => {
+      if (data.conversationId === activeConvIdRef.current) {
+        queryClient.setQueryData<Message[]>(
+          ['messages', data.conversationId],
+          (old) => old?.map((m) => (data.messageIds.includes(m.id) ? { ...m, isRead: true } : m)),
+        );
+      }
+    };
+    socket.on('messages-read', handleMessagesRead);
+
     return () => {
       socket.off('new-message', handleNewMessage);
       socket.off('conversation-update', handleConvUpdate);
+      socket.off('user-typing', handleTyping);
+      socket.off('messages-read', handleMessagesRead);
     };
   }, [socket, queryClient]);
 
@@ -216,10 +245,12 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!activeConvId || isPending) return;
+      // G14: Stop typing indicator on send
+      if (socket) socket.emit('typing', { conversationId: activeConvId, isTyping: false });
       if (selectedImage) uploadMutation.mutate(selectedImage);
       if (message.trim()) sendMutation.mutate(message.trim());
     },
-    [activeConvId, isPending, selectedImage, message, uploadMutation, sendMutation],
+    [activeConvId, isPending, selectedImage, message, uploadMutation, sendMutation, socket],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -671,6 +702,26 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                     </div>
                   </div>
                 ))}
+                {/* G14: Typing indicator */}
+                <AnimatePresence>
+                  {isOtherTyping && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      className="flex justify-start px-3 pb-2"
+                    >
+                      <div className="bg-neutral-100 border border-neutral-200 rounded-2xl px-4 py-2 flex items-center gap-1.5">
+                        <span className="inline-flex gap-0.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </span>
+                        <span className="text-xs text-neutral-400 ml-1">typing</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <div ref={messagesEndRef} />
               </>
             )}
@@ -812,7 +863,14 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
               ref={textareaRef}
               placeholder="Write a message…"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                // G14: Emit typing indicator (throttled to 2s)
+                if (socket && activeConvId && Date.now() - lastTypingEmitRef.current > 2000) {
+                  socket.emit('typing', { conversationId: activeConvId, isTyping: true });
+                  lastTypingEmitRef.current = Date.now();
+                }
+              }}
               onKeyDown={handleKeyDown}
               rows={1}
               className="flex-1 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 focus:bg-white max-h-32 overflow-y-auto leading-relaxed transition-all placeholder:text-neutral-400"

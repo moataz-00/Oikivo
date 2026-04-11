@@ -246,6 +246,19 @@ export class CreateListingDto {
   @IsIn(['flexible', 'moderate', 'strict'])
   cancellationPolicy?: string;
 
+  @ApiProperty({ required: false, default: false, description: 'H4: Only accept verified guests' })
+  @IsOptional()
+  @IsBoolean()
+  requireVerifiedGuest?: boolean;
+
+  @ApiProperty({ required: false, example: 4.0, description: 'H5: Minimum guest rating to book (1.0-5.0)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1.0)
+  @Max(5.0)
+  minGuestRating?: number;
+
   @ApiProperty({ required: false, type: [Number], description: 'Amenity IDs' })
   @IsOptional()
   @IsArray()

@@ -17,7 +17,7 @@ const WARNING = '#d97706';          // amber-600
 const DANGER = '#dc2626';           // red-600
 
 // ─── Logo URL (served from the web frontend /public/) ─────────────────────────
-const LOGO_URL = (process.env.FRONTEND_URL?.split(',')?.[0]?.trim() ?? 'https://oikivo.com') + '/favicon-96x96.png';
+const LOGO_URL = (process.env.FRONTEND_URL?.split(',')?.[0]?.trim() ?? 'https://oikivo.com') + '/logo.png';
 
 // ─── Base layout ──────────────────────────────────────────────────────────────
 function layout(content: string): string {
@@ -224,6 +224,76 @@ export function tplBookingConfirmed(
     ${currencyNote(currency)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Please contact your host directly for check-in instructions. Have a wonderful stay!</span>`)}
+  `);
+}
+
+// ─── Template: Booking Accepted — Please Pay (Request-to-Book / Instant-Book) ─
+export function tplBookingAccepted(
+  guestName: string,
+  propertyTitle: string,
+  checkIn: string,
+  checkOut: string,
+  guests: number,
+  totalAmount: string,
+  currency: string,
+  bookingRef: string,
+  paymentUrl: string,
+): string {
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">🎉</span>
+    </div>
+    ${heading('Your booking has been confirmed!')}
+    ${subHeading('Complete your payment to lock in your stay')}
+    ${paragraph(`Hi <strong>${guestName}</strong>, great news — your booking at <strong>${propertyTitle}</strong> has been confirmed. Please complete your payment within <strong>24 hours</strong> to secure your reservation.`)}
+    ${infoTable(
+      infoRow('Property', propertyTitle) +
+      infoRow('Check-in', checkIn) +
+      infoRow('Check-out', checkOut) +
+      infoRow('Guests', String(guests)) +
+      infoRow('Total due', `${totalAmount} ${currency}`) +
+      infoRow('Booking ref', bookingRef) +
+      infoRow('Status', badge('Awaiting Payment', WARNING))
+    )}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin:20px 0;">
+      <p style="margin:0;font-size:13px;color:#92400e;">⚠️ <strong>Important:</strong> Your reservation will be automatically cancelled if payment is not received within 24 hours of this confirmation.</p>
+    </div>
+    ${btn('💳 Pay Now', paymentUrl)}
+    ${currencyNote(currency)}
+    ${divider()}
+    ${paragraph(`<span style="font-size:13px;color:${MUTED};">You can pay via OPay or InstaPay from your Trips page. If you have any questions, please message your host directly.</span>`)}
+  `);
+}
+
+// ─── Template: Payment Reminder (sent 4 h after host confirms, if still unpaid) ─
+export function tplPaymentReminder(
+  guestName: string,
+  propertyTitle: string,
+  checkIn: string,
+  bookingRef: string,
+  totalAmount: string,
+  currency: string,
+  paymentUrl: string,
+): string {
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">⏰</span>
+    </div>
+    ${heading('Reminder: Complete your payment')}
+    ${subHeading('Your reservation is awaiting payment')}
+    ${paragraph(`Hi <strong>${guestName}</strong>, this is a friendly reminder that your confirmed booking at <strong>${propertyTitle}</strong> (check-in: ${checkIn}) is still awaiting payment.`)}
+    ${infoTable(
+      infoRow('Property', propertyTitle) +
+      infoRow('Check-in', checkIn) +
+      infoRow('Booking ref', bookingRef) +
+      infoRow('Total due', `${totalAmount} ${currency}`) +
+      infoRow('Status', badge('Payment Required', WARNING))
+    )}
+    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:14px 18px;margin:20px 0;">
+      <p style="margin:0;font-size:13px;color:#9f1239;">🚨 <strong>Action required:</strong> If payment is not completed within 20 hours, your booking will be automatically cancelled and the dates released.</p>
+    </div>
+    ${btn('💳 Pay Now', paymentUrl, DANGER)}
+    ${currencyNote(currency)}
   `);
 }
 
@@ -481,90 +551,19 @@ export function tplHostActivation(
   dashboardUrl: string,
 ): string {
   return layout(`
-    <div style="text-align:center;margin-bottom:28px;">
-      <div style="display:inline-block;background:linear-gradient(135deg,${PRIMARY}18,${ACCENT}12);border-radius:50%;padding:20px;">
-        <span style="font-size:52px;line-height:1;">🏠</span>
-      </div>
-    </div>
-    ${heading(`Welcome aboard, ${hostName}!`)}
-    <p style="margin:0 0 24px;font-size:16px;color:${TEXT};text-align:center;line-height:1.5;">Your host account on <strong style="color:${PRIMARY};">Oikivo</strong> is now active. Start listing your properties and earning today.</p>
-
-    <!-- Hero stat banner -->
-    <div style="text-align:center;margin:24px 0;">
-      <div style="display:inline-block;background:linear-gradient(135deg,${PRIMARY},${ACCENT});border-radius:16px;padding:24px 48px;">
-        <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.8);font-weight:600;text-transform:uppercase;letter-spacing:1.5px;">Platform Commission</p>
-        <p style="margin:8px 0 0;font-size:48px;font-weight:900;color:#fff;letter-spacing:-1px;">0%</p>
-        <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.7);">Keep 100% of your earnings</p>
-      </div>
-    </div>
-
-    <!-- Feature cards -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
-      <tr>
-        <td style="padding:8px;width:33%;" valign="top">
-          <div style="background:${BG};border:1px solid ${BORDER};border-radius:14px;padding:20px 14px;text-align:center;">
-            <div style="display:inline-block;background:linear-gradient(135deg,${SUCCESS}18,${SUCCESS}08);border-radius:12px;padding:10px;margin-bottom:10px;">
-              <span style="font-size:24px;">💸</span>
-            </div>
-            <p style="margin:0;font-size:13px;font-weight:700;color:${TEXT};">Zero Fees</p>
-            <p style="margin:4px 0 0;font-size:11px;color:${MUTED};line-height:1.4;">No hidden charges or platform cuts</p>
-          </div>
-        </td>
-        <td style="padding:8px;width:33%;" valign="top">
-          <div style="background:${BG};border:1px solid ${BORDER};border-radius:14px;padding:20px 14px;text-align:center;">
-            <div style="display:inline-block;background:linear-gradient(135deg,${WARNING}18,${WARNING}08);border-radius:12px;padding:10px;margin-bottom:10px;">
-              <span style="font-size:24px;">⚡</span>
-            </div>
-            <p style="margin:0;font-size:13px;font-weight:700;color:${TEXT};">Fast Payouts</p>
-            <p style="margin:4px 0 0;font-size:11px;color:${MUTED};line-height:1.4;">Get paid within 24 hours</p>
-          </div>
-        </td>
-        <td style="padding:8px;width:33%;" valign="top">
-          <div style="background:${BG};border:1px solid ${BORDER};border-radius:14px;padding:20px 14px;text-align:center;">
-            <div style="display:inline-block;background:linear-gradient(135deg,${PRIMARY}18,${PRIMARY}08);border-radius:12px;padding:10px;margin-bottom:10px;">
-              <span style="font-size:24px;">🛡️</span>
-            </div>
-            <p style="margin:0;font-size:13px;font-weight:700;color:${TEXT};">Host Protection</p>
-            <p style="margin:4px 0 0;font-size:11px;color:${MUTED};line-height:1.4;">Up to $1M host coverage</p>
-          </div>
-        </td>
-      </tr>
-    </table>
-
-    <!-- Steps to get started -->
-    ${divider()}
-    <p style="margin:0 0 16px;font-size:16px;font-weight:800;color:${TEXT};text-align:center;">Get started in 3 easy steps</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-      <tr>
-        <td style="padding:10px 14px;vertical-align:top;width:36px;">
-          <div style="display:inline-block;background:${PRIMARY};color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:13px;font-weight:800;">1</div>
-        </td>
-        <td style="padding:10px 14px;">
-          <p style="margin:0;font-size:14px;font-weight:700;color:${TEXT};">Create your listing</p>
-          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Add photos, description, pricing &amp; amenities</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 14px;vertical-align:top;width:36px;">
-          <div style="display:inline-block;background:${ACCENT};color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:13px;font-weight:800;">2</div>
-        </td>
-        <td style="padding:10px 14px;">
-          <p style="margin:0;font-size:14px;font-weight:700;color:${TEXT};">Set your availability</p>
-          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Choose dates, set rules &amp; cancellation policy</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 14px;vertical-align:top;width:36px;">
-          <div style="display:inline-block;background:${SUCCESS};color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:13px;font-weight:800;">3</div>
-        </td>
-        <td style="padding:10px 14px;">
-          <p style="margin:0;font-size:14px;font-weight:700;color:${TEXT};">Start earning</p>
-          <p style="margin:2px 0 0;font-size:12px;color:${MUTED};">Guests will find you &amp; book — get paid instantly</p>
-        </td>
-      </tr>
-    </table>
-
+    ${heading(`You're now a Host, ${hostName}! 🏠`)}
+    ${subHeading('Your host account is active')}
+    ${paragraph(`Welcome to the Oikivo host community! Your account is now fully activated. Start listing your properties and connecting with guests today.`)}
+    ${infoTable(
+      infoRow('Commission', badge('0% — Keep 100%', SUCCESS)) +
+      infoRow('Payouts', 'Within 24 hours of check-in') +
+      infoRow('Host Protection', 'Up to $1M coverage')
+    )}
     ${btn('🏠 Go to Your Dashboard', dashboardUrl)}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+      Need help getting started? Contact us at <a href="mailto:oikivo.support@gmail.com" style="color:${PRIMARY};">oikivo.support@gmail.com</a>
+    </p>
   `);
 }
 
@@ -1268,6 +1267,62 @@ export function tplConsultantPayoutProcessed(
       ? paragraph('Funds should appear in your account within 1–2 business days depending on your payment method.')
       : paragraph('Please log in to your dashboard to review your payout details and try again or contact support.')}
     ${btn('📊 View your dashboard', dashboardUrl)}
+  `);
+}
+
+// ─── Template: Monthly Earnings Summary (HW7) ────────────────────────────────
+export function tplMonthlyEarningsSummary(
+  hostName: string,
+  month: string,
+  totalEarnings: string,
+  currency: string,
+  totalBookings: number,
+  totalPaid: string,
+  totalPending: string,
+  earningsUrl: string,
+): string {
+  return layout(`
+    ${heading(`Your ${month} Earnings Summary`)}
+    ${subHeading(`Here's how your properties performed, ${hostName}.`)}
+    ${infoTable(
+      infoRow('Month', month) +
+      infoRow('Total Earnings', `${totalEarnings} ${currency}`) +
+      infoRow('Completed Bookings', String(totalBookings)) +
+      infoRow('Paid Out', badge(`${totalPaid} ${currency}`, SUCCESS)) +
+      infoRow('Pending', badge(`${totalPending} ${currency}`, WARNING))
+    )}
+    ${paragraph('Keep up the great work! Respond quickly and keep your listing updated to maximize your bookings.')}
+    ${btn('📊 View Earnings Dashboard', earningsUrl)}
+    ${divider()}
+    ${currencyNote(currency)}
+  `);
+}
+
+// ─── Template: Host Activation Request (link-based) ──────────────────────────
+export function tplHostActivationRequest(firstName: string, isArabic: boolean, activationUrl: string): string {
+  if (isArabic) {
+    return layout(`
+      ${heading('تفعيل حساب الاستضافة')}
+      ${subHeading('خطوة سريعة لبدء الاستضافة على Oikivo')}
+      ${paragraph(`مرحباً <strong>${firstName}</strong>، اضغط على الزر أدناه لتفعيل حساب الاستضافة والبدء بإنشاء إعلانك.`)}
+      ${btn('🏠 تفعيل الاستضافة', activationUrl)}
+      ${divider()}
+      <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+        إذا لم تطلب هذا الإجراء، يمكنك تجاهل هذه الرسالة.<br/>
+        <a href="${activationUrl}" style="color:${PRIMARY};font-size:11px;word-break:break-all;">${activationUrl}</a>
+      </p>
+    `);
+  }
+  return layout(`
+    ${heading('Activate your hosting account')}
+    ${subHeading('One quick step to start listing your property on Oikivo')}
+    ${paragraph(`Hi <strong>${firstName}</strong>, click the button below to activate hosting and start creating your listing.`)}
+    ${btn('🏠 Activate Hosting', activationUrl)}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+      If you did not request this, you can safely ignore this email.<br/>
+      <a href="${activationUrl}" style="color:${PRIMARY};font-size:11px;word-break:break-all;">${activationUrl}</a>
+    </p>
   `);
 }
 

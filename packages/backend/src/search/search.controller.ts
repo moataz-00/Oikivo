@@ -3,10 +3,13 @@ import {
   Get,
   Query,
   UseGuards,
+  UseInterceptors,
   BadRequestException,
+  Header,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { SearchService } from './search.service';
 import { SearchDto } from './search.dto';
 
@@ -18,6 +21,7 @@ export class SearchController {
 
   @Get()
   @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @Header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60')
   @ApiOperation({ summary: 'Search properties with filters' })
   search(@Query() dto: SearchDto) {
     return this.searchService.search(dto);
@@ -54,6 +58,9 @@ export class SearchController {
   }
 
   @Get('popular-cities')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300_000) // 5 minutes
+  @Header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
   @ApiOperation({ summary: 'Get top 10 popular cities by property count' })
   getPopularCities() {
     return this.searchService.getPopularCities();

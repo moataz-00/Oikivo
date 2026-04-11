@@ -4,6 +4,7 @@ import { Repository, LessThan } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Subject, Observable, filter, map } from 'rxjs';
 import { NotificationEntity } from '../entities/notification.entity';
+import { PushService } from './push.service';
 
 @Injectable()
 export class NotificationsService {
@@ -15,6 +16,7 @@ export class NotificationsService {
   constructor(
     @InjectRepository(NotificationEntity)
     private notificationsRepo: Repository<NotificationEntity>,
+    private pushService: PushService,
   ) {}
 
   async create(
@@ -39,6 +41,11 @@ export class NotificationsService {
 
     // Push to SSE stream for connected clients
     this.notificationSubject.next({ userId, notification: saved });
+
+    // Push via FCM for mobile clients
+    this.pushService.sendPush(userId, title, body, data).catch((err) => {
+      this.logger.warn(`FCM push failed for user ${userId}: ${err.message}`);
+    });
 
     return saved;
   }

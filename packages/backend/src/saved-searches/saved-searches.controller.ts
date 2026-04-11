@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -43,5 +44,14 @@ export class SavedSearchesController {
     @CurrentUser() user: UserEntity,
   ) {
     return this.savedSearchesService.delete(id, user.id);
+  }
+
+  @Patch(':id/toggle-alert')
+  @ApiOperation({ summary: 'Toggle email alerts for a saved search' })
+  toggleAlert(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.savedSearchesService.toggleAlert(id, user.id);
   }
 }

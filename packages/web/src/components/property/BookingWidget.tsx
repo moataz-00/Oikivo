@@ -36,7 +36,7 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
   const router = useRouter();
   const locale = useLocale();
   const { isLoggedIn } = useAuth();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currency } = useCurrency();
   const queryClient = useQueryClient();
 
   const [localCheckIn, setLocalCheckIn] = useState<Date | undefined>();
@@ -100,11 +100,17 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       setShowDatePicker(true);
       return;
     }
+    if (nights < 1) {
+      toast.error(t('minOneNight'));
+      setShowDatePicker(true);
+      return;
+    }
     createBooking.mutate({
       propertyId: property.id,
       checkIn: format(checkIn, 'yyyy-MM-dd'),
       checkOut: format(checkOut, 'yyyy-MM-dd'),
       guests: totalGuests,
+      displayCurrency: currency,
     });
   };
 
@@ -257,55 +263,9 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       )}
       </>
 
-      {/* Reserve button */}
-      <Button
-        onClick={handleReserve}
-        isLoading={createBooking.isPending}
-        fullWidth
-        size="lg"
-        className="mt-1"
-      >
-        {property.instantBook ? tProp('instantBook') : tProp('requestToBook')}
-      </Button>
-
-      <p className="mt-3 text-center text-sm text-neutral-500">{t('youWontBeChargedYet')}</p>
-
-      {/* Cancellation policy note */}
-      {(() => {
-          const policy = property.cancellationPolicy ?? 'flexible';
-          const policyLabel = policy.charAt(0).toUpperCase() + policy.slice(1);
-          const freeDays = policy === 'strict' ? 14 : policy === 'moderate' ? 5 : 1;
-          const freeDate = checkIn ? subDays(checkIn, freeDays) : null;
-          const showDate = freeDate && freeDate > new Date();
-          return (
-            <div className="mt-3 flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2.5">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-              <div className="text-xs leading-relaxed text-emerald-800">
-                {showDate ? (
-                  <p className="font-medium">
-                    {t('freeCancellationBefore', { date: format(freeDate, 'MMM d') })}
-                  </p>
-                ) : (
-                  <p className="font-medium">
-                    {t('policyLabel', { policy: policyLabel })}
-                  </p>
-                )}
-                <p className="text-emerald-600 mt-0.5">
-                  {policy === 'flexible'
-                    ? t('flexPolicyDesc')
-                    : policy === 'moderate'
-                    ? t('modPolicyDesc')
-                    : t('strictPolicyDesc')}
-                </p>
-              </div>
-            </div>
-          );
-        })()
-      }
-
-      {/* Nightly price breakdown */}
+      {/* GW1: Price breakdown shown BEFORE reserve button so guest sees total */}
       {nights > 0 && (
-        <div className="mt-5 space-y-3">
+        <div className="mt-3 space-y-3">
           <Separator />
           {priceLoading ? (
             <div className="flex justify-center py-4">
@@ -359,6 +319,11 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
                 <span>{tProp('total')}</span>
                 <span>{formatPrice(total, property.currency ?? 'EGP')}</span>
               </div>
+              {currency.toUpperCase() !== (property.currency ?? 'EGP').toUpperCase() && total > 0 && (
+                <p className="text-xs text-neutral-400 text-right">
+                  ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: property.currency ?? 'EGP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(total)}
+                </p>
+              )}
               {(property.securityDeposit ?? 0) > 0 && (
                 <p className="text-xs text-neutral-400 flex items-start gap-1.5 mt-1">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
@@ -369,6 +334,54 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
           )}
         </div>
       )}
+
+      {/* Reserve button */}
+      <Button
+        onClick={handleReserve}
+        isLoading={createBooking.isPending}
+        fullWidth
+        size="lg"
+        className="mt-1"
+      >
+        {property.instantBook ? tProp('instantBook') : tProp('requestToBook')}
+      </Button>
+
+      <p className="mt-3 text-center text-sm text-neutral-500">{t('youWontBeChargedYet')}</p>
+
+      {/* Cancellation policy note */}
+      {(() => {
+          const policy = property.cancellationPolicy ?? 'flexible';
+          const policyLabel = policy.charAt(0).toUpperCase() + policy.slice(1);
+          const freeDays = policy === 'strict' ? 14 : policy === 'moderate' ? 5 : 1;
+          const freeDate = checkIn ? subDays(checkIn, freeDays) : null;
+          const showDate = freeDate && freeDate > new Date();
+          return (
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2.5">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              <div className="text-xs leading-relaxed text-emerald-800">
+                {showDate ? (
+                  <p className="font-medium">
+                    {t('freeCancellationBefore', { date: format(freeDate, 'MMM d') })}
+                  </p>
+                ) : (
+                  <p className="font-medium">
+                    {t('policyLabel', { policy: policyLabel })}
+                  </p>
+                )}
+                <p className="text-emerald-600 mt-0.5">
+                  {policy === 'flexible'
+                    ? t('flexPolicyDesc')
+                    : policy === 'moderate'
+                    ? t('modPolicyDesc')
+                    : t('strictPolicyDesc')}
+                </p>
+              </div>
+            </div>
+          );
+        })()
+      }
+
+      {/* Nightly price breakdown — moved above reserve button (GW1) */}
     </div>
 
     {pendingBooking && (

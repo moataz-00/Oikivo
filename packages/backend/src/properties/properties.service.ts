@@ -17,6 +17,7 @@ import { UserEntity } from '../entities/user.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
+import { isEgyptianPublicHoliday } from '../common/holidays.util';
 
 export interface PriceBreakdown {
   nights: number;
@@ -36,29 +37,7 @@ export interface PriceBreakdown {
   lastMinuteDiscountActive?: boolean;
 }
 
-// ─── Egyptian public holiday data (shared with bookings.service) ─────────────
-const EG_FIXED_HOLIDAYS: [number, number][] = [
-  [1, 7],   // Coptic Christmas
-  [1, 25],  // Revolution Day
-  [4, 25],  // Sinai Liberation Day
-  [5, 1],   // Labour Day
-  [6, 30],  // June 30 Revolution Day
-  [7, 23],  // July 23 Revolution Day
-  [10, 6],  // Armed Forces Day
-];
-const EG_ISLAMIC_HOLIDAYS: Record<number, [number, number][]> = {
-  2025: [[3,30],[3,31],[4,1],[4,2],[6,6],[6,7],[6,8],[6,27],[9,4]],
-  2026: [[3,20],[3,21],[3,22],[5,27],[5,28],[5,29],[6,17],[8,25]],
-  2027: [[3,9],[3,10],[3,11],[5,16],[5,17],[5,18],[6,6],[8,14]],
-};
-function isEgyptianPublicHoliday(d: Date): boolean {
-  const m = d.getMonth() + 1; const day = d.getDate();
-  if (EG_FIXED_HOLIDAYS.some(([hm, hd]) => hm === m && hd === day)) return true;
-  const yr = d.getFullYear();
-  const islamic = EG_ISLAMIC_HOLIDAYS[yr];
-  return !!(islamic && islamic.some(([hm, hd]) => hm === m && hd === day));
-}
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Egyptian holidays: imported from common/holidays.util.ts ────────────────
 
 @Injectable()
 export class PropertiesService {
@@ -139,9 +118,12 @@ export class PropertiesService {
       if (amenityIds.length > 0) {
         await this.addAmenities(id, amenityIds);
       }
+      // Amenities changed — reload to include updated many-to-many
+      return this.findOne(id);
     }
 
-    return this.findOne(id);
+    // No amenity change — return already-loaded entity (skip second DB round-trip)
+    return property;
   }
 
   async verifyListing(id: number, hostId: number) {
@@ -471,7 +453,7 @@ export class PropertiesService {
   async getHostListings(hostId: number, page = 1, limit = 200) {
     const [items, total] = await this.propertiesRepo.findAndCount({
       where: { hostId },
-      relations: ['photos', 'category'],
+      relations: ['photos', 'category', 'amenities', 'host'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,

@@ -33,6 +33,10 @@ export class MessageEntity {
   @Column({ name: 'is_read', default: false })
   isRead: boolean;
 
+  /** G13: Timestamp of when the message was read by the recipient */
+  @Column({ name: 'read_at', type: 'datetime', nullable: true })
+  readAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

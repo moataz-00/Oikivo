@@ -38,4 +38,21 @@ export class SavedSearchesService {
     await this.savedSearchesRepo.remove(saved);
     return { message: 'Saved search deleted' };
   }
+
+  /** G8: Toggle alert notification for a saved search */
+  async toggleAlert(id: number, userId: number): Promise<SavedSearchEntity> {
+    const saved = await this.savedSearchesRepo.findOne({ where: { id } });
+    if (!saved) throw new NotFoundException('Saved search not found');
+    if (Number(saved.userId) !== Number(userId))
+      throw new ForbiddenException('Not your saved search');
+    saved.alertEnabled = !saved.alertEnabled;
+    return this.savedSearchesRepo.save(saved);
+  }
+
+  /** G8: Get all searches with alerts enabled (used by scheduler) */
+  async findWithAlertsEnabled(): Promise<SavedSearchEntity[]> {
+    return this.savedSearchesRepo.find({
+      where: { alertEnabled: true },
+    });
+  }
 }

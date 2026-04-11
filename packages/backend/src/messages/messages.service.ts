@@ -152,9 +152,41 @@ export class MessagesService {
           const inboxUrl = `${fe.replace(/\/+$/, '')}/en/inbox`;
           await this.mail.send(
             receiver.email,
-            `New message from ${sender.firstName} — Journey Stay`,
+            `New message from ${sender.firstName} — Oikivo`,
             tplNewMessage(receiver.firstName, sender.firstName, (dto.body ?? '').slice(0, 200), inboxUrl),
           );
+        }
+      } catch { /* non-critical */ }
+    })();
+
+    // H2: Auto-reply — if the receiver has auto-reply enabled, send an automatic response
+    void (async () => {
+      try {
+        const receiver = await this.usersRepo.findOne({ where: { id: receiverId } });
+        if (receiver?.autoReplyEnabled && receiver.autoReplyMessage) {
+          // Prevent auto-reply loops: only auto-reply to human messages, not other auto-replies
+          if (dto.body?.startsWith('[Auto-reply]')) return;
+
+          const autoMsg = this.messagesRepo.create({
+            conversationId,
+            senderId: receiverId,
+            body: `[Auto-reply] ${receiver.autoReplyMessage}`,
+            messageType: 'text',
+          });
+          const savedAuto = await this.messagesRepo.save(autoMsg);
+          await this.conversationsRepo.update(conversationId, { updatedAt: new Date() });
+          try {
+            this.gateway.emitMessage(conversationId, {
+              id: savedAuto.id,
+              conversationId,
+              senderId: receiverId,
+              body: savedAuto.body,
+              messageType: 'text',
+              imageUrl: null,
+              isRead: false,
+              createdAt: savedAuto.createdAt,
+            });
+          } catch { /* gateway may not be ready */ }
         }
       } catch { /* non-critical */ }
     })();
@@ -253,14 +285,27 @@ export class MessagesService {
     const senderId =
       conversation.guestId === userId ? conversation.hostId : conversation.guestId;
 
-    await this.messagesRepo
-      .createQueryBuilder()
-      .update(MessageEntity)
-      .set({ isRead: true })
-      .where('conversationId = :conversationId', { conversationId })
-      .andWhere('senderId = :senderId', { senderId })
-      .andWhere('isRead = false')
-      .execute();
+    // G13: Collect message IDs before updating for read receipt emission
+    const unreadMessages = await this.messagesRepo.find({
+      where: { conversationId, senderId, isRead: false },
+      select: ['id'],
+    });
+    const unreadIds = unreadMessages.map((m) => m.id);
+
+    if (unreadIds.length > 0) {
+      const now = new Date();
+      await this.messagesRepo
+        .createQueryBuilder()
+        .update(MessageEntity)
+        .set({ isRead: true, readAt: now })
+        .where('conversationId = :conversationId', { conversationId })
+        .andWhere('senderId = :senderId', { senderId })
+        .andWhere('isRead = false')
+        .execute();
+
+      // Emit read receipt via WebSocket
+      this.gateway.emitReadReceipt(conversationId, userId, unreadIds);
+    }
 
     return { message: 'Messages marked as read' };
   }

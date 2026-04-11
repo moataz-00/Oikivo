@@ -156,7 +156,7 @@ export default function NewListingPage() {
   const [checkInTime, setCheckInTime] = useState('15:00');
   const [checkOutTime, setCheckOutTime] = useState('11:00');
   const [cancellationPolicy, setCancellationPolicy] = useState('flexible');
-  const [bookingMode, setBookingMode] = useState<'instant_book' | 'approve_first_three'>('approve_first_three');
+  const [bookingMode, setBookingMode] = useState<'instant_book' | 'approve_first_three' | 'always_approve'>('approve_first_three');
   const [instantBook, setInstantBook] = useState(false);
   const [allowsSmoking, setAllowsSmoking] = useState(false);
   const [allowsParties, setAllowsParties] = useState(false);
@@ -1259,6 +1259,39 @@ export default function NewListingPage() {
                 description.length >= 50 ? '✓' : `(${50 - description.length} more needed)`
               }`}
             />
+
+            {/* Description Helper */}
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-3">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Need help? Tap to add to your description</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { emoji: '🌊', text: 'Our place offers a stunning view that guests love.' },
+                  { emoji: '🏠', text: 'A cozy and well-furnished space perfect for families.' },
+                  { emoji: '📍', text: 'Located in a prime area, close to restaurants and shops.' },
+                  { emoji: '🅿️', text: 'Free private parking is available on site.' },
+                  { emoji: '🌿', text: 'Enjoy a peaceful and quiet neighborhood.' },
+                  { emoji: '🏖️', text: 'Just a short walk to the beach.' },
+                  { emoji: '🛏️', text: 'Freshly cleaned linens and towels are provided.' },
+                  { emoji: '📶', text: 'High-speed Wi-Fi available throughout the property.' },
+                  { emoji: '❄️', text: 'Fully air-conditioned for your comfort.' },
+                  { emoji: '🍳', text: 'A fully equipped kitchen for preparing your own meals.' },
+                ].map((item) => (
+                  <button
+                    key={item.text}
+                    type="button"
+                    onClick={() => {
+                      const separator = description && !description.endsWith(' ') && !description.endsWith('\n') ? ' ' : '';
+                      handleFieldChange('description', description + separator + item.text, setDescription);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition-colors shadow-sm"
+                  >
+                    <span>{item.emoji}</span>
+                    <span>{item.text.slice(0, 40)}{item.text.length > 40 ? '…' : ''}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-neutral-400">Tip: Combine several suggestions and edit them to match your property.</p>
+            </div>
           </div>
         );
 
@@ -1467,6 +1500,33 @@ export default function NewListingPage() {
               </div>
             </button>
 
+            {/* Always Approve */}
+            <button
+              type="button"
+              onClick={() => { setBookingMode('always_approve'); setInstantBook(false); }}
+              className={cn(
+                'w-full text-left rounded-2xl border-2 p-5 transition-all',
+                bookingMode === 'always_approve'
+                  ? 'border-indigo-600 bg-indigo-50'
+                  : 'border-neutral-200 hover:border-neutral-400'
+              )}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xl">✅</span>
+                    <p className="font-semibold text-neutral-900">Always approve manually</p>
+                  </div>
+                  <p className="text-sm text-neutral-500">
+                    Review and approve every reservation request yourself. You&apos;ll have 24 hours to respond to each request.
+                  </p>
+                </div>
+                {bookingMode === 'always_approve' && (
+                  <Check className="h-5 w-5 text-indigo-600 shrink-0 mt-1" />
+                )}
+              </div>
+            </button>
+
             {/* Use Instant Book */}
             <button
               type="button"
@@ -1484,7 +1544,7 @@ export default function NewListingPage() {
                     <span className="text-xl">⚡</span>
                     <p className="font-semibold text-neutral-900">Use Instant Book</p>
                   </div>
-                  <p className="text-sm text-neutral-500">Let guests book automatically.</p>
+                  <p className="text-sm text-neutral-500">Let guests book automatically without waiting for your approval.</p>
                 </div>
                 {bookingMode === 'instant_book' && (
                   <Check className="h-5 w-5 text-indigo-600 shrink-0 mt-1" />
@@ -1843,9 +1903,31 @@ export default function NewListingPage() {
           <div className="space-y-6">
             {/* Listing Preview Card */}
             <div className="rounded-2xl border border-neutral-200 overflow-hidden bg-white shadow-sm">
-              {photos[0]?.preview && (
-                <div className="relative h-52 bg-neutral-200">
-                  <Image src={photos[0].preview} alt="Cover" fill className="object-cover" />
+              {/* Photo Gallery */}
+              {photos.length > 0 && (
+                <div className="grid grid-cols-4 grid-rows-2 gap-1 h-64">
+                  {/* Cover photo - takes left half */}
+                  <div className="relative col-span-2 row-span-2 bg-neutral-200">
+                    <Image src={photos[0].preview} alt="Cover" fill className="object-cover" />
+                    <div className="absolute top-2 left-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
+                      Cover
+                    </div>
+                  </div>
+                  {/* Next 4 photos fill the right side */}
+                  {photos.slice(1, 5).map((photo, idx) => (
+                    <div key={idx} className="relative bg-neutral-200">
+                      <Image src={photo.preview} alt={`Photo ${idx + 2}`} fill className="object-cover" />
+                    </div>
+                  ))}
+                  {/* If fewer than 5 photos, fill empty slots */}
+                  {Array.from({ length: Math.max(0, 4 - (photos.length - 1)) }).map((_, idx) => (
+                    <div key={`empty-${idx}`} className="bg-neutral-100" />
+                  ))}
+                </div>
+              )}
+              {photos.length > 5 && (
+                <div className="px-5 pt-2 pb-0">
+                  <p className="text-xs text-neutral-500">+{photos.length - 5} more photos</p>
                 </div>
               )}
               <div className="p-5 space-y-3">
