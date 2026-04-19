@@ -126,7 +126,7 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
   const discountPercent = pricePreview?.discountPercent ?? 0;
   const discountedBase = pricePreview?.discountedBase ?? baseTotal;
   const cleaningFee = pricePreview?.cleaningFee ?? property.cleaningFee ?? 0;
-  const serviceFee = pricePreview?.serviceFee ?? Math.round(discountedBase * (property.serviceFeePercent ?? 14) / 100);
+  const serviceFee = pricePreview?.serviceFee ?? Math.round((discountedBase + cleaningFee) * (property.serviceFeePercent ?? 5) / 100);
   const taxes = pricePreview?.taxes ?? 0;
   const total = pricePreview?.total ?? (nights > 0 ? discountedBase + cleaningFee + serviceFee + taxes : 0);
 

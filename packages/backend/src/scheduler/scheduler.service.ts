@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, LessThanOrEqual, Between } from 'typeorm';
+import { Repository, LessThan, LessThanOrEqual, Between, DataSource } from 'typeorm';
 import { BookingEntity } from '../entities/booking.entity';
 import { EarningEntity } from '../entities/earning.entity';
 import { PropertyEntity } from '../entities/property.entity';
@@ -11,6 +11,8 @@ import { WishlistItemEntity } from '../entities/wishlist-item.entity';
 import { SavedSearchEntity } from '../entities/saved-search.entity';
 import { UserEntity } from '../entities/user.entity';
 import { PriceAlertEntity } from '../entities/price-alert.entity';
+import { PasswordResetEntity } from '../entities/password-reset.entity';
+import { VerificationTokenEntity } from '../entities/verification-token.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailService, tplInstapayPaymentDeclined, tplPreArrivalReminder, tplMonthlyEarningsSummary, tplBookingAccepted, tplPaymentReminder, tplBookingCancelled } from '../mail/mail.service';
 import { PayoutsService } from '../payouts/payouts.service';
@@ -38,6 +40,11 @@ export class SchedulerService {
     private usersRepo: Repository<UserEntity>,
     @InjectRepository(PriceAlertEntity)
     private priceAlertsRepo: Repository<PriceAlertEntity>,
+    @InjectRepository(PasswordResetEntity)
+    private passwordResetsRepo: Repository<PasswordResetEntity>,
+    @InjectRepository(VerificationTokenEntity)
+    private verificationTokensRepo: Repository<VerificationTokenEntity>,
+    private dataSource: DataSource,
     private notificationsService: NotificationsService,
     private mail: MailService,
     private payoutsService: PayoutsService,
@@ -62,6 +69,70 @@ export class SchedulerService {
     await this.runAutoPayouts();
     await this.sendPreArrivalReminders(todayStr); // FIX BUG-GL1
     await this.purgeExpiredArchivedListings();
+    await this.autoDeclineStalePendingBookings(); // FIX A1
+  }
+
+  // FIX B3: Run every hour — auto-cancel confirmed/pending bookings with no payment after 24 hours
+  @Cron('0 * * * *')
+  async autoCancelUnpaidBookings(): Promise<void> {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    try {
+      const unpaid = await this.bookingsRepo.find({
+        where: [
+          { status: 'confirmed', paymentStatus: 'pending' as any, confirmedAt: LessThan(cutoff) },
+          { status: 'pending', paymentStatus: 'pending' as any, createdAt: LessThan(cutoff) },
+        ],
+        relations: ['guest', 'property'],
+      });
+
+      if (!unpaid.length) return;
+
+      const ids = unpaid.map((b) => b.id);
+      await this.bookingsRepo
+        .createQueryBuilder()
+        .update(BookingEntity)
+        .set({
+          status: 'cancelled',
+          cancelledBy: 'system',
+          cancelledAt: new Date(),
+          cancellationReason: 'Auto-cancelled: payment not received within 24 hours.',
+        } as any)
+        .whereInIds(ids)
+        .execute();
+
+      // Notify guests
+      await Promise.allSettled(
+        unpaid.map(async (booking) => {
+          await this.notificationsService.create(
+            booking.guestId,
+            'booking_cancelled',
+            'Booking auto-cancelled — payment overdue',
+            'تم إلغاء الحجز تلقائياً — تأخر الدفع',
+            `Booking #${booking.id} for ${booking.property?.title ?? 'your stay'} was auto-cancelled because payment was not received within 24 hours.`,
+            `تم إلغاء الحجز #${booking.id} لـ ${booking.property?.title ?? 'إقامتك'} تلقائياً لعدم استلام الدفع خلال 24 ساعة.`,
+            { bookingId: booking.id },
+          );
+          if (booking.guest?.email) {
+            await this.mail.send(
+              booking.guest.email,
+              'Booking cancelled — payment overdue — Oikivo',
+              tplBookingCancelled(
+                booking.guest.firstName,
+                'system',
+                booking.property?.title ?? 'your booking',
+                booking.checkIn,
+                booking.checkOut,
+                `#${booking.id}`,
+              ),
+            ).catch(() => {});
+          }
+        }),
+      );
+
+      this.logger.log(`[CRON] ${unpaid.length} unpaid booking(s) auto-cancelled after 24h deadline`);
+    } catch (err) {
+      this.logger.error(`[CRON] Error auto-cancelling unpaid bookings: ${(err as Error).message}`);
+    }
   }
 
   // Run every 30 minutes to release held deposits promptly after 48h deadline.
@@ -100,10 +171,17 @@ export class SchedulerService {
 
       if (bookings.length === 0) return;
 
-      await this.bookingsRepo.update(
-        bookings.map((b) => b.id),
-        { status: 'completed', paymentStatus: 'paid' },
-      );
+      // FIX B2: Only mark as 'paid' if payment was actually received; preserve original paymentStatus otherwise
+      const paidBookingIds = bookings.filter((b) => b.paymentStatus === 'paid').map((b) => b.id);
+      const unpaidBookingIds = bookings.filter((b) => b.paymentStatus !== 'paid').map((b) => b.id);
+
+      if (paidBookingIds.length > 0) {
+        await this.bookingsRepo.update(paidBookingIds, { status: 'completed', paymentStatus: 'paid' });
+      }
+      if (unpaidBookingIds.length > 0) {
+        await this.bookingsRepo.update(unpaidBookingIds, { status: 'completed' });
+        this.logger.warn(`[CRON] ${unpaidBookingIds.length} booking(s) auto-completed with unpaid payment status: ${unpaidBookingIds.join(', ')}`);
+      }
 
       // Notify guest + host to leave reviews (best-effort)
       await Promise.allSettled(
@@ -464,8 +542,12 @@ export class SchedulerService {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 30);
 
+      // FIX O6: Load cascade relations (photos, houseRules) so TypeORM cascade delete works correctly.
+      // Bookings/reviews use DB-level ON DELETE CASCADE via FK constraints.
       const expired = await this.propertiesRepo
         .createQueryBuilder('p')
+        .leftJoinAndSelect('p.photos', 'photos')
+        .leftJoinAndSelect('p.houseRules', 'rules')
         .where('p.status = :status', { status: 'archived' })
         .andWhere('p.archivedAt IS NOT NULL')
         .andWhere('p.archivedAt <= :cutoff', { cutoff })
@@ -473,8 +555,19 @@ export class SchedulerService {
 
       if (!expired.length) return;
 
-      await this.propertiesRepo.remove(expired);
-      this.logger.log(`[CRON] ${expired.length} expired archived listing(s) purged`);
+      // Remove one-by-one so a single FK failure doesn't abort the entire batch
+      let purged = 0;
+      for (const prop of expired) {
+        try {
+          await this.propertiesRepo.remove(prop);
+          purged++;
+        } catch (err) {
+          this.logger.warn(`[CRON] Failed to purge property #${prop.id}: ${(err as Error).message}`);
+        }
+      }
+      if (purged > 0) {
+        this.logger.log(`[CRON] ${purged} expired archived listing(s) purged`);
+      }
     } catch (err) {
       this.logger.error(`[CRON] Error purging archived listings: ${(err as Error).message}`);
     }
@@ -845,6 +938,8 @@ export class SchedulerService {
           'b.id AS b_id',
           'b.host_id AS b_host_id',
           'b.total_amount AS b_total_amount',
+          'b.base_amount AS b_base_amount',
+          'b.cleaning_fee AS b_cleaning_fee',
           'b.service_fee AS b_service_fee',
           'b.currency AS b_currency',
           'b.check_out AS b_check_out',
@@ -853,6 +948,8 @@ export class SchedulerService {
           b_id: number;
           b_host_id: number;
           b_total_amount: string;
+          b_base_amount: string;
+          b_cleaning_fee: string;
           b_service_fee: string;
           b_currency: string;
           b_check_out: string;
@@ -863,8 +960,10 @@ export class SchedulerService {
       let created = 0;
       for (const row of bookings) {
         try {
-          const totalAmount = parseFloat(row.b_total_amount);
           const serviceFee = parseFloat(row.b_service_fee);
+          const baseAmt = parseFloat(row.b_base_amount ?? row.b_total_amount);
+          const cleaningFee = parseFloat(row.b_cleaning_fee ?? '0');
+          const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
           const checkOutDate = new Date(row.b_check_out);
           const availableAt = new Date(checkOutDate);
           availableAt.setDate(availableAt.getDate() + 1);
@@ -874,8 +973,8 @@ export class SchedulerService {
             this.earningsRepo.create({
               hostId: row.b_host_id,
               bookingId: row.b_id,
-              amount: parseFloat((totalAmount - serviceFee).toFixed(2)),
-              platformFee: serviceFee,
+              amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
+              platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
               currency: row.b_currency ?? 'EGP',
               status: now >= availableAt ? 'available' : 'pending',
               availableAt,
@@ -892,6 +991,107 @@ export class SchedulerService {
       }
     } catch (err) {
       this.logger.error(`[CRON] Error reconciling earnings: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * FIX A1: Auto-decline pending bookings that the host hasn't responded to within 48 hours.
+   * Prevents permanent calendar lockout from stale pending bookings.
+   */
+  private async autoDeclineStalePendingBookings(): Promise<void> {
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48 hours ago
+    try {
+      const stale = await this.bookingsRepo.find({
+        where: {
+          status: 'pending' as any,
+          createdAt: LessThan(cutoff),
+        },
+        relations: ['guest', 'property'],
+      });
+
+      if (stale.length === 0) return;
+
+      for (const booking of stale) {
+        await this.bookingsRepo.update(booking.id, {
+          status: 'declined',
+          cancelledBy: 'system',
+          cancelledAt: new Date(),
+          cancellationReason: 'Auto-declined: host did not respond within 48 hours.',
+        } as any);
+
+        // Notify guest
+        if (booking.guest) {
+          await this.notificationsService.create(
+            booking.guest.id,
+            'booking',
+            'Booking request not accepted',
+            'طلب الحجز لم يتم قبوله',
+            `Your booking request for ${booking.property?.title ?? 'a property'} was not accepted by the host within the required time.`,
+            `لم يتم قبول طلب حجزك لـ ${booking.property?.title ?? 'عقار'} من قبل المضيف خلال الوقت المطلوب.`,
+            { bookingId: booking.id },
+          ).catch(() => {});
+        }
+
+        this.logger.log(`[CRON] Auto-declined stale pending booking #${booking.id} (created ${booking.createdAt})`);
+      }
+
+      this.logger.log(`[CRON] Auto-declined ${stale.length} stale pending booking(s)`);
+    } catch (err) {
+      this.logger.error(`[CRON] Error auto-declining stale pending bookings: ${(err as Error).message}`);
+    }
+  }
+
+  // ─── Purge jobs (replaces MySQL scheduled events) ────────────────────────
+
+  /** Purge login attempts older than 24 hours — runs every hour */
+  @Cron('15 * * * *')
+  async purgeOldLoginAttempts(): Promise<void> {
+    try {
+      const result = await this.dataSource.query(
+        `DELETE FROM login_attempts WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+      );
+      const deleted = result?.affectedRows ?? 0;
+      if (deleted > 0) {
+        this.logger.log(`[CRON] Purged ${deleted} old login attempt(s)`);
+      }
+    } catch (err) {
+      this.logger.error(`[CRON] Error purging old login attempts: ${(err as Error).message}`);
+    }
+  }
+
+  /** Purge expired & unused password reset tokens — runs every hour */
+  @Cron('20 * * * *')
+  async purgeExpiredPasswordResets(): Promise<void> {
+    try {
+      const result = await this.passwordResetsRepo
+        .createQueryBuilder()
+        .delete()
+        .where('expires_at < NOW()')
+        .andWhere('used_at IS NULL')
+        .execute();
+      if (result.affected && result.affected > 0) {
+        this.logger.log(`[CRON] Purged ${result.affected} expired password reset(s)`);
+      }
+    } catch (err) {
+      this.logger.error(`[CRON] Error purging expired password resets: ${(err as Error).message}`);
+    }
+  }
+
+  /** Purge expired & unused verification tokens — runs every hour */
+  @Cron('25 * * * *')
+  async purgeExpiredVerificationTokens(): Promise<void> {
+    try {
+      const result = await this.verificationTokensRepo
+        .createQueryBuilder()
+        .delete()
+        .where('expires_at < NOW()')
+        .andWhere('used_at IS NULL')
+        .execute();
+      if (result.affected && result.affected > 0) {
+        this.logger.log(`[CRON] Purged ${result.affected} expired verification token(s)`);
+      }
+    } catch (err) {
+      this.logger.error(`[CRON] Error purging expired verification tokens: ${(err as Error).message}`);
     }
   }
 }

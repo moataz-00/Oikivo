@@ -17,6 +17,7 @@ import { EarningEntity } from '../entities/earning.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailService, tplPaymentInvoice, tplRefundNotification } from '../mail/mail.service';
 import { CurrencyService } from '../common/currency.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class PaymentsService {
@@ -42,6 +43,7 @@ export class PaymentsService {
     private readonly config: ConfigService,
     private readonly mail: MailService,
     private readonly currencyService: CurrencyService,
+    private readonly auditLog: AuditLogService,
   ) {
     // FIX BUG-GC2: Fail fast in production if Stripe key is missing
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
@@ -66,6 +68,11 @@ export class PaymentsService {
         : 'https://sandboxapi.opaycheckout.com';
     if (!this.opayMerchantId || !this.opayPrivateKey) {
       this.logger.warn('OPAY_MERCHANT_ID or OPAY_PRIVATE_KEY not set — OPay payments disabled.');
+    }
+    // SEC: Fail fast in production if BACKEND_URL is not HTTPS
+    const backendUrlCheck = this.config.get<string>('BACKEND_URL', '');
+    if (nodeEnv === 'production' && backendUrlCheck && !backendUrlCheck.startsWith('https://')) {
+      throw new Error(`BACKEND_URL must use https:// in production. Got: ${backendUrlCheck}`);
     }
   }
 
@@ -175,8 +182,9 @@ export class PaymentsService {
   private async refundStayBooking(userId: number, bookingId: number, reason?: string) {
     const booking = await this.bookingsRepo.findOne({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
-    if (booking.guestId !== userId && booking.hostId !== userId) {
-      throw new ForbiddenException('Not authorized');
+    // FIX P4: Only the guest who made the payment can request a Stripe refund — hosts must go through admin/cancellation flow
+    if (booking.guestId !== userId) {
+      throw new ForbiddenException('Only the guest who made the payment can request a refund');
     }
     if (!booking.stripePaymentIntentId) {
       throw new BadRequestException('No Stripe payment found for this booking');
@@ -250,8 +258,8 @@ export class PaymentsService {
   async handleWebhook(payload: Buffer, signature: string): Promise<void> {
     const webhookSecret = this.config.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      this.logger.warn('STRIPE_WEBHOOK_SECRET not set — skipping webhook verification');
-      return;
+      this.logger.error('STRIPE_WEBHOOK_SECRET not set — rejecting webhook for security');
+      throw new BadRequestException('Webhook verification unavailable — server misconfigured');
     }
 
     let event: Stripe.Event;
@@ -274,6 +282,12 @@ export class PaymentsService {
       }
       case 'charge.refunded': {
         // Handled by refundBooking — no further action needed
+        break;
+      }
+      // FIX P3: Handle Stripe chargebacks to freeze earnings and notify host
+      case 'charge.dispute.created': {
+        const dispute = event.data.object as Stripe.Dispute;
+        await this.handleChargeDisputed(dispute);
         break;
       }
       default:
@@ -324,14 +338,17 @@ export class PaymentsService {
           if (!existingEarning) {
             const totalAmount = Number(booking.totalAmount);
             const serviceFee = Number(booking.serviceFee);
+            const baseAmt = Number(booking.baseAmount);
+            const cleaningFee = Number(booking.cleaningFee ?? 0);
+            const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
             const checkOutDate = new Date(booking.checkOut);
             const availableAt = new Date(checkOutDate);
             availableAt.setDate(availableAt.getDate() + 1); // available 1 day after checkout
             const earning = this.earningsRepo.create({
               hostId: booking.hostId,
               bookingId: id,
-              amount: parseFloat((totalAmount - serviceFee).toFixed(2)),
-              platformFee: serviceFee,
+              amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
+              platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
               currency: booking.currency ?? 'EGP',
               status: new Date() >= availableAt ? 'available' : 'pending',
               availableAt,
@@ -380,14 +397,75 @@ export class PaymentsService {
     }
   }
 
+  // FIX P3: Handle Stripe chargebacks — freeze earnings, notify host, log dispute
+  private async handleChargeDisputed(dispute: Stripe.Dispute) {
+    const paymentIntentId =
+      typeof dispute.payment_intent === 'string'
+        ? dispute.payment_intent
+        : (dispute.payment_intent as any)?.id;
+    if (!paymentIntentId) {
+      this.logger.warn(`Stripe dispute ${dispute.id} has no payment_intent — skipping`);
+      return;
+    }
+
+    const booking = await this.bookingsRepo.findOne({
+      where: { stripePaymentIntentId: paymentIntentId },
+      relations: ['guest', 'property'],
+    });
+    if (!booking) {
+      this.logger.warn(`Stripe dispute ${dispute.id}: no booking found for PI ${paymentIntentId}`);
+      return;
+    }
+
+    // Freeze associated earnings so host cannot withdraw during dispute
+    await this.earningsRepo.update(
+      { bookingId: booking.id },
+      { status: 'frozen' as any },
+    );
+
+    // Mark booking payment as disputed
+    await this.bookingsRepo.update(booking.id, {
+      paymentStatus: 'disputed' as any,
+    });
+
+    // Notify the host about the chargeback
+    const hostId = booking.property?.hostId ?? (booking as any).hostId;
+    await this.notificationsService.create(
+      hostId,
+      'payment_disputed',
+      'Payment Disputed — Chargeback Filed',
+      'نزاع على الدفع — طلب استرداد',
+      `A chargeback has been filed for booking #${booking.id} (${booking.property?.title ?? 'property'}). Earnings are frozen until the dispute is resolved.`,
+      `تم تقديم طلب استرداد للحجز #${booking.id} (${booking.property?.title ?? 'العقار'}). الأرباح مجمدة حتى يتم حل النزاع.`,
+      { bookingId: booking.id, disputeId: dispute.id },
+    ).catch(() => {});
+
+    this.logger.warn(`Stripe chargeback filed for booking #${booking.id}, dispute: ${dispute.id}, amount: ${dispute.amount}`);
+
+    await this.auditLog.log({
+      eventType: 'payment.stripe.dispute_created',
+      actorId: null as any,
+      entityType: 'booking',
+      entityId: booking.id,
+      metadata: {
+        disputeId: dispute.id,
+        amount: dispute.amount,
+        reason: dispute.reason,
+        paymentIntentId,
+      },
+    });
+  }
+
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   /** Convert decimal amount to Stripe's smallest currency unit (e.g. piasters for EGP) */
+  // FIX P5: Use string-based conversion to avoid IEEE 754 floating-point rounding errors
   private toSmallestUnit(amount: number, currency: string): number {
-    // Zero-decimal currencies do not need x100 (complete Stripe list)
     const zeroDecimal = ['bif', 'clp', 'djf', 'gnf', 'idr', 'isk', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf'];
     if (zeroDecimal.includes(currency.toLowerCase())) return Math.round(amount);
-    return Math.round(amount * 100);
+    // Normalize to exactly 2 decimal places via string, then parse — avoids 1.005*100=100.4999 issues
+    const [whole, frac = ''] = amount.toFixed(2).split('.');
+    return parseInt(whole, 10) * 100 + parseInt(frac.padEnd(2, '0').slice(0, 2), 10);
   }
 
   // ─── OPay helpers ──────────────────────────────────────────────────────────
@@ -414,6 +492,12 @@ export class PaymentsService {
     const sorted = this.sortObjectKeys(body);
     const bodyStr = JSON.stringify(sorted);
     return crypto.createHmac('sha512', this.opayPrivateKey).update(bodyStr).digest('hex');
+  }
+
+  // FIX P2: Timing-safe string comparison to prevent timing attacks on HMAC verification
+  private timingSafeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
   }
 
   /** Low-level POST to any OPay endpoint. Returns parsed JSON response. */
@@ -460,21 +544,16 @@ export class PaymentsService {
     return `js-${prefix}-${bookingId}-${Date.now().toString(36)}`;
   }
 
-  // ─── OPay Non-3DS Card Payment ─────────────────────────────────────────────
+  // ─── OPay Hosted Checkout (PCI Compliant) ────────────────────────────────
 
-  async createOpayCardPayment(
+  // FIX P1: Replaced raw card flow with OPay hosted checkout — card data never passes through backend.
+  // The frontend redirects the user to OPay's hosted payment page. After payment, OPay calls our callback.
+  async createOpayCheckout(
     userId: number,
     bookingId: number,
     bookingType: 'stay' | 'experience',
-    card: {
-      cardHolderName: string;
-      cardNumber: string;
-      expiryMonth: string;
-      expiryYear: string;
-      cvv: string;
-    },
     returnUrl: string,
-  ): Promise<{ status: 'success' | 'pending' | 'failed'; orderNo?: string; message?: string }> {
+  ): Promise<{ status: 'redirect'; cashierUrl: string; orderNo?: string; reference: string }> {
     if (!this.opayMerchantId || !this.opayPrivateKey) {
       throw new BadRequestException('OPay is not configured on this server');
     }
@@ -492,19 +571,16 @@ export class PaymentsService {
     if (booking.paymentStatus === 'paid') {
       throw new BadRequestException('Booking is already paid');
     }
-    // Issue #8: Block duplicate payment attempts
     if (booking.paymentStatus === 'submitted') {
       throw new BadRequestException('An InstaPay payment is pending admin verification. Please wait for confirmation or contact support.');
     }
 
     const reference = this.opayRef(bookingType, bookingId);
-    // OPay amounts are in smallest currency unit (piastres for EGP: 1 EGP = 100 piastres)
-    const amountTotal = Math.round(Number(booking.totalAmount) * 100);
+    const amountTotal = this.toSmallestUnit(Number(booking.totalAmount), 'egp');
     const fe = (this.config.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
     const backendUrl = this.config.get<string>('BACKEND_URL', 'http://localhost:3001/api').replace(/\/+$/, '');
     const callbackUrl = `${backendUrl}/payments/opay/callback`;
 
-    // Normalise guest phone to Egyptian international format (e.g. 201XXXXXXXXX)
     const rawPhone = (booking.guest?.phone ?? '').replace(/\D/g, '').replace(/^0/, '');
     const normPhone = rawPhone.startsWith('20') ? rawPhone : `20${rawPhone}`;
 
@@ -512,111 +588,61 @@ export class PaymentsService {
       country: 'EG',
       reference,
       amount: { currency: 'EGP', total: amountTotal },
-      bankcard: {
-        cardHolderName: card.cardHolderName,
-        cardNumber: card.cardNumber,
-        expiryMonth: card.expiryMonth,
-        expiryYear: card.expiryYear,
-        cvv: card.cvv,
-        enable3DS: false,
-      },
-      payMethod: 'BankCard',
       product: {
         name: `Oikivo booking #${bookingId}`,
         description: bookingType === 'stay' ? 'Property stay booking' : 'Experience booking',
       },
       userInfo: {
-        userName: card.cardHolderName,
+        userName: booking.guest?.firstName ?? 'Guest',
         userMobile: normPhone || '201000000000',
         userEmail: booking.guest?.email ?? '',
       },
+      payMethod: 'BankCard',
       callbackUrl,
       returnUrl: returnUrl || `${fe.replace(/\/+$/, '')}/en/trips`,
     };
 
-    // X8: Persist the reference BEFORE calling OPay — so it can always be retrieved
-    // even if the app crashes mid-request or OPay returns an unexpected error.
+    // Persist the reference BEFORE calling OPay
     await (repo as Repository<any>).update(bookingId, {
       paymentMethod: 'opay-card',
       opayOrderReference: reference,
     });
 
-    this.logger.log(`OPay card payment request for booking #${bookingId}: ref=${reference}, amount=${amountTotal}, env=${this.opayBaseUrl}`);
+    this.logger.log(`OPay checkout request for booking #${bookingId}: ref=${reference}, amount=${amountTotal}, env=${this.opayBaseUrl}`);
 
     const resp = await this.opayRequest<{
       code: string;
       message: string;
-      data?: { reference: string; orderNo: string; status: string; failureReason?: string };
-    }>('/api/v1/international/payment/create', body);
+      data?: { reference: string; orderNo: string; status: string; cashierUrl?: string };
+    }>('/api/v1/international/cashier/create', body);
 
-    this.logger.log(`OPay card payment response for booking #${bookingId}: code=${resp.code} message=${resp.message} status=${resp.data?.status ?? 'N/A'} orderNo=${resp.data?.orderNo ?? 'N/A'} failureReason=${resp.data?.failureReason ?? 'N/A'}`);
+    this.logger.log(`OPay checkout response for booking #${bookingId}: code=${resp.code} status=${resp.data?.status ?? 'N/A'} orderNo=${resp.data?.orderNo ?? 'N/A'}`);
 
-    if (resp.code === '00000' && resp.data?.status === 'SUCCESS') {
-      // Issue #5: wrap UPDATE + EarningEntity creation in a single transaction
-      if (bookingType === 'stay') {
-        await this.bookingsRepo.manager.transaction(async (em) => {
-          await em.update(BookingEntity, bookingId, { paymentStatus: 'paid', status: 'confirmed' as any });
-          const existingEarning = await em.findOne(EarningEntity, { where: { bookingId } });
-          if (!existingEarning) {
-            const totalAmount = Number(booking.totalAmount);
-            const serviceFee = Number(booking.serviceFee);
-            const checkOutDate = new Date(booking.checkOut);
-            const availableAt = new Date(checkOutDate);
-            availableAt.setDate(availableAt.getDate() + 1);
-            await em.save(EarningEntity, em.create(EarningEntity, {
-              hostId: booking.hostId,
-              bookingId,
-              amount: parseFloat((totalAmount - serviceFee).toFixed(2)),
-              platformFee: serviceFee,
-              currency: (booking.currency ?? 'EGP'),
-              status: new Date() >= availableAt ? 'available' : 'pending',
-              availableAt,
-            }));
-          }
-        });
-      } else {
-        await (repo as Repository<any>).update(bookingId, { paymentStatus: 'paid' });
-      }
-
-      this.logger.log(`OPay card payment SUCCESS for ${bookingType} booking #${bookingId}, ref: ${reference}`);
-      return { status: 'success', orderNo: resp.data.orderNo };
-    }
-
-    if (resp.code === '00000' && resp.data?.status === 'PENDING') {
-      this.logger.log(`OPay card payment PENDING for ${bookingType} booking #${bookingId}, ref: ${reference}`);
+    if (resp.code === '00000' && resp.data?.cashierUrl) {
+      await this.auditLog.log({
+        eventType: 'payment.opay.checkout_created',
+        actorId: userId,
+        entityType: 'booking',
+        entityId: bookingId,
+        metadata: { paymentMethod: 'opay-checkout', reference, orderNo: resp.data.orderNo },
+      });
       return {
-        status: 'pending',
-        orderNo: resp.data?.orderNo,
-        message: 'Payment is being processed. You will be notified once it is confirmed.',
+        status: 'redirect',
+        cashierUrl: resp.data.cashierUrl,
+        orderNo: resp.data.orderNo,
+        reference,
       };
     }
 
-    const failureReason = resp.data?.failureReason ?? resp.message ?? 'Payment failed. Please check your card details.';
-    this.logger.warn(`OPay card payment FAILED for booking #${bookingId}: code=${resp.code} message=${resp.message} failureReason=${resp.data?.failureReason ?? 'N/A'}`);
-
-    // X16: Send payment failure email so guest knows to retry
-    try {
-      const fe = (this.config.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
-      const tripsUrl = `${fe.replace(/\/+$/, '')}/en/trips`;
-      if (booking.guest?.email) {
-        await this.mail.send(
-          booking.guest.email,
-          'Payment unsuccessful — please retry — Oikivo',
-          `<p>Hi ${booking.guest.firstName},</p>
-<p>Your OPay card payment for booking <strong>#${bookingId}</strong> could not be processed.</p>
-<p><strong>Reason:</strong> ${failureReason}</p>
-<p>Please <a href="${tripsUrl}">visit your trips page</a> to retry payment. Make sure your card details are correct and that you have sufficient funds.</p>
-<p>If the problem persists, try a different card or contact your bank.</p>`,
-        );
-      }
-    } catch (e) {
-      this.logger.error(`Failed to send OPay failure email: ${(e as Error).message}`);
-    }
-
-    return {
-      status: 'failed',
-      message: failureReason,
-    };
+    this.logger.error(`OPay checkout creation failed for booking #${bookingId}: code=${resp.code} message=${resp.message}`);
+    await this.auditLog.log({
+      eventType: 'payment.opay.checkout_failed',
+      actorId: userId,
+      entityType: 'booking',
+      entityId: bookingId,
+      metadata: { code: resp.code, message: resp.message, reference },
+    });
+    throw new BadRequestException(`OPay checkout creation failed: ${resp.message ?? 'Unknown error'}`);
   }
 
   // ─── OPay Refund ───────────────────────────────────────────────────────────
@@ -637,7 +663,10 @@ export class PaymentsService {
       relations: bookingType === 'stay' ? ['guest', 'property'] : ['guest', 'experience'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
-    if (booking.guestId !== userId && booking.hostId !== userId) throw new ForbiddenException('Not authorized');
+    // FIX P4: Only the guest who made the payment can request an OPay refund
+    if (booking.guestId !== userId) {
+      throw new ForbiddenException('Only the guest who made the payment can request a refund');
+    }
     if (!booking.opayOrderReference) {
       throw new BadRequestException('No OPay payment found for this booking');
     }
@@ -646,9 +675,15 @@ export class PaymentsService {
     }
 
     const refundRef = `${booking.opayOrderReference}-ref`;
+    const totalAmountPiastres = Math.round(Number(booking.totalAmount) * 100);
     const refundAmount = booking.refundAmount
       ? Math.round(Number(booking.refundAmount) * 100)
-      : Math.round(Number(booking.totalAmount) * 100);
+      : totalAmountPiastres;
+    if (refundAmount > totalAmountPiastres) {
+      throw new BadRequestException(
+        `Refund amount (${(refundAmount / 100).toFixed(2)} EGP) exceeds the original charge (${(totalAmountPiastres / 100).toFixed(2)} EGP)`,
+      );
+    }
 
     const fe = (this.config.get<string>('FRONTEND_URL', 'http://localhost:3000').split(',')[0]?.trim()) || 'http://localhost:3000';
     const backendUrl = this.config.get<string>('BACKEND_URL', 'http://localhost:3001/api').replace(/\/+$/, '');
@@ -676,6 +711,13 @@ export class PaymentsService {
     }
 
     await (repo as Repository<any>).update(bookingId, { paymentStatus: 'refunded' });
+    await this.auditLog.log({
+      eventType: 'payment.opay.refund',
+      actorId: userId,
+      entityType: 'booking',
+      entityId: bookingId,
+      metadata: { paymentMethod: 'opay-card', refundAmount, originalRef: booking.opayOrderReference, refundRef },
+    });
 
     // Send refund notification email
     try {
@@ -753,16 +795,16 @@ export class PaymentsService {
   ): Promise<void> {
     if (!this.opayMerchantId || !this.opayPrivateKey) return;
 
-    // Verify the callback came from OPay by re-computing the HMAC
+    // FIX P2: Verify callback HMAC using timing-safe comparison to prevent timing attacks
     const expectedSig = this.generateOpaySignature(body);
     const receivedSig = (authHeader ?? '').replace(/^Bearer\s+/i, '');
-    if (!receivedSig || receivedSig !== expectedSig) {
-      this.logger.warn('OPay callback signature missing or mismatch — rejected');
-      return;
+    if (!receivedSig || !this.timingSafeCompare(receivedSig, expectedSig)) {
+      this.logger.warn(`OPay callback signature mismatch — rejected (ref: ${(body as any)?.reference ?? 'unknown'})`);
+      throw new BadRequestException('Invalid OPay callback signature');
     }
-    if (!merchantIdHeader || merchantIdHeader !== this.opayMerchantId) {
-      this.logger.warn('OPay callback MerchantId missing or mismatch — rejected');
-      return;
+    if (!merchantIdHeader || !this.timingSafeCompare(merchantIdHeader, this.opayMerchantId)) {
+      this.logger.warn(`OPay callback MerchantId mismatch — rejected (ref: ${(body as any)?.reference ?? 'unknown'})`);
+      throw new BadRequestException('Invalid OPay merchant ID');
     }
 
     const { reference, status } = body as { reference?: string; status?: string };
@@ -781,16 +823,19 @@ export class PaymentsService {
 
           const existingEarning = await em.findOne(EarningEntity, { where: { bookingId: stayBooking.id } });
           if (!existingEarning) {
-            const totalAmount = Number(stayBooking.totalAmount);
+            // FIX B6: Use canonical earning formula consistent with Stripe handler
+            const baseAmt = Number(stayBooking.baseAmount);
+            const cleaningFee = Number(stayBooking.cleaningFee ?? 0);
             const serviceFee = Number(stayBooking.serviceFee);
+            const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
             const checkOutDate = new Date(stayBooking.checkOut);
             const availableAt = new Date(checkOutDate);
             availableAt.setDate(availableAt.getDate() + 1);
             await em.save(EarningEntity, em.create(EarningEntity, {
               hostId: stayBooking.hostId,
               bookingId: stayBooking.id,
-              amount: parseFloat((totalAmount - serviceFee).toFixed(2)),
-              platformFee: serviceFee,
+              amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
+              platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
               currency: stayBooking.currency ?? 'EGP',
               status: new Date() >= availableAt ? 'available' : 'pending',
               availableAt,

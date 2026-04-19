@@ -7,6 +7,8 @@ import {
   User,
   Property,
   PropertyListItem,
+  PropertyPhoto,
+  HouseRule,
   Booking,
   Review,
   Wishlist,
@@ -152,9 +154,58 @@ export const propertiesApi = {
     return res.data;
   },
 
-  getHostListings: async (): Promise<PropertyListItem[]> => {
-    const res = await api.get<{ data: PropertyListItem[] }>('/properties/host/listings');
-    return res.data.data ?? res.data as any;
+  getHostListings: async (page = 1, limit = 20): Promise<{ data: PropertyListItem[]; total: number }> => {
+    const res = await api.get<{ data: PropertyListItem[]; total: number }>('/properties/host/listings', {
+      params: { page, limit },
+    });
+    return res.data;
+  },
+
+  publish: async (id: number): Promise<Property> => {
+    const res = await api.post<Property>(`/properties/${id}/publish`);
+    return res.data;
+  },
+
+  unpublish: async (id: number): Promise<Property> => {
+    const res = await api.post<Property>(`/properties/${id}/unpublish`);
+    return res.data;
+  },
+
+  verifyListing: async (id: number): Promise<{ checks: Array<{ key: string; label: string; status: 'pass' | 'fail'; message?: string }> }> => {
+    const res = await api.get(`/properties/${id}/verify`);
+    return res.data;
+  },
+
+  updateHouseRules: async (
+    id: number,
+    rules: Array<{ rule: string; ruleAr?: string }>,
+  ): Promise<void> => {
+    await api.patch(`/properties/${id}/house-rules`, { rules });
+  },
+
+  updateAmenities: async (id: number, amenityIds: number[]): Promise<void> => {
+    await api.patch(`/properties/${id}/amenities`, { amenityIds });
+  },
+
+  uploadPhotos: async (id: number, uris: string[]): Promise<PropertyPhoto[]> => {
+    const formData = new FormData();
+    uris.forEach((uri, idx) => {
+      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+      formData.append('files', { uri, name: `photo_${idx}.${ext}`, type: mime } as any);
+    });
+    const res = await api.post<PropertyPhoto[]>(`/uploads/photos/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+
+  setCoverPhoto: async (propertyId: number, photoId: number): Promise<void> => {
+    await api.patch(`/uploads/photos/${propertyId}/${photoId}/cover`);
+  },
+
+  deletePhoto: async (propertyId: number, photoId: number): Promise<void> => {
+    await api.delete(`/uploads/photos/${propertyId}/${photoId}`);
   },
 };
 
@@ -516,11 +567,12 @@ export const notificationsApi = {
 export const availabilityApi = {
   getCalendar: async (
     propertyId: number,
-    month: string,
+    monthStr: string,
   ): Promise<{ date: string; available: boolean; price?: number }[]> => {
+    const [year, month] = monthStr.split('-');
     const res = await api.get<
       { date: string; available: boolean; price?: number }[]
-    >(`/availability/${propertyId}`, { params: { month } });
+    >(`/availability/${propertyId}`, { params: { year, month: parseInt(month, 10) } });
     return res.data;
   },
 
@@ -530,7 +582,64 @@ export const availabilityApi = {
     endDate: string;
     reason?: string;
   }): Promise<void> => {
-    await api.post('/availability/block', data);
+    await api.post(`/availability/${data.propertyId}/block`, {
+      startDate: data.startDate,
+      endDate: data.endDate,
+      reason: data.reason ?? 'Blocked by host',
+    });
+  },
+
+  setSeasonalPricing: async (data: {
+    propertyId: number;
+    startDate: string;
+    endDate: string;
+    pricePerNight: number;
+  }): Promise<void> => {
+    await api.post(`/availability/${data.propertyId}/seasonal-pricing`, {
+      startDate: data.startDate,
+      endDate: data.endDate,
+      pricePerNight: data.pricePerNight,
+    });
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Payouts / Earnings
+// ---------------------------------------------------------------------------
+
+export interface EarningsSummary {
+  summary: { total: number; available: number; pending: number; paid: number; currency: string };
+  earnings: Array<{
+    id: number;
+    amount: number;
+    status: 'available' | 'pending' | 'paid';
+    availableAt: string;
+    booking?: { id: number; checkIn: string; checkOut: string; guest?: { firstName: string; lastName: string } };
+  }>;
+}
+
+export const payoutsApi = {
+  getEarnings: async (): Promise<EarningsSummary> => {
+    const res = await api.get<EarningsSummary>('/payouts/earnings');
+    return res.data;
+  },
+
+  requestPayout: async (amount: number): Promise<void> => {
+    await api.post('/payouts/request', { amount });
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Host performance
+// ---------------------------------------------------------------------------
+
+export const hostMetricsApi = {
+  // Returns an array of per-property performance metrics for the current host.
+  // Pass an optional array of property IDs to scope the results.
+  getPerformance: async (ids?: number[]): Promise<any[]> => {
+    const params = ids?.length ? { ids: ids.join(',') } : undefined;
+    const res = await api.get('/properties/host/compare', { params });
+    return res.data;
   },
 };
 

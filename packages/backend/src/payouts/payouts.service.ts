@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { EarningEntity } from '../entities/earning.entity';
@@ -38,6 +38,7 @@ export class PayoutsService {
     private config: ConfigService,
     private mail: MailService,
     private auditLog: AuditLogService,
+    private dataSource: DataSource,
   ) {}
 
   // ─── AES-256-GCM field encryption ─────────────────────────────────────────
@@ -163,51 +164,65 @@ export class PayoutsService {
   async requestPayout(hostId: number, dto: RequestPayoutDto) {
     await this.syncEarnings(hostId);
 
-    const available = await this.earningsRepo
-      .createQueryBuilder('e')
-      .select('COALESCE(SUM(e.amount), 0)', 'total')
-      .where('e.host_id = :hostId AND e.status = :status', { hostId, status: 'available' })
-      .getRawOne();
+    // FIX PO3: Use a transaction with pessimistic locking to prevent duplicate/concurrent payouts
+    return this.dataSource.transaction(async (manager) => {
+      // Check for any pending payouts — prevent duplicate requests
+      const pendingCount = await manager.getRepository(PayoutEntity).count({
+        where: { hostId, status: 'pending' } as any,
+      });
+      if (pendingCount > 0) {
+        throw new BadRequestException(
+          'You already have a pending payout request. Please wait for it to be processed.',
+        );
+      }
 
-    const availableBalance = Number(available?.total ?? 0);
-    if (dto.amount > availableBalance) {
-      throw new BadRequestException(
-        `Insufficient available balance. Available: EGP ${availableBalance.toFixed(2)}`,
+      // Lock available earnings rows for this host to prevent concurrent reads
+      const lockedEarnings = await manager
+        .getRepository(EarningEntity)
+        .createQueryBuilder('e')
+        .setLock('pessimistic_write')
+        .where('e.host_id = :hostId AND e.status = :status', { hostId, status: 'available' })
+        .orderBy('e.createdAt', 'ASC')
+        .getMany();
+
+      const availableBalance = lockedEarnings.reduce((s, e) => s + Number(e.amount), 0);
+      if (dto.amount > availableBalance) {
+        throw new BadRequestException(
+          `Insufficient available balance. Available: EGP ${availableBalance.toFixed(2)}`,
+        );
+      }
+
+      const payout = await manager.getRepository(PayoutEntity).save(
+        manager.getRepository(PayoutEntity).create({
+          hostId,
+          amount: dto.amount,
+          currency: 'EGP',
+          method: dto.method,
+          accountDetails: this.encryptField(dto.accountDetails),
+          note: dto.note ?? null,
+          status: 'pending',
+          isAuto: false,
+        }),
       );
-    }
 
-    const payout = await this.payoutsRepo.save(
-      this.payoutsRepo.create({
-        hostId,
-        amount: dto.amount,
-        currency: 'EGP',
-        method: dto.method,
-        accountDetails: this.encryptField(dto.accountDetails),
-        note: dto.note ?? null,
-        status: 'pending',
-        isAuto: false,
-      }),
-    );
+      // FIX PO2: Mark earnings as 'reserved' (not 'paid') — they stay recoverable if payout is rejected
+      let remaining = dto.amount;
+      for (const earning of lockedEarnings) {
+        if (remaining <= 0) break;
+        await manager.getRepository(EarningEntity).update(earning.id, {
+          status: 'reserved',
+          payoutId: payout.id,
+        } as any);
+        remaining -= Number(earning.amount);
+      }
 
-    // Mark consumed earnings as paid (FIFO)
-    let remaining = dto.amount;
-    const availableEarnings = await this.earningsRepo.find({
-      where: { hostId, status: 'available' },
-      order: { createdAt: 'ASC' },
-    });
-    for (const earning of availableEarnings) {
-      if (remaining <= 0) break;
-      await this.earningsRepo.update(earning.id, { status: 'paid' });
-      remaining -= Number(earning.amount);
-    }
-
-    void this.auditLog.log({
-      eventType: 'payout.requested',
-      actorId: hostId,
-      entityType: 'payout',
-      entityId: payout.id,
-      metadata: { amount: dto.amount, method: dto.method },
-    });
+      void this.auditLog.log({
+        eventType: 'payout.requested',
+        actorId: hostId,
+        entityType: 'payout',
+        entityId: payout.id,
+        metadata: { amount: dto.amount, method: dto.method },
+      });
 
     // Send payout request confirmation email (fire-and-forget)
     void (async () => {
@@ -235,7 +250,8 @@ export class PayoutsService {
       } catch { /* non-critical */ }
     })();
 
-    return payout;
+      return payout;
+    }); // end transaction
   }
 
   async getAutoPayoutSettings(hostId: number) {

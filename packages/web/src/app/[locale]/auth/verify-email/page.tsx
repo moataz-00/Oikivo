@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -44,7 +44,7 @@ export default function VerifyEmailPage() {
       <div className="w-full max-w-md bg-white rounded-2xl border border-neutral-200 shadow-sm p-10 text-center">
         {/* Brand mark */}
         <Link href={`/${locale}`} className="inline-flex items-center gap-2 mb-8">
-          <span className="text-2xl font-bold text-brand">Journey Stay</span>
+          <span className="text-2xl font-bold text-brand">Oikivo</span>
         </Link>
 
         {status === 'loading' && (

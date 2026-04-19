@@ -8,6 +8,7 @@ import { ExperienceBookingEntity } from '../entities/experience-booking.entity';
 import { EarningEntity } from '../entities/earning.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MailModule } from '../mail/mail.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { MailModule } from '../mail/mail.module';
     TypeOrmModule.forFeature([BookingEntity, ExperienceBookingEntity, EarningEntity]),
     NotificationsModule,
     MailModule,
+    AuditLogModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],

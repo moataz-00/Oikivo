@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
-  Unlock,
+  Tag,
 } from 'lucide-react-native';
 import {
   format,
@@ -26,6 +27,7 @@ import {
   startOfDay,
 } from 'date-fns';
 import { availabilityApi } from '@/lib/api';
+import { Input } from '@/components/ui/Input';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -43,9 +45,11 @@ export default function CalendarManagementScreen() {
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
+  const [tab, setTab] = useState<'block' | 'pricing'>('block');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
   const [selectedEnd, setSelectedEnd] = useState<Date | null>(null);
+  const [seasonalPrice, setSeasonalPrice] = useState('');
 
   const monthStr = format(currentMonth, 'yyyy-MM');
 
@@ -71,6 +75,23 @@ export default function CalendarManagementScreen() {
     });
     return set;
   }, [calendarData]);
+
+  // ---------------------------------------------------------------------------
+  // Seasonal pricing mutation
+  // ---------------------------------------------------------------------------
+  const seasonalPricingMutation = useMutation({
+    mutationFn: availabilityApi.setSeasonalPricing,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar', propertyId] });
+      setSelectedStart(null);
+      setSelectedEnd(null);
+      setSeasonalPrice('');
+      success('Saved', 'Seasonal pricing has been applied to the selected dates.');
+    },
+    onError: () => {
+      showError('Error', 'Failed to set seasonal pricing. Please try again.');
+    },
+  });
 
   // ---------------------------------------------------------------------------
   // Block dates mutation
@@ -147,6 +168,38 @@ export default function CalendarManagementScreen() {
     );
   };
 
+  const handleSetSeasonalPricing = () => {
+    if (!selectedStart || !selectedEnd) {
+      alert({
+        type: 'warning',
+        title: 'Select Dates',
+        message: 'Please select a start and end date for the price override.',
+      });
+      return;
+    }
+    const price = parseFloat(seasonalPrice);
+    if (!seasonalPrice || isNaN(price) || price <= 0) {
+      alert({
+        type: 'warning',
+        title: 'Enter Price',
+        message: 'Please enter a valid price per night.',
+      });
+      return;
+    }
+    confirm(
+      'Set Seasonal Price',
+      `Set price to $${price}/night from ${format(selectedStart, 'MMM d')} to ${format(selectedEnd, 'MMM d, yyyy')}?`,
+      () =>
+        seasonalPricingMutation.mutate({
+          propertyId,
+          startDate: format(selectedStart, 'yyyy-MM-dd'),
+          endDate: format(selectedEnd, 'yyyy-MM-dd'),
+          pricePerNight: price,
+        }),
+      { confirmText: 'Apply', cancelText: 'Cancel' },
+    );
+  };
+
   // ---------------------------------------------------------------------------
   // Calendar grid
   // ---------------------------------------------------------------------------
@@ -173,6 +226,34 @@ export default function CalendarManagementScreen() {
     <View className="flex-1 bg-white">
       <ScreenHeader title="Calendar" />
 
+      {/* Tab toggle */}
+      <View className="flex-row mx-6 mt-4 mb-2 bg-gray-100 rounded-xl p-1">
+        <TouchableOpacity
+          onPress={() => { setTab('block'); setSelectedStart(null); setSelectedEnd(null); }}
+          activeOpacity={0.8}
+          className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5 ${
+            tab === 'block' ? 'bg-white shadow-sm' : ''
+          }`}
+        >
+          <Lock size={14} color={tab === 'block' ? '#1a1a1a' : '#9CA3AF'} />
+          <Text className={`text-sm font-semibold ${
+            tab === 'block' ? 'text-gray-900' : 'text-gray-400'
+          }`}>Block Dates</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { setTab('pricing'); setSelectedStart(null); setSelectedEnd(null); }}
+          activeOpacity={0.8}
+          className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5 ${
+            tab === 'pricing' ? 'bg-white shadow-sm' : ''
+          }`}
+        >
+          <Tag size={14} color={tab === 'pricing' ? '#1a1a1a' : '#9CA3AF'} />
+          <Text className={`text-sm font-semibold ${
+            tab === 'pricing' ? 'text-gray-900' : 'text-gray-400'
+          }`}>Seasonal Pricing</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -189,6 +270,17 @@ export default function CalendarManagementScreen() {
             <ChevronRight size={22} color="#222" />
           </TouchableOpacity>
         </View>
+
+        {/* Tab description */}
+        {tab === 'block' ? (
+          <View className="px-6 mb-3">
+            <Text className="text-sm text-gray-500">Select a date range to block — guests won't be able to book those nights.</Text>
+          </View>
+        ) : (
+          <View className="px-6 mb-3">
+            <Text className="text-sm text-gray-500">Select a date range and enter a custom price per night to override your base rate.</Text>
+          </View>
+        )}
 
         {/* Legend */}
         <View className="flex-row items-center justify-center gap-6 px-6 mb-4">
@@ -296,17 +388,40 @@ export default function CalendarManagementScreen() {
             </Text>
           </View>
         )}
+
+        {/* Seasonal price input */}
+        {tab === 'pricing' && (
+          <View className="px-6 mt-4">
+            <Input
+              label="Price per night ($)"
+              placeholder="e.g. 150"
+              value={seasonalPrice}
+              onChangeText={setSeasonalPrice}
+              keyboardType="decimal-pad"
+            />
+          </View>
+        )}
       </ScrollView>
 
       {/* Bottom action */}
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 pt-3 pb-8">
-        <Button
-          title="Block Selected Dates"
-          onPress={handleBlockDates}
-          loading={blockMutation.isPending}
-          disabled={!selectedStart || !selectedEnd}
-          size="lg"
-        />
+        {tab === 'block' ? (
+          <Button
+            title="Block Selected Dates"
+            onPress={handleBlockDates}
+            loading={blockMutation.isPending}
+            disabled={!selectedStart || !selectedEnd}
+            size="lg"
+          />
+        ) : (
+          <Button
+            title="Apply Seasonal Price"
+            onPress={handleSetSeasonalPricing}
+            loading={seasonalPricingMutation.isPending}
+            disabled={!selectedStart || !selectedEnd || !seasonalPrice}
+            size="lg"
+          />
+        )}
       </View>
     </View>
   );

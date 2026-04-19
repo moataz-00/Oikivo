@@ -106,8 +106,42 @@ export class PropertiesService {
     }
 
     const { amenityIds, ...updateData } = dto;
+
+    // FIX P9: If property is published, validate that update doesn't break listing requirements
+    const isLive = property.status === 'published' || property.status === 'pending_review';
+    if (isLive) {
+      // Block removing required fields on a live listing
+      if (updateData.pricePerNight !== undefined && Number(updateData.pricePerNight) <= 0) {
+        throw new BadRequestException('Cannot set price to 0 on a published listing. Unpublish first.');
+      }
+      if (updateData.title !== undefined && !updateData.title.trim()) {
+        throw new BadRequestException('Cannot remove title from a published listing.');
+      }
+      if (updateData.description !== undefined && !updateData.description.trim()) {
+        throw new BadRequestException('Cannot remove description from a published listing.');
+      }
+      if (updateData.maxGuests !== undefined && updateData.maxGuests < 1) {
+        throw new BadRequestException('Cannot set guest capacity below 1 on a published listing.');
+      }
+      // Block reducing amenities below minimum on a live listing
+      if (amenityIds !== undefined && amenityIds.length < 3) {
+        throw new BadRequestException('Published listings require at least 3 amenities.');
+      }
+    }
+
     Object.assign(property, updateData);
     await this.propertiesRepo.save(property);
+
+    // FIX P9: After saving, re-check photo count for live listings
+    if (isLive && amenityIds === undefined) {
+      const photoCount = property.photos?.length ?? 0;
+      if (photoCount < 5) {
+        // Auto-unpublish if photos dropped below minimum
+        property.status = 'draft' as any;
+        property.isActive = false;
+        await this.propertiesRepo.save(property);
+      }
+    }
 
     if (amenityIds !== undefined) {
       // Clear existing amenities and add new ones
@@ -237,19 +271,19 @@ export class PropertiesService {
       },
     ];
 
-    // host_id is informational only — it no longer blocks canPublish
-    const infoChecks: { key: string; label: string; status: 'pass' | 'info'; message?: string }[] = [
+    // FIX P6: host_id verification is now a blocking check — consistent with publish() gate
+    const infoChecks: { key: string; label: string; status: 'pass' | 'fail' | 'info'; message?: string }[] = [
       {
         key: 'host_id',
-        label: 'Government ID verified (optional)',
-        status: host?.idVerificationStatus === 'approved' ? 'pass' : 'info',
+        label: 'Government ID verified',
+        status: host?.idVerificationStatus === 'approved' ? 'pass' : 'fail',
         ...(host?.idVerificationStatus !== 'approved' && {
           message:
             host?.idVerificationStatus === 'pending'
-              ? 'Your ID is under review — it will be shown as verified once approved.'
+              ? 'Your ID is under review — publishing will be available once approved.'
               : host?.idVerificationStatus === 'rejected'
-              ? 'Your ID was rejected. Re-upload to get the verification badge.'
-              : 'Uploading a government ID increases guest trust but is not required to publish.',
+              ? 'Your ID was rejected. Please re-upload to publish your listing.'
+              : 'Government ID verification is required before publishing. Upload your ID in account settings.',
         }),
       },
       {
@@ -267,13 +301,15 @@ export class PropertiesService {
     ];
 
     const passCount = checks.filter((c) => c.status === 'pass').length;
+    // FIX P6: infoChecks with status 'fail' also block publishing
+    const infoFailCount = infoChecks.filter((c) => c.status === 'fail').length;
 
     return {
       propertyId: id,
-      canPublish: passCount === checks.length,
+      canPublish: passCount === checks.length && infoFailCount === 0,
       checks: [...checks, ...infoChecks],
       passCount,
-      totalCount: checks.length,
+      totalCount: checks.length + infoChecks.filter((c) => c.status !== 'info').length,
     };
   }
 
@@ -294,9 +330,7 @@ export class PropertiesService {
     if (!host?.avatarUrl) {
       throw new BadRequestException('Profile photo required before publishing. Upload a photo in your profile settings.');
     }
-    if (host?.idVerificationStatus !== 'approved') {
-      throw new BadRequestException('Government ID verification is required before publishing your first listing.');
-    }
+    // FIX P6: Removed separate idVerificationStatus check — now handled by verifyListing() below
     const cancellations = Number((host as any).hostCancelledBookingsCount ?? 0);
     if (cancellations >= 8) {
       throw new BadRequestException('Publishing is temporarily restricted due to repeated host-initiated cancellations. Please contact support.');
@@ -355,6 +389,21 @@ export class PropertiesService {
     if (property.hostId !== hostId) {
       throw new ForbiddenException('You do not own this property');
     }
+
+    // FIX P7: Block transfer if property has active bookings
+    const activeBookingCount = await this.bookingsRepo
+      .createQueryBuilder('booking')
+      .where('booking.propertyId = :propertyId', { propertyId: id })
+      .andWhere('booking.status IN (:...statuses)', {
+        statuses: ['pending', 'confirmed', 'in_progress'],
+      })
+      .getCount();
+    if (activeBookingCount > 0) {
+      throw new BadRequestException(
+        `Cannot transfer property with ${activeBookingCount} active booking(s). Cancel or complete all bookings first.`,
+      );
+    }
+
     const newOwner = await this.usersRepo.findOne({ where: { email: newOwnerEmail } });
     if (!newOwner) {
       throw new BadRequestException('No user found with that email address');
@@ -409,14 +458,35 @@ export class PropertiesService {
     return this.propertiesRepo.save(property);
   }
 
+  // FIX P8: permanentDelete requires archived status + zero active bookings + ownership
   async permanentDelete(id: number, hostId: number): Promise<{ message: string }> {
     const property = await this.propertiesRepo.findOne({
       where: { id },
       relations: ['photos'],
     });
     if (!property) throw new NotFoundException('Property not found');
+
+    // Ownership check
     if (property.hostId !== hostId) {
-      throw new ForbiddenException('You do not own this property');
+      throw new ForbiddenException('You can only delete your own properties.');
+    }
+
+    // Verify property is archived
+    if (property.status !== 'archived') {
+      throw new BadRequestException('Property must be archived before permanent deletion.');
+    }
+
+    const activeBookingCount = await this.bookingsRepo
+      .createQueryBuilder('booking')
+      .where('booking.propertyId = :propertyId', { propertyId: id })
+      .andWhere('booking.status IN (:...statuses)', {
+        statuses: ['pending', 'confirmed', 'in_progress'],
+      })
+      .getCount();
+    if (activeBookingCount > 0) {
+      throw new BadRequestException(
+        `Cannot delete property with ${activeBookingCount} active booking(s).`,
+      );
     }
 
     // Delete physical photo files from disk
@@ -462,9 +532,14 @@ export class PropertiesService {
   }
 
   async addAmenities(propertyId: number, amenityIds: number[]): Promise<void> {
+    // FIX P10: Guard against empty array — would produce invalid SQL
+    if (!amenityIds || amenityIds.length === 0) return;
+
     const amenities = await this.amenitiesRepo.find({
       where: { id: In(amenityIds) },
     });
+
+    if (amenities.length === 0) return;
 
     await this.dataSource.query(
       `INSERT IGNORE INTO property_amenities (property_id, amenity_id) VALUES ${amenities.map(() => '(?, ?)').join(', ')}`,
@@ -584,7 +659,7 @@ export class PropertiesService {
     const cleaningFee = Number(property.cleaningFee ?? 0);
     const serviceFee = parseFloat(
       (
-        (discountedBase * Number(property.serviceFeePercent ?? 14)) /
+        ((discountedBase + cleaningFee) * Number(property.serviceFeePercent ?? 5)) /
         100
       ).toFixed(2),
     );

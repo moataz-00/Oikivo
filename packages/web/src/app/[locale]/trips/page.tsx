@@ -1,17 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, CreditCard, AlertTriangle, Scale, Home, Compass, Star, MessageSquareWarning, Printer, QrCode } from 'lucide-react';
+import { MapPin, CreditCard, AlertTriangle, Scale, Home, Compass, Star, MessageSquareWarning, Printer, QrCode, Download, RefreshCw, CheckCircle } from 'lucide-react';
 import { PaymentMethodModal } from '@/components/payment/PaymentMethodModal';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Tabs from '@radix-ui/react-tabs';
-import { bookingsApi, disputesApi, experienceBookingsApi, experienceReviewsApi, reviewsApi } from '@/lib/api';
+import { bookingsApi, disputesApi, experienceBookingsApi, experienceReviewsApi, reviewsApi, paymentsApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner, FullPageSpinner } from '@/components/ui/Spinner';
@@ -503,6 +503,48 @@ function BookingCard({
               )}
             </>
           )}
+
+          {/* W17: Invoice download button for paid bookings */}
+          {(booking.paymentStatus === 'paid' || booking.paymentStatus === 'refunded') && (
+            <button
+              onClick={async () => {
+                try {
+                  const blob = await bookingsApi.downloadInvoice(booking.id);
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `invoice-${booking.id}.pdf`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                } catch {
+                  toast.error(t('invoiceDownloadFailed') ?? 'Failed to download invoice');
+                }
+              }}
+              className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-800 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t('downloadInvoice') ?? 'Invoice'}
+            </button>
+          )}
+
+          {/* W2: Refund request button for cancelled bookings that were paid but not refunded */}
+          {booking.status === 'cancelled' && booking.paymentStatus === 'paid' && (
+            <button
+              onClick={async () => {
+                try {
+                  await paymentsApi.refund(booking.id);
+                  toast.success(t('refundRequested') ?? 'Refund requested successfully');
+                  queryClient.invalidateQueries({ queryKey: ['trips'] });
+                } catch (err: any) {
+                  toast.error(err?.response?.data?.message ?? t('refundRequestFailed') ?? 'Refund request failed');
+                }
+              }}
+              className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-800 transition-colors font-medium"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {t('requestRefund') ?? 'Request Refund'}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -614,6 +656,7 @@ export default function TripsPage() {
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isLoggedIn, hasHydrated } = useAuth();
   const queryClient = useQueryClient();
   const { formatPrice } = useCurrency();
@@ -624,6 +667,11 @@ export default function TripsPage() {
   const [cancelPreviewData, setCancelPreviewData] = useState<any>(null);
   const [cancelPreviewLoading, setCancelPreviewLoading] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [paymentSuccessDismissed, setPaymentSuccessDismissed] = useState(false);
+
+  // W10: Detect payment return from OPay / 3DS redirect
+  const paymentSuccess = searchParams.get('payment') === 'success';
+  const paymentBookingId = searchParams.get('bookingId');
 
   const CANCEL_REASONS = [
     { value: '', label: 'Select a reason…' },
@@ -783,6 +831,26 @@ export default function TripsPage() {
         )}
       </div>
 
+      {/* W10: Payment success banner after redirect */}
+      {paymentSuccess && !paymentSuccessDismissed && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4"
+        >
+          <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-green-900">{t('paymentConfirmed') ?? 'Payment confirmed!'}</p>
+            <p className="text-xs text-green-700 mt-0.5">
+              {t('paymentConfirmedDesc') ?? 'Your payment has been processed successfully. The booking status will update shortly.'}
+            </p>
+          </div>
+          <button onClick={() => setPaymentSuccessDismissed(true)} className="text-green-500 hover:text-green-700 text-sm font-medium">
+            ✕
+          </button>
+        </motion.div>
+      )}
+
       {/* Top-level listing type switcher */}
       <div className="flex border-b border-neutral-200 mb-0">
         {([
@@ -939,16 +1007,16 @@ export default function TripsPage() {
           onSuccess={(method) => {
             queryClient.setQueryData(['trips'], (old: any) =>
               Array.isArray(old)
-                ? old.map((b) => b.id === payingBooking!.id ? { ...b, paymentStatus: method === 'stripe' || method === 'opay-card' ? 'paid' : 'submitted' } : b)
+                ? old.map((b) => b.id === payingBooking!.id ? { ...b, paymentStatus: method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 'paid' : 'submitted' } : b)
                 : old,
             );
             setPayingBooking(null);
             toast.success(
-              method === 'stripe' || method === 'opay-card'
+              method === 'stripe' || method === 'opay-card' || method === 'opay-wallet'
                 ? t('paymentSuccessful')
                 : t('paymentSubmitted'),
             );
-            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['trips'] }), method === 'stripe' || method === 'opay-card' ? 3000 : 6000);
+            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['trips'] }), method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 3000 : 6000);
           }}
           onClose={() => setPayingBooking(null)}
         />
@@ -961,16 +1029,16 @@ export default function TripsPage() {
           onSuccess={(method) => {
             queryClient.setQueryData(['exp-trips'], (old: any) =>
               Array.isArray(old)
-                ? old.map((b) => b.id === payingExpBooking!.id ? { ...b, paymentStatus: method === 'stripe' || method === 'opay-card' ? 'paid' : 'submitted' } : b)
+                ? old.map((b) => b.id === payingExpBooking!.id ? { ...b, paymentStatus: method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 'paid' : 'submitted' } : b)
                 : old,
             );
             setPayingExpBooking(null);
             toast.success(
-              method === 'stripe' || method === 'opay-card'
+              method === 'stripe' || method === 'opay-card' || method === 'opay-wallet'
                 ? t('paymentSuccessful')
                 : t('paymentSubmitted'),
             );
-            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['exp-trips'] }), method === 'stripe' || method === 'opay-card' ? 3000 : 6000);
+            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['exp-trips'] }), method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 3000 : 6000);
           }}
           onClose={() => setPayingExpBooking(null)}
         />

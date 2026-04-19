@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import {
@@ -59,9 +59,10 @@ function StatCard({
 
 function MonthlyChart({ data }: { data: Array<{ month: string; amount: number }> }) {
   const max = Math.max(...data.map((d) => d.amount), 1);
+  const t = useTranslations('hosting');
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-      <h3 className="font-semibold text-neutral-900 mb-4">Monthly Earnings</h3>
+      <h3 className="font-semibold text-neutral-900 mb-4">{t('monthlyEarnings')}</h3>
       <div className="flex items-end gap-2 h-32">
         {data.map((d) => {
           const height = Math.round((d.amount / max) * 100);
@@ -94,6 +95,7 @@ function RequestPayoutModal({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const t = useTranslations('hosting');
   const { register, handleSubmit, formState: { errors } } = useForm<RequestPayoutPayload>({
     defaultValues: { method: 'instapay' },
   });
@@ -101,26 +103,26 @@ function RequestPayoutModal({
   const mutation = useMutation({
     mutationFn: payoutsApi.requestPayout,
     onSuccess: () => {
-      toast.success('Payout request submitted!');
+      toast.success(t('payoutSubmitted'));
       qc.invalidateQueries({ queryKey: ['earnings'] });
       qc.invalidateQueries({ queryKey: ['payout-history'] });
       onClose();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to submit payout request');
+      toast.error(err?.response?.data?.message ?? t('payoutFailed'));
     },
   });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-neutral-900">Request Payout</h2>
+        <h2 className="text-lg font-bold text-neutral-900">{t('requestPayout')}</h2>
         <p className="text-sm text-neutral-500 mt-1 mb-5">
-          Available balance: <strong>{formatPrice(maxAmount, 'EGP')}</strong>
+          {t('availableBalanceLabel')}: <strong>{formatPrice(maxAmount, 'EGP')}</strong>
         </p>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Amount (EGP)</label>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">{t('amountLabel')}</label>
             <input
               type="number"
               step="0.01"
@@ -136,7 +138,7 @@ function RequestPayoutModal({
             {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Method</label>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">{t('methodLabel')}</label>
             <select
               {...register('method', { required: true })}
               className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 bg-white"
@@ -147,10 +149,10 @@ function RequestPayoutModal({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Account Details</label>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">{t('accountDetailsLabel')}</label>
             <input
               type="text"
-              placeholder="InstaPay handle / IBAN / etc."
+              placeholder={t('accountDetailsPlaceholder')}
               {...register('accountDetails', { required: 'Account details are required' })}
               className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
             />
@@ -159,7 +161,7 @@ function RequestPayoutModal({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Note (optional)</label>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">{t('noteLabel')}</label>
             <input
               type="text"
               {...register('note')}
@@ -171,7 +173,7 @@ function RequestPayoutModal({
               Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={mutation.isPending || maxAmount <= 0}>
-              {mutation.isPending ? <Spinner className="h-4 w-4" /> : 'Submit Request'}
+              {mutation.isPending ? <Spinner className="h-4 w-4" /> : t('submitRequest')}
             </Button>
           </div>
         </form>
@@ -184,6 +186,7 @@ export default function EarningsPage() {
   const locale = useLocale();
   const router = useRouter();
   const { isLoggedIn, hasHydrated, isHost } = useAuth();
+  const t = useTranslations('hosting');
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -220,8 +223,8 @@ export default function EarningsPage() {
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900">Earnings</h1>
-            <p className="text-sm text-neutral-500 mt-1">Track your income and request payouts</p>
+            <h1 className="text-2xl font-bold text-neutral-900">{t('earningsTitle')}</h1>
+            <p className="text-sm text-neutral-500 mt-1">{t('earningsDesc')}</p>
           </div>
           <Button
             onClick={() => setShowModal(true)}
@@ -229,16 +232,21 @@ export default function EarningsPage() {
             className="flex items-center gap-2"
           >
             <ArrowDownToLine className="h-4 w-4" />
-            Request Payout
+            {t('requestPayout')}
           </Button>
         </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard icon={Wallet} label="Total Earned" value={formatPrice(summary?.total ?? 0, 'EGP')} color="bg-neutral-100 text-neutral-700" />
-          <StatCard icon={CheckCircle2} label="Available" value={formatPrice(summary?.available ?? 0, 'EGP')} color="bg-emerald-50 text-emerald-600" />
-          <StatCard icon={Clock} label="Pending" value={formatPrice(summary?.pending ?? 0, 'EGP')} color="bg-amber-50 text-amber-600" />
-          <StatCard icon={Banknote} label="Paid Out" value={formatPrice(summary?.paid ?? 0, 'EGP')} color="bg-gray-100 text-gray-600" />
+          <StatCard icon={Wallet} label={t('totalEarned')} value={formatPrice(summary?.total ?? 0, 'EGP')} color="bg-neutral-100 text-neutral-700" />
+          <StatCard icon={CheckCircle2} label={t('availableBalance')} value={formatPrice(summary?.available ?? 0, 'EGP')} color="bg-emerald-50 text-emerald-600" />
+          <StatCard icon={Clock} label={t('pendingBalance')} value={formatPrice(summary?.pending ?? 0, 'EGP')} color="bg-amber-50 text-amber-600" />
+          <StatCard icon={Banknote} label={t('paidOut')} value={formatPrice(summary?.paid ?? 0, 'EGP')} color="bg-gray-100 text-gray-600" />
+        </div>
+
+        {/* Commission note */}
+        <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+          {t.rich('commissionNote', { strong: (chunks) => <strong>{chunks}</strong> })}
         </div>
 
         {/* Chart */}
@@ -259,7 +267,7 @@ export default function EarningsPage() {
             <div>
               <h2 className="text-lg font-semibold text-neutral-900 mb-3 flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-neutral-500" />
-                Revenue by Property
+                {t('revenueByProperty')}
               </h2>
               <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden divide-y divide-neutral-100">
                 {rows.map((row) => {
@@ -280,7 +288,7 @@ export default function EarningsPage() {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-semibold text-neutral-900">{formatPrice(row.total, 'EGP')}</p>
-                        <p className="text-xs text-neutral-400">{row.count} {row.count === 1 ? 'booking' : 'bookings'}</p>
+                        <p className="text-xs text-neutral-400">{row.count} {row.count === 1 ? t('booking') : t('bookings')}</p>
                       </div>
                     </div>
                   );
@@ -294,11 +302,11 @@ export default function EarningsPage() {
         <div>
           <h2 className="text-lg font-semibold text-neutral-900 mb-3 flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-neutral-500" />
-            Earning Records
+            {t('earningRecords')}
           </h2>
           {earnings.length === 0 ? (
             <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center">
-              <p className="text-neutral-500 text-sm">No earnings yet. They appear here after a booking is completed and paid.</p>
+              <p className="text-neutral-500 text-sm">{t('noEarningsYet')}</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden divide-y divide-neutral-100">
@@ -327,7 +335,7 @@ export default function EarningsPage() {
           <div>
             <h2 className="text-lg font-semibold text-neutral-900 mb-3 flex items-center gap-2">
               <ArrowDownToLine className="h-5 w-5 text-neutral-500" />
-              Payout History
+              {t('payoutHistory')}
             </h2>
             <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden divide-y divide-neutral-100">
               {payouts.map((p) => (
@@ -346,7 +354,7 @@ export default function EarningsPage() {
                       </p>
                     )}
                     {p.status === 'pending' && (
-                      <p className="text-xs text-amber-600">Pending manual transfer by admin</p>
+                      <p className="text-xs text-amber-600">{t('pendingManualTransfer')}</p>
                     )}
                   </div>
                   <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_COLORS[p.status])}>

@@ -62,8 +62,15 @@ export class BookingsController {
   @Get('host/reservations')
   @ApiOperation({ summary: 'Get all reservations for the current host' })
   @ApiQuery({ name: 'status', required: false })
-  getHostReservations(@CurrentUser() user: UserEntity, @Query('status') status?: string) {
-    return this.bookingsService.getHostBookings(user.id, status);
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getHostReservations(
+    @CurrentUser() user: UserEntity,
+    @Query('status') status?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.bookingsService.getHostBookings(user.id, status, page || 1, limit || 20);
   }
 
   @Get('host/calendar')

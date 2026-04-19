@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 
 export class RequestPayoutDto {
   @IsNumber()
-  @Min(1)
+  @Min(50, { message: 'Minimum payout amount is 50 EGP' })
   @Type(() => Number)
   amount: number;
 

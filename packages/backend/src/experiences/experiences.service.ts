@@ -309,7 +309,7 @@ export class ExperiencesService {
     }
 
     const discountedBase = parseFloat((subtotal - discountAmount).toFixed(2));
-    const serviceFee = parseFloat(((discountedBase * 14) / 100).toFixed(2));
+    const serviceFee = parseFloat(((discountedBase * 5) / 100).toFixed(2));
     const totalAmount = parseFloat((discountedBase + serviceFee).toFixed(2));
 
     return { pricePerPerson, subtotal, discountAmount, serviceFee, totalAmount };

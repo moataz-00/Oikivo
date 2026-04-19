@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Table,
   Scale,
+  Filter,
+  XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -44,16 +46,20 @@ function downloadCsv(filename: string, csv: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
 export default function ReportsPage() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   const { data: stats } = useQuery({
-    queryKey: ['admin-dashboard'],
-    queryFn: () => adminApi.getDashboard(),
+    queryKey: ['admin-dashboard', fromDate, toDate],
+    queryFn: () => adminApi.getDashboard({ from: fromDate || undefined, to: toDate || undefined }),
   });
   const s = stats as any;
 
@@ -65,8 +71,16 @@ export default function ReportsPage() {
       description: 'All booking records with guest info, dates, amounts, and status',
       color: 'from-amber-600 to-amber-700',
       fetchFn: async () => {
-        const result = await adminApi.getBookings({ page: 1, limit: 10000 });
-        return result?.data ?? result ?? [];
+        const allItems: any[] = [];
+        let page = 1;
+        while (true) {
+          const result = await adminApi.getBookings({ page, limit: 200, ...(fromDate && { from: fromDate }), ...(toDate && { to: toDate }) });
+          const items = (result as any)?.items ?? (result as any)?.data ?? (Array.isArray(result) ? result : []);
+          allItems.push(...items);
+          if (items.length < 200 || page >= ((result as any)?.totalPages ?? page)) break;
+          page++;
+        }
+        return allItems;
       },
       columns: ['ID', 'Guest', 'Property', 'Check-in', 'Check-out', 'Amount (EGP)', 'Status', 'Created'],
       rowFn: (b: any) => [
@@ -87,8 +101,16 @@ export default function ReportsPage() {
       description: 'Host payout records with status, amounts, and bank info',
       color: 'from-emerald-600 to-emerald-700',
       fetchFn: async () => {
-        const result = await adminApi.getPayouts({ page: 1, limit: 10000 });
-        return result?.data ?? result ?? [];
+        const allItems: any[] = [];
+        let page = 1;
+        while (true) {
+          const result = await adminApi.getPayouts({ page, limit: 200 });
+          const items = (result as any)?.items ?? (result as any)?.data ?? (Array.isArray(result) ? result : []);
+          allItems.push(...items);
+          if (items.length < 200 || page >= ((result as any)?.totalPages ?? page)) break;
+          page++;
+        }
+        return allItems;
       },
       columns: ['ID', 'Host', 'Amount (EGP)', 'Status', 'Method', 'Created'],
       rowFn: (p: any) => [
@@ -107,8 +129,16 @@ export default function ReportsPage() {
       description: 'All registered user accounts with roles and verification status',
       color: 'from-indigo-600 to-indigo-700',
       fetchFn: async () => {
-        const result = await adminApi.getUsers({ page: 1, limit: 10000 });
-        return result?.data ?? result ?? [];
+        const allItems: any[] = [];
+        let page = 1;
+        while (true) {
+          const result = await adminApi.getUsers({ page, limit: 200 });
+          const items = result?.items ?? result?.data ?? (Array.isArray(result) ? result : []);
+          allItems.push(...items);
+          if (items.length < 200 || page >= (result?.totalPages ?? page)) break;
+          page++;
+        }
+        return allItems;
       },
       columns: ['ID', 'First Name', 'Last Name', 'Email', 'Role', 'Active', 'ID Verified', 'Joined'],
       rowFn: (u: any) => [
@@ -129,15 +159,23 @@ export default function ReportsPage() {
       description: 'All guest reviews with ratings, text, and moderation status',
       color: 'from-violet-600 to-violet-700',
       fetchFn: async () => {
-        const result = await adminApi.getReviews({ page: 1, limit: 10000 });
-        return result?.data ?? result ?? [];
+        const allItems: any[] = [];
+        let page = 1;
+        while (true) {
+          const result = await adminApi.getReviews({ page, limit: 200 });
+          const items = result?.items ?? result?.data ?? (Array.isArray(result) ? result : []);
+          allItems.push(...items);
+          if (items.length < 200 || page >= (result?.totalPages ?? page)) break;
+          page++;
+        }
+        return allItems;
       },
       columns: ['ID', 'Reviewer', 'Property', 'Rating', 'Comment', 'Flagged', 'Created'],
       rowFn: (r: any) => [
         r.id,
-        `${r.reviewer?.firstName ?? ''} ${r.reviewer?.lastName ?? ''}`.trim(),
+        `${r.guest?.firstName ?? ''} ${r.guest?.lastName ?? ''}`.trim(),
         r.property?.title ?? r.booking?.property?.title ?? '',
-        r.rating ?? '',
+        r.overallRating ?? r.rating ?? '',
         r.comment ?? '',
         r.isFlagged ? 'Yes' : 'No',
         r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '',
@@ -150,12 +188,12 @@ export default function ReportsPage() {
       description: 'All dispute records with status, type, and resolution details',
       color: 'from-rose-600 to-rose-700',
       fetchFn: async () => {
-        try {
-          const result = await adminApi.getExportData('disputes');
-          return result?.data ?? result ?? [];
-        } catch {
-          return [];
+        const result = await adminApi.getExportData('disputes');
+        const items = result?.data ?? result ?? [];
+        if (!Array.isArray(items) || items.length === 0) {
+          throw new Error('No dispute data returned');
         }
+        return items;
       },
       columns: ['ID', 'Booking', 'Filed By', 'Against', 'Type', 'Status', 'Amount (EGP)', 'Created'],
       rowFn: (d: any) => [
@@ -195,9 +233,36 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Reports & Export</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Download platform data as CSV for analysis or finance reporting</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports & Export</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Download platform data as CSV for analysis or finance reporting</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <span className="text-gray-600">—</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {(fromDate || toDate) && (
+            <button
+              onClick={() => { setFromDate(''); setToDate(''); }}
+              className="rounded-lg bg-gray-200 dark:bg-gray-700 p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              title="Clear date filter"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary Row */}
@@ -208,9 +273,9 @@ export default function ReportsPage() {
           { label: 'Total Bookings', value: s?.bookings?.total ?? 0, sub: 'All statuses' },
           { label: 'Total Users', value: s?.users?.total ?? 0, sub: 'Registered accounts' },
         ].map((item) => (
-          <div key={item.label} className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+          <div key={item.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
             <p className="text-xs text-gray-500">{item.label}</p>
-            <p className="text-xl font-bold text-white mt-1">{typeof item.value === 'number' ? item.value.toLocaleString() : item.value}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{typeof item.value === 'number' ? item.value.toLocaleString() : item.value}</p>
             <p className="text-xs text-gray-600 mt-0.5">{item.sub}</p>
           </div>
         ))}
@@ -221,29 +286,29 @@ export default function ReportsPage() {
         {EXPORTS.map((config) => (
           <div
             key={config.id}
-            className="rounded-xl border border-gray-800 bg-gray-900 p-5 flex flex-col gap-4"
+            className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 flex flex-col gap-4"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br', config.color)}>
-                  <config.icon className="h-5 w-5 text-white" />
+                  <config.icon className="h-5 w-5 text-gray-900 dark:text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold text-white">{config.label}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{config.label}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{config.description}</p>
                 </div>
               </div>
             </div>
 
             {/* Column preview */}
-            <div className="rounded-lg bg-gray-800/50 border border-gray-700/50 p-3">
+            <div className="rounded-lg bg-gray-100/50 dark:bg-gray-800/50 border border-gray-700/50 p-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <Table className="h-3.5 w-3.5 text-gray-500" />
                 <span className="text-xs text-gray-500 font-medium">Columns</span>
               </div>
               <div className="flex flex-wrap gap-1">
                 {config.columns.map((col) => (
-                  <span key={col} className="rounded px-1.5 py-0.5 bg-gray-700 text-xs text-gray-300">
+                  <span key={col} className="rounded px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300">
                     {col}
                   </span>
                 ))}
@@ -254,7 +319,7 @@ export default function ReportsPage() {
               onClick={() => handleExport(config)}
               disabled={loadingId !== null}
               className={cn(
-                'flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all',
+                'flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-white transition-all',
                 `bg-gradient-to-br ${config.color} hover:brightness-110`,
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
@@ -273,12 +338,12 @@ export default function ReportsPage() {
       </div>
 
       {/* Info box */}
-      <div className="rounded-xl border border-gray-700/50 bg-gray-800/30 p-5">
+      <div className="rounded-xl border border-gray-700/50 bg-gray-50/30 dark:bg-gray-800/30 p-5">
         <div className="flex items-start gap-3">
           <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-white">Client-side CSV generation</p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Client-side CSV generation</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               All exports are generated directly in your browser from the existing admin API endpoints.
               No additional backend work is needed. Data is fetched with your current admin token and formatted into a CSV file for download.
             </p>

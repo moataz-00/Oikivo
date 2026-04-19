@@ -52,7 +52,6 @@ export class UsersService {
   async findById(id: number): Promise<UserEntity> {
     const user = await this.usersRepo.findOne({
       where: { id },
-      relations: ['properties'],
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
@@ -79,7 +78,15 @@ export class UsersService {
     if (dto.phone && dto.phone !== user.phone) {
       (user as any).isPhoneVerified = false;
     }
-    Object.assign(user, dto);
+    // FIX U1: Explicitly pick allowed fields instead of Object.assign to prevent privilege escalation
+    const allowedFields: (keyof UpdateProfileDto)[] = [
+      'firstName', 'lastName', 'phone', 'bio', 'dateOfBirth', 'preferredLanguage', 'avatarUrl',
+    ];
+    for (const field of allowedFields) {
+      if (dto[field] !== undefined) {
+        (user as any)[field] = dto[field];
+      }
+    }
     (user as any).lastProfileEditAt = new Date();
     return this.usersRepo.save(user);
   }
@@ -292,17 +299,20 @@ export class UsersService {
     };
   }
 
-  async getUserReviews(userId: number) {
-    // Reviews about user's properties (host reviews)
-    const reviews = await this.reviewsRepo
+  async getUserReviews(userId: number, page = 1, limit = 20) {
+    const take = Math.min(limit, 50);
+    const skip = (page - 1) * take;
+    const [reviews, total] = await this.reviewsRepo
       .createQueryBuilder('review')
       .innerJoin('review.property', 'property', 'property.hostId = :userId', { userId })
       .leftJoinAndSelect('review.reviewer', 'reviewer')
       .leftJoinAndSelect('review.property', 'reviewProperty')
       .orderBy('review.createdAt', 'DESC')
-      .getMany();
+      .skip(skip)
+      .take(take)
+      .getManyAndCount();
 
-    return reviews;
+    return { data: reviews, total, page, totalPages: Math.ceil(total / take) };
   }
 
   async getUserStats(userId: number) {

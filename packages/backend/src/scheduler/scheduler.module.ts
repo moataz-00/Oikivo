@@ -11,6 +11,8 @@ import { WishlistEntity } from '../entities/wishlist.entity';
 import { SavedSearchEntity } from '../entities/saved-search.entity';
 import { UserEntity } from '../entities/user.entity';
 import { PriceAlertEntity } from '../entities/price-alert.entity';
+import { PasswordResetEntity } from '../entities/password-reset.entity';
+import { VerificationTokenEntity } from '../entities/verification-token.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MailModule } from '../mail/mail.module';
 import { PayoutsModule } from '../payouts/payouts.module';
@@ -28,6 +30,8 @@ import { PayoutsModule } from '../payouts/payouts.module';
       SavedSearchEntity,
       UserEntity,
       PriceAlertEntity,
+      PasswordResetEntity,
+      VerificationTokenEntity,
     ]),
     NotificationsModule,
     MailModule,

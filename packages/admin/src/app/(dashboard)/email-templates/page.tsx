@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api';
-import { FileText, Eye, Search, X } from 'lucide-react';
+import { FileText, Eye, Search, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EmailTemplate {
@@ -33,7 +33,7 @@ export default function EmailTemplatesPage() {
     queryFn: () => adminApi.getEmailTemplates(),
   });
 
-  const { data: preview, isLoading: previewLoading } = useQuery({
+  const { data: preview, isLoading: previewLoading, isFetching: previewFetching, isError: previewError } = useQuery({
     queryKey: ['admin-email-template-preview', previewSlug],
     queryFn: () => adminApi.previewEmailTemplate(previewSlug!),
     enabled: !!previewSlug,
@@ -41,6 +41,7 @@ export default function EmailTemplatesPage() {
 
   const categories = [...new Set((templates ?? []).map((t) => t.category))];
 
+  /* ET-4: Client-side filtering works for the current template count. Consider API-side search if templates grow significantly. */
   const filtered = (templates ?? []).filter((t) => {
     if (selectedCategory && t.category !== selectedCategory) return false;
     if (search && !t.name.toLowerCase().includes(search.toLowerCase()) && !t.description.toLowerCase().includes(search.toLowerCase())) return false;
@@ -60,11 +61,11 @@ export default function EmailTemplatesPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <FileText className="h-6 w-6 text-indigo-400" />
             Email Templates
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Preview all {templates?.length ?? '–'} system email templates
           </p>
         </div>
@@ -73,12 +74,12 @@ export default function EmailTemplatesPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search templates…"
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -86,7 +87,7 @@ export default function EmailTemplatesPage() {
             onClick={() => setSelectedCategory(null)}
             className={cn(
               'rounded-full px-3 py-1 text-xs font-medium border transition-colors',
-              !selectedCategory ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white',
+              !selectedCategory ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
             )}
           >
             All
@@ -98,8 +99,8 @@ export default function EmailTemplatesPage() {
               className={cn(
                 'rounded-full px-3 py-1 text-xs font-medium border transition-colors',
                 selectedCategory === cat
-                  ? CATEGORY_COLORS[cat] ?? 'bg-gray-600 text-white border-gray-500'
-                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white',
+                  ? CATEGORY_COLORS[cat] ?? 'bg-gray-600 text-gray-900 dark:text-white border-gray-500'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
               )}
             >
               {cat}
@@ -112,9 +113,9 @@ export default function EmailTemplatesPage() {
       {isLoading ? (
         <div className="space-y-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-gray-800 bg-gray-900 p-4">
-              <div className="h-4 bg-gray-800 rounded w-48 animate-pulse mb-2" />
-              <div className="h-3 bg-gray-800 rounded w-80 animate-pulse" />
+            <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+              <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-48 animate-pulse mb-2" />
+              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-80 animate-pulse" />
             </div>
           ))}
         </div>
@@ -128,18 +129,18 @@ export default function EmailTemplatesPage() {
                   <div
                     key={tpl.slug}
                     className={cn(
-                      'flex items-center justify-between gap-4 rounded-xl border bg-gray-900 px-5 py-3.5 transition-colors group',
-                      previewSlug === tpl.slug ? 'border-indigo-500 bg-indigo-950/20' : 'border-gray-800 hover:border-gray-700',
+                      'flex items-center justify-between gap-4 rounded-xl border bg-white dark:bg-gray-900 px-5 py-3.5 transition-colors group',
+                      previewSlug === tpl.slug ? 'border-indigo-500 bg-indigo-950/20' : 'border-gray-200 dark:border-gray-800 hover:border-gray-700',
                     )}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-white text-sm">{tpl.name}</p>
-                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded border', CATEGORY_COLORS[tpl.category] ?? 'bg-gray-700 text-gray-300 border-gray-600')}>
+                        <p className="font-medium text-gray-900 dark:text-white text-sm">{tpl.name}</p>
+                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded border', CATEGORY_COLORS[tpl.category] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600')}>
                           {tpl.category}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">{tpl.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{tpl.description}</p>
                     </div>
                     <button
                       onClick={() => setPreviewSlug(previewSlug === tpl.slug ? null : tpl.slug)}
@@ -147,7 +148,7 @@ export default function EmailTemplatesPage() {
                         'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shrink-0',
                         previewSlug === tpl.slug
                           ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white',
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white',
                       )}
                     >
                       <Eye className="h-3.5 w-3.5" />
@@ -167,18 +168,21 @@ export default function EmailTemplatesPage() {
       {/* Preview panel */}
       {previewSlug && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
+          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-indigo-400" />
-                <span className="text-sm font-semibold text-white">{preview?.name ?? 'Loading…'}</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{preview?.name ?? 'Loading…'}</span>
                 {preview?.category && (
-                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded border', CATEGORY_COLORS[preview.category] ?? 'bg-gray-700 text-gray-300 border-gray-600')}>
+                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded border', CATEGORY_COLORS[preview.category] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600')}>
                     {preview.category}
                   </span>
                 )}
+                {previewFetching && !previewLoading && (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-400" />
+                )}
               </div>
-              <button onClick={() => setPreviewSlug(null)} className="text-gray-400 hover:text-white transition-colors">
+              <button onClick={() => setPreviewSlug(null)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -186,6 +190,10 @@ export default function EmailTemplatesPage() {
               {previewLoading ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="h-8 w-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : previewError ? (
+                <div className="flex items-center justify-center h-64 text-red-400 text-sm">
+                  Error loading preview. Try again.
                 </div>
               ) : preview?.html ? (
                 <iframe
@@ -196,12 +204,12 @@ export default function EmailTemplatesPage() {
                 />
               ) : (
                 <div className="flex items-center justify-center h-64 text-gray-500 text-sm">
-                  Failed to load preview
+                  No preview HTML available
                 </div>
               )}
             </div>
-            <div className="px-5 py-2.5 border-t border-gray-800 flex items-center justify-between text-xs text-gray-500">
-              <span>Template: <code className="text-gray-400">{previewSlug}</code></span>
+            <div className="px-5 py-2.5 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between text-xs text-gray-500">
+              <span>Template: <code className="text-gray-500 dark:text-gray-400">{previewSlug}</code></span>
               <span>Rendered with sample data</span>
             </div>
           </div>

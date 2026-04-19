@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 10, 2026 at 03:47 PM
+-- Generation Time: Apr 20, 2026 at 12:03 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -46,7 +46,53 @@ INSERT INTO `admin_activity_logs` (`id`, `admin_id`, `action`, `entity_type`, `e
 (1, 15, 'PATCH /users/:id/toggle-active', 'users', '17', NULL, '::1', '2026-04-06 21:15:34'),
 (2, 15, 'PATCH /settings/property_host_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-06 22:08:58'),
 (3, 15, 'PATCH /settings/property_guest_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-06 22:09:01'),
-(4, 15, 'POST /notifications/blast', 'notifications', NULL, NULL, '::1', '2026-04-06 22:15:08');
+(4, 15, 'POST /notifications/blast', 'notifications', NULL, NULL, '::1', '2026-04-06 22:15:08'),
+(5, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest1775835459@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"18\"}', '::1', '2026-04-10 15:37:55'),
+(6, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest1775835516@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"19\"}', '::1', '2026-04-10 15:38:36'),
+(7, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836124@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"21\"}', '::1', '2026-04-10 15:48:44'),
+(8, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836124@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"21\"}', '::1', '2026-04-10 15:48:44'),
+(9, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.recheck.1775836149@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"22\"}', '::1', '2026-04-10 15:49:09'),
+(10, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.recheck2.1775836352@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"23\"}', '::1', '2026-04-10 15:52:32'),
+(11, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836676@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"24\"}', '::1', '2026-04-10 15:57:57'),
+(12, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836676@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"24\"}', '::1', '2026-04-10 15:57:57'),
+(13, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836775@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"25\"}', '::1', '2026-04-10 15:59:35'),
+(14, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836775@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"25\"}', '::1', '2026-04-10 15:59:35'),
+(15, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836820@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"26\"}', '::1', '2026-04-10 16:00:20'),
+(16, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"guest.full.1775836820@testmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"26\"}', '::1', '2026-04-10 16:00:20'),
+(17, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"tahamoata@gmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"27\"}', '::1', '2026-04-10 17:44:02'),
+(18, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"tahamoata@gmail.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"27\"}', '::1', '2026-04-10 17:44:11'),
+(19, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"admin@sakan.app\",\"reason\":\"Invalid credentials\",\"userId\":\"15\"}', '::1', '2026-04-10 18:22:07'),
+(20, 15, 'PATCH /users/:id/review-id', 'users', '28', NULL, '::1', '2026-04-10 18:24:23'),
+(21, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"29\"}', '::ffff:192.168.1.5', '2026-04-10 21:51:48'),
+(22, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"29\"}', '::ffff:192.168.1.5', '2026-04-10 21:52:25'),
+(23, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"29\"}', '::ffff:192.168.1.5', '2026-04-10 21:52:48'),
+(24, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"29\"}', '::ffff:192.168.1.5', '2026-04-10 21:52:49'),
+(25, 15, 'PATCH /users/:id/toggle-admin', 'users', '33', NULL, '::1', '2026-04-19 18:07:27'),
+(26, 15, 'PATCH /users/:id/toggle-admin', 'users', '33', NULL, '::1', '2026-04-19 18:07:29'),
+(27, 15, 'PATCH /users/:id/toggle-active', 'users', '33', NULL, '::1', '2026-04-19 18:07:30'),
+(28, 15, 'PATCH /users/:id/toggle-active', 'users', '33', NULL, '::1', '2026-04-19 18:07:31'),
+(29, 15, 'POST /send-test-email', 'send-test-email', NULL, NULL, '::1', '2026-04-19 18:10:44'),
+(30, 15, 'POST /send-email-blast', 'send-email-blast', NULL, NULL, '::1', '2026-04-19 18:11:20'),
+(31, 15, 'POST /expenses', 'expenses', NULL, NULL, '::1', '2026-04-19 18:20:38'),
+(32, 15, 'DELETE /expenses/:id', 'expenses', '1', NULL, '::1', '2026-04-19 18:20:59'),
+(33, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:16'),
+(34, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:21'),
+(35, 15, 'PATCH /settings/property_guest_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:46'),
+(36, 15, 'PATCH /settings/property_host_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:46'),
+(37, 15, 'PATCH /settings/consultation_user_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:46'),
+(38, 15, 'PATCH /settings/consultation_consultant_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:46'),
+(39, 15, 'PATCH /settings/consultation_consultant_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:47'),
+(40, 15, 'PATCH /settings/consultation_consultant_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:48'),
+(41, 15, 'PATCH /settings/consultation_user_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:49'),
+(42, 15, 'PATCH /settings/property_host_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:49'),
+(43, 15, 'PATCH /settings/property_guest_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:50'),
+(44, 15, 'PATCH /settings/consultation_consultant_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:51'),
+(45, 15, 'PATCH /settings/consultation_consultant_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:54'),
+(46, 15, 'PATCH /settings/property_guest_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:54'),
+(47, 15, 'PATCH /settings/property_host_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:54'),
+(48, 15, 'PATCH /settings/consultation_user_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:54'),
+(49, 15, 'DELETE /properties/:id', 'properties', '195', NULL, '::1', '2026-04-19 18:52:50'),
+(50, 15, 'DELETE /properties/:id', 'properties', '196', NULL, '::1', '2026-04-19 18:52:56');
 
 -- --------------------------------------------------------
 
@@ -121,7 +167,15 @@ INSERT INTO `audit_logs` (`id`, `event_type`, `actor_id`, `entity_type`, `entity
 (2, 'payment.submitted', 17, 'booking', 36, '{\"method\":\"instapay\",\"reference\":\"zxcvxxcvbcvnbvnvmn\"}', NULL, '2026-04-06 01:04:10.458728'),
 (3, 'payment.confirmed', 0, 'booking', 36, '{\"isAdmin\":true,\"totalAmount\":1194.4,\"method\":\"instapay\"}', NULL, '2026-04-06 01:05:40.161588'),
 (4, 'booking.cancelled', 17, 'booking', 36, '{\"cancelledBy\":\"guest\",\"refundAmount\":3300,\"policy\":\"flexible\"}', NULL, '2026-04-06 01:11:12.502690'),
-(5, 'payment.refunded', NULL, 'booking', 36, '{\"method\":\"instapay\",\"refundAmount\":3300}', NULL, '2026-04-06 01:12:26.390838');
+(5, 'payment.refunded', NULL, 'booking', 36, '{\"method\":\"instapay\",\"refundAmount\":3300}', NULL, '2026-04-06 01:12:26.390838'),
+(6, 'booking.created', 28, 'booking', 37, '{\"propertyId\":196,\"checkIn\":\"2026-04-10\",\"checkOut\":\"2026-04-11\",\"totalAmount\":61.3,\"status\":\"confirmed\"}', NULL, '2026-04-10 20:36:42.582883'),
+(7, 'booking.created', 28, 'booking', 38, '{\"propertyId\":161,\"checkIn\":\"2026-04-11\",\"checkOut\":\"2026-04-12\",\"totalAmount\":464.8,\"status\":\"confirmed\"}', NULL, '2026-04-11 15:54:58.938821'),
+(8, 'booking.created', 28, 'booking', 39, '{\"propertyId\":161,\"checkIn\":\"2026-04-16\",\"checkOut\":\"2026-04-17\",\"totalAmount\":464.8,\"status\":\"confirmed\"}', NULL, '2026-04-11 15:55:56.028956'),
+(9, 'booking.cancelled', 28, 'booking', 39, '{\"cancelledBy\":\"guest\",\"reason\":\"personal_emergency\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 15:56:17.596459'),
+(10, 'booking.created', 30, 'booking', 40, '{\"propertyId\":161,\"checkIn\":\"2026-04-18\",\"checkOut\":\"2026-04-25\",\"totalAmount\":3018.4,\"status\":\"confirmed\"}', NULL, '2026-04-11 16:21:30.071964'),
+(11, 'booking.cancelled', 30, 'booking', 40, '{\"cancelledBy\":\"guest\",\"reason\":\"personal_emergency\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 16:22:41.558489'),
+(12, 'booking.created', 33, 'booking', 41, '{\"propertyId\":165,\"checkIn\":\"2026-04-16\",\"checkOut\":\"2026-04-25\",\"totalAmount\":704,\"status\":\"confirmed\"}', NULL, '2026-04-11 22:10:41.278513'),
+(13, 'booking.cancelled', 33, 'booking', 41, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 22:11:30.483778');
 
 -- --------------------------------------------------------
 
@@ -150,11 +204,12 @@ CREATE TABLE `bookings` (
   `deposit_claim_deadline` datetime DEFAULT NULL,
   `deposit_released_at` datetime DEFAULT NULL,
   `deposit_claim_reason` text DEFAULT NULL,
-  `currency` char(3) NOT NULL DEFAULT 'USD',
+  `currency` char(3) NOT NULL DEFAULT 'EGP',
+  `display_currency` varchar(3) DEFAULT NULL,
   `status` enum('pending','confirmed','in_progress','completed','cancelled','declined') NOT NULL DEFAULT 'pending',
   `house_rules_acknowledged` tinyint(1) DEFAULT 0,
   `house_rules_acknowledged_at` datetime DEFAULT NULL,
-  `payment_status` enum('pending','submitted','paid','refunded','declined') NOT NULL DEFAULT 'pending',
+  `payment_status` enum('pending','submitted','paid','refund_pending','refunded','refund_failed','declined') NOT NULL DEFAULT 'pending',
   `payment_method` enum('instapay','cash','card','stripe','opay-card','opay-wallet') DEFAULT NULL,
   `payment_reference` varchar(100) DEFAULT NULL,
   `payment_note` text DEFAULT NULL,
@@ -169,8 +224,12 @@ CREATE TABLE `bookings` (
   `cancelled_at` datetime DEFAULT NULL COMMENT 'Exact timestamp of cancellation',
   `cancelled_by` enum('guest','host','admin','system') DEFAULT NULL COMMENT 'Who initiated the cancellation',
   `guest_note` varchar(2000) DEFAULT NULL,
+  `host_note` varchar(2000) DEFAULT NULL,
+  `host_check_in_instructions` text DEFAULT NULL,
   `special_requests` varchar(2000) DEFAULT NULL,
   `refund_reason` varchar(500) DEFAULT NULL,
+  `confirmed_at` datetime DEFAULT NULL COMMENT 'Set when booking moves to confirmed status',
+  `payment_reminder_sent_at` datetime DEFAULT NULL COMMENT 'Timestamp of the +4h payment reminder; prevents duplicate sends',
   `modification_history` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`modification_history`)),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -180,17 +239,25 @@ CREATE TABLE `bookings` (
 -- Dumping data for table `bookings`
 --
 
-INSERT INTO `bookings` (`id`, `booking_uuid`, `short_code`, `property_id`, `guest_id`, `host_id`, `check_in`, `check_out`, `guests_count`, `nights`, `base_amount`, `cleaning_fee`, `service_fee`, `taxes`, `total_amount`, `deposit_amount`, `deposit_status`, `deposit_claim_deadline`, `deposit_released_at`, `deposit_claim_reason`, `currency`, `status`, `house_rules_acknowledged`, `house_rules_acknowledged_at`, `payment_status`, `payment_method`, `payment_reference`, `payment_note`, `payment_proof_url`, `stripe_payment_intent_id`, `stripe_refund_id`, `opay_order_reference`, `cancellation_reason`, `cancellation_policy`, `refund_amount`, `cancellation_fee`, `cancelled_at`, `cancelled_by`, `guest_note`, `special_requests`, `refund_reason`, `modification_history`, `created_at`, `updated_at`) VALUES
-(20, '501e4d74-e1df-412f-a5bf-9aa78cc8558b', NULL, 226, 10, 3, '2026-03-23', '2026-03-24', 1, 1, 195.00, 50.00, 27.30, 0.00, 272.30, 0.00, 'none', NULL, NULL, NULL, 'EUR', 'completed', 0, NULL, 'paid', 'stripe', NULL, NULL, NULL, 'pi_3TEGRfFafnnWoUIK1oSqb3Lp', NULL, NULL, NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-23 23:55:31', '2026-03-27 21:22:14'),
-(28, 'b4bafcdd-4712-41b5-b464-db2fa820a3cc', NULL, 165, 17, 3, '2026-03-27', '2026-03-31', 1, 4, 240.00, 20.00, 33.60, 0.00, 293.60, 0.00, 'none', NULL, NULL, NULL, 'USD', 'completed', 0, NULL, 'paid', 'opay-card', NULL, NULL, NULL, NULL, NULL, 'js-s-28-mn8z3c46', NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-27 15:59:55', '2026-03-27 20:33:57'),
-(29, 'b7a381fb-c7a3-49ff-aef2-31d8ac3e7a6f', NULL, 165, 17, 3, '2026-03-31', '2026-04-03', 1, 3, 180.00, 20.00, 25.20, 0.00, 225.20, 0.00, 'none', NULL, NULL, NULL, 'USD', 'completed', 0, NULL, 'refunded', 'opay-card', NULL, NULL, NULL, NULL, NULL, 'js-s-29-mn8zm0vm', NULL, 'flexible', 180.00, 45.20, '2026-03-27 14:20:12', 'guest', NULL, NULL, NULL, NULL, '2026-03-27 16:18:12', '2026-03-27 20:34:03'),
-(30, 'db6f55b4-1ce8-418d-9969-f24fe6f76a76', NULL, 232, 10, 17, '2026-03-29', '2026-03-31', 1, 2, 200.00, 0.00, 28.00, 0.00, 228.00, 5000.00, 'claimed', '2026-04-02 00:00:00', NULL, 'ferter', 'USD', 'completed', 0, NULL, 'paid', 'opay-card', NULL, NULL, NULL, NULL, NULL, 'js-s-30-mnafea9o', NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-28 16:27:30', '2026-03-28 16:31:00'),
-(31, '55dc955c-ee59-4753-898d-e518edf223bf', NULL, 162, 17, 3, '2026-03-28', '2026-03-31', 1, 3, 135.00, 10.00, 18.90, 0.00, 163.90, 0.00, 'none', NULL, NULL, NULL, 'USD', 'confirmed', 0, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-28 16:46:51', '2026-03-28 16:46:51'),
-(32, '54f53776-8a97-4f6f-91c2-baaf0f31d653', NULL, 162, 17, 3, '2026-03-31', '2026-04-01', 1, 1, 45.00, 10.00, 6.30, 0.00, 61.30, 0.00, 'none', NULL, NULL, NULL, 'USD', 'confirmed', 0, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-28 16:48:14', '2026-03-28 16:48:14'),
-(33, 'e78381f9-c132-4fd1-bdd1-9830b9cbabda', NULL, 165, 17, 3, '2026-03-31', '2026-04-01', 1, 1, 60.00, 20.00, 8.40, 0.00, 88.40, 0.00, 'none', NULL, NULL, NULL, 'USD', 'confirmed', 0, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-28 17:14:13', '2026-03-28 17:14:13'),
-(34, '946ea2ff-9d5f-4e71-b972-473e18ce6997', NULL, 165, 17, 3, '2026-04-01', '2026-04-04', 1, 3, 180.00, 20.00, 25.20, 0.00, 225.20, 0.00, 'none', NULL, NULL, NULL, 'USD', 'confirmed', 0, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-28 17:28:47', '2026-03-28 17:28:47'),
-(35, '061f4876-563d-43ef-b13f-85bc6f811b58', NULL, 165, 10, 3, '2026-04-04', '2026-04-16', 1, 12, 720.00, 20.00, 100.80, 0.00, 840.80, 0.00, 'none', NULL, NULL, NULL, 'USD', 'confirmed', 0, NULL, 'declined', 'instapay', '232456575788678', 'Auto-declined: no admin action within 48 hours', 'http://localhost:3001/uploads/payments/35/proof-1774713623188.png', NULL, NULL, NULL, NULL, 'flexible', 0.00, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-28 17:49:52', '2026-04-03 17:00:00'),
-(36, '055183fe-2154-473f-975d-453abd402038', NULL, 161, 17, 2, '2026-04-08', '2026-04-18', 1, 10, 3200.00, 100.00, 448.00, 0.00, 3748.00, 0.00, 'none', NULL, NULL, NULL, 'USD', 'cancelled', 0, NULL, 'refunded', 'instapay', 'zxcvxxcvbcvnbvnvmn', NULL, 'http://localhost:3001/uploads/payments/36/proof-1775430250393.png', NULL, NULL, NULL, NULL, 'flexible', 3300.00, 448.00, '2026-04-05 23:11:12', 'guest', NULL, NULL, NULL, '[{\"changedAt\":\"2026-04-05T23:10:34.918Z\",\"changedBy\":\"guest\",\"changes\":[{\"field\":\"checkOut\",\"from\":\"2026-04-11\",\"to\":\"2026-04-18\"},{\"field\":\"totalAmount\",\"from\":1194.4,\"to\":3748}]}]', '2026-04-06 01:03:39', '2026-04-06 01:12:26');
+INSERT INTO `bookings` (`id`, `booking_uuid`, `short_code`, `property_id`, `guest_id`, `host_id`, `check_in`, `check_out`, `guests_count`, `nights`, `base_amount`, `cleaning_fee`, `service_fee`, `taxes`, `total_amount`, `deposit_amount`, `deposit_status`, `deposit_claim_deadline`, `deposit_released_at`, `deposit_claim_reason`, `currency`, `display_currency`, `status`, `house_rules_acknowledged`, `house_rules_acknowledged_at`, `payment_status`, `payment_method`, `payment_reference`, `payment_note`, `payment_proof_url`, `stripe_payment_intent_id`, `stripe_refund_id`, `opay_order_reference`, `cancellation_reason`, `cancellation_policy`, `refund_amount`, `cancellation_fee`, `cancelled_at`, `cancelled_by`, `guest_note`, `host_note`, `host_check_in_instructions`, `special_requests`, `refund_reason`, `confirmed_at`, `payment_reminder_sent_at`, `modification_history`, `created_at`, `updated_at`) VALUES
+(41, 'd7b74a1b-7139-4382-827e-b5cc111d4fc5', NULL, 165, 33, 3, '2026-04-16', '2026-04-25', 1, 9, 600.00, 20.00, 84.00, 0.00, 704.00, 0.00, 'none', NULL, NULL, NULL, 'USD', 'EGP', 'cancelled', 0, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'flexible', 0.00, 0.00, '2026-04-11 20:11:30', 'guest', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-11 22:10:41', '2026-04-11 22:11:30');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `booking_status_history`
+--
+
+CREATE TABLE `booking_status_history` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `booking_id` bigint(20) UNSIGNED NOT NULL,
+  `from_status` varchar(30) DEFAULT NULL COMMENT 'NULL for initial creation',
+  `to_status` varchar(30) NOT NULL,
+  `changed_by_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `changed_by_role` enum('guest','host','admin','system') NOT NULL DEFAULT 'system',
+  `reason` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -245,13 +312,6 @@ CREATE TABLE `cohosts` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `cohosts`
---
-
-INSERT INTO `cohosts` (`id`, `property_id`, `host_id`, `cohost_id`, `role`, `status`, `created_at`) VALUES
-(3, 231, 17, 10, 'co_host', 'accepted', '2026-03-28 12:16:49');
-
 -- --------------------------------------------------------
 
 --
@@ -288,8 +348,7 @@ CREATE TABLE `consultants` (
 --
 
 INSERT INTO `consultants` (`id`, `uuid`, `user_id`, `display_name`, `bio`, `specializations`, `years_experience`, `languages`, `hourly_rate`, `currency`, `avg_rating`, `review_count`, `total_sessions`, `status`, `rejection_reason`, `approved_at`, `is_featured`, `timezone`, `payout_method`, `payout_account_details`, `created_at`, `updated_at`) VALUES
-(4, '4590befc-96b1-4c48-9c01-26123495a8f6', 10, 'xczxcx', 'zxcxzcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', '[\"pricing_strategy\"]', 2, '[\"ar\"]', 66.00, 'EGP', 0.00, 0, 0, 'approved', NULL, '2026-04-03 19:24:32', 0, 'UTC', NULL, NULL, '2026-04-03 21:23:40', '2026-04-03 21:24:32'),
-(5, '01d4f69e-358c-4efd-8db0-40f6381a1260', 17, 'tygkjkm', '', '[\"property_management\",\"pricing_strategy\"]', 1, '[]', 0.00, 'EGP', 0.00, 0, 0, 'approved', NULL, '2026-04-03 19:55:33', 0, 'UTC', NULL, NULL, '2026-04-03 21:55:09', '2026-04-04 14:25:18');
+(4, '4590befc-96b1-4c48-9c01-26123495a8f6', 10, 'xczxcx', 'zxcxzcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', '[\"pricing_strategy\"]', 2, '[\"ar\"]', 66.00, 'EGP', 0.00, 0, 0, 'approved', NULL, '2026-04-03 19:24:32', 0, 'UTC', NULL, NULL, '2026-04-03 21:23:40', '2026-04-03 21:24:32');
 
 -- --------------------------------------------------------
 
@@ -305,14 +364,6 @@ CREATE TABLE `consultant_availability` (
   `end_time` time NOT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `consultant_availability`
---
-
-INSERT INTO `consultant_availability` (`id`, `consultant_id`, `day_of_week`, `start_time`, `end_time`, `is_active`) VALUES
-(8, 5, 0, '09:00:00', '17:00:00', 1),
-(9, 5, 1, '09:00:00', '17:00:00', 1);
 
 -- --------------------------------------------------------
 
@@ -337,9 +388,7 @@ CREATE TABLE `consultant_documents` (
 
 INSERT INTO `consultant_documents` (`id`, `consultant_id`, `document_type`, `file_url`, `original_name`, `status`, `admin_note`, `uploaded_at`) VALUES
 (3, 4, '', '/uploads/consultant-docs/10/doc-1775244220071-294203072.png', 'logo-removebg-preview (1).png', 'pending', NULL, '2026-04-03 21:23:40'),
-(4, 4, '', '/uploads/consultant-docs/10/doc-1775244220075-972493622.png', 'logo-removebg-preview__1_-removebg-preview.png', 'pending', NULL, '2026-04-03 21:23:40'),
-(5, 5, '', '/uploads/consultant-docs/17/doc-1775246109568-834636855.png', 'logo-removebg-preview__1_-removebg-preview.png', 'pending', NULL, '2026-04-03 21:55:09'),
-(6, 5, '', '/uploads/consultant-docs/17/doc-1775246109569-530163725.png', 'logo-removebg-preview.png', 'pending', NULL, '2026-04-03 21:55:09');
+(4, 4, '', '/uploads/consultant-docs/10/doc-1775244220075-972493622.png', 'logo-removebg-preview__1_-removebg-preview.png', 'pending', NULL, '2026-04-03 21:23:40');
 
 -- --------------------------------------------------------
 
@@ -491,14 +540,6 @@ CREATE TABLE `conversations` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `conversations`
---
-
-INSERT INTO `conversations` (`id`, `property_id`, `booking_id`, `host_id`, `guest_id`, `created_at`, `updated_at`) VALUES
-(5, 165, NULL, 17, 3, '2026-03-27 19:21:15', '2026-03-27 15:21:15'),
-(6, NULL, NULL, 17, 2, '2026-03-28 12:14:46', '2026-03-28 08:14:46');
-
 -- --------------------------------------------------------
 
 --
@@ -515,18 +556,21 @@ CREATE TABLE `disputes` (
   `status` enum('open','under_review','resolved','closed') NOT NULL DEFAULT 'open',
   `resolution` enum('resolved_for_guest','resolved_for_host','dismissed','split') DEFAULT NULL,
   `admin_note` text DEFAULT NULL,
+  `assigned_to_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `priority` enum('low','medium','high','critical') NOT NULL DEFAULT 'medium',
+  `sla_deadline` datetime DEFAULT NULL,
   `additional_info` text DEFAULT NULL,
+  `evidence` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`evidence`)),
+  `appeal_requested` tinyint(1) NOT NULL DEFAULT 0,
+  `appeal_reason` text DEFAULT NULL,
+  `appealed_at` datetime DEFAULT NULL,
+  `appeal_reviewed_by_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `appeal_resolution` text DEFAULT NULL,
+  `appeal_resolved_at` datetime DEFAULT NULL,
   `resolved_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `disputes`
---
-
-INSERT INTO `disputes` (`id`, `booking_id`, `raised_by_id`, `category`, `title`, `description`, `status`, `resolution`, `admin_note`, `additional_info`, `resolved_at`, `created_at`, `updated_at`) VALUES
-(1, 29, 17, 'property_not_as_described', 'dsdfgsdfsdf', 'dfgdfghfghfgdfgdfhfhfghgfdsdfsdfgdfhdfghfgh', 'under_review', NULL, NULL, NULL, NULL, '2026-03-27 16:24:52', '2026-03-27 18:34:58');
 
 -- --------------------------------------------------------
 
@@ -545,13 +589,6 @@ CREATE TABLE `earnings` (
   `available_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `earnings`
---
-
-INSERT INTO `earnings` (`id`, `host_id`, `booking_id`, `amount`, `platform_fee`, `currency`, `status`, `available_at`, `created_at`) VALUES
-(1, 17, 30, 200.00, 28.00, 'EGP', 'pending', '2026-04-01 00:00:00', '2026-03-28 16:31:18');
 
 -- --------------------------------------------------------
 
@@ -759,6 +796,20 @@ CREATE TABLE `experience_schedule` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `login_attempts`
+--
+
+CREATE TABLE `login_attempts` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `attempted_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `success` tinyint(1) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `messages`
 --
 
@@ -770,16 +821,9 @@ CREATE TABLE `messages` (
   `message_type` enum('text','image') NOT NULL DEFAULT 'text',
   `image_url` varchar(500) DEFAULT NULL,
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `read_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
-
---
--- Dumping data for table `messages`
---
-
-INSERT INTO `messages` (`id`, `conversation_id`, `sender_id`, `body`, `message_type`, `image_url`, `is_read`, `created_at`) VALUES
-(10, 5, 17, 'kkk', 'text', NULL, 0, '2026-03-27 19:21:15'),
-(11, 6, 17, 'hi', 'text', NULL, 0, '2026-03-28 12:14:46');
 
 -- --------------------------------------------------------
 
@@ -845,7 +889,6 @@ INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `title_ar`, `body
 (68, 10, 'cohost_invite', 'Co-host invitation — dfdfg', 'دعوة مضيف مشارك — dfdfg', 'taha invited you as a Cleaner', 'دعاك taha كـCleaner', '{\"propertyId\":231,\"cohostRecordId\":\"2\",\"role\":\"cleaner\"}', 1, '2026-03-27 23:31:16'),
 (69, 2, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":\"6\",\"messageId\":\"11\"}', 0, '2026-03-28 12:14:46'),
 (70, 10, 'cohost_invite', 'Co-host invitation — dfdfg', 'دعوة مضيف مشارك — dfdfg', 'taha invited you as a Co-host', 'دعاك taha كـCo-host', '{\"propertyId\":231,\"cohostRecordId\":\"3\",\"role\":\"co_host\"}', 1, '2026-03-28 12:16:49'),
-(71, 17, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for sddfsdf', 'لديك طلب حجز جديد لـ sddfsdf', '{\"bookingId\":\"30\",\"propertyId\":232}', 1, '2026-03-28 16:27:30'),
 (72, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Authentic Nubian Guesthouse on the West Bank', 'لديك طلب حجز جديد لـ Authentic Nubian Guesthouse on the West Bank', '{\"bookingId\":\"31\",\"propertyId\":162}', 0, '2026-03-28 16:46:51'),
 (73, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Authentic Nubian Guesthouse on the West Bank', 'لديك طلب حجز جديد لـ Authentic Nubian Guesthouse on the West Bank', '{\"bookingId\":\"32\",\"propertyId\":162}', 0, '2026-03-28 16:48:14'),
 (74, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"33\",\"propertyId\":165}', 0, '2026-03-28 17:14:13'),
@@ -855,13 +898,10 @@ INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `title_ar`, `body
 (78, 10, 'payment_declined', 'Payment Could Not Be Verified', 'تعذّر التحقق من الدفع', 'Your InstaPay payment for booking #35 could not be verified within 48 hours. Please go to My Trips and retry.', 'تعذّر التحقق من دفعك للحجز #35 خلال 48 ساعة. يرجى الانتقال إلى رحلاتي والمحاولة مرة أخرى.', '{\"bookingId\":\"35\"}', 1, '2026-04-03 17:00:00'),
 (79, 10, 'superhost_achieved', 'Congratulations! Your consultant application is approved', 'تهانينا! تم قبول طلب الاستشارات الخاص بك', 'You can now offer consultation services on Oikivo!', 'يمكنك الآن تقديم خدمات الاستشارات على Oikivo!', '{\"consultantId\":\"3\"}', 1, '2026-04-03 18:20:01'),
 (80, 10, 'superhost_achieved', 'Congratulations! Your consultant application is approved', 'تهانينا! تم قبول طلب الاستشارات الخاص بك', 'You can now offer consultation services on Oikivo!', 'يمكنك الآن تقديم خدمات الاستشارات على Oikivo!', '{\"consultantId\":\"4\"}', 1, '2026-04-03 21:24:32'),
-(81, 17, 'superhost_achieved', 'Congratulations! Your consultant application is approved', 'تهانينا! تم قبول طلب الاستشارات الخاص بك', 'You can now offer consultation services on Oikivo!', 'يمكنك الآن تقديم خدمات الاستشارات على Oikivo!', '{\"consultantId\":\"5\"}', 1, '2026-04-03 21:55:33'),
 (82, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"36\",\"propertyId\":161}', 0, '2026-04-06 01:03:39'),
 (83, 2, 'payment_submitted', 'Payment Submitted', 'تم إرسال الدفع', 'Guest submitted an InstaPay transfer for booking #36. Ref: zxcvxxcvbcvnbvnvmn', 'أرسل الضيف تحويل InstaPay للحجز #36. المرجع: zxcvxxcvbcvnbvnvmn', '{\"bookingId\":36}', 0, '2026-04-06 01:04:10'),
-(84, 17, 'payment_confirmed', 'Payment Confirmed', 'تم تأكيد الدفع', 'Your payment for booking #36 has been confirmed. Your stay is all set! 🎉', 'تم تأكيد دفعك للحجز #36. إقامتك جاهزة! 🎉', '{\"bookingId\":36}', 1, '2026-04-06 01:05:40'),
 (85, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled. Refund: USD 3300.00', 'تم إلغاء حجز. Refund: USD 3300.00', '{\"bookingId\":36}', 0, '2026-04-06 01:11:12'),
 (86, 15, 'instapay_refund_pending', 'InstaPay Refund Required', 'يلزم استرداد InstaPay يدوياً', 'Booking #36 was cancelled with a paid InstaPay amount of USD 3300.00. Manual refund required.', 'تم إلغاء الحجز #36 بمبلغ InstaPay مدفوع USD 3300.00. يلزم الاسترداد اليدوي.', '{\"bookingId\":36}', 0, '2026-04-06 01:11:20'),
-(87, 17, 'instapay_refund_completed', 'InstaPay Refund Sent', 'تم إرسال استرداد InstaPay', 'Your InstaPay refund for booking #36 has been sent to your account.', 'تم إرسال استرداد InstaPay للحجز #36 إلى حسابك.', '{\"bookingId\":36}', 1, '2026-04-06 01:12:26'),
 (88, 2, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (89, 3, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (90, 4, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
@@ -870,8 +910,15 @@ INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `title_ar`, `body
 (93, 7, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (94, 8, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (95, 10, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 1, '2026-04-07 00:15:08'),
-(96, 11, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(97, 15, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08');
+(97, 15, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
+(98, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Authentic Nubian Guesthouse on the West Bank', 'لديك طلب حجز جديد لـ Authentic Nubian Guesthouse on the West Bank', '{\"bookingId\":\"37\",\"propertyId\":196}', 0, '2026-04-10 20:36:42'),
+(99, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"38\",\"propertyId\":161}', 0, '2026-04-11 15:54:58'),
+(100, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"39\",\"propertyId\":161}', 0, '2026-04-11 15:55:56'),
+(101, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled: personal_emergency.', 'تم إلغاء حجز: personal_emergency.', '{\"bookingId\":39}', 0, '2026-04-11 15:56:17'),
+(102, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"40\",\"propertyId\":161}', 0, '2026-04-11 16:21:30'),
+(103, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled: personal_emergency.', 'تم إلغاء حجز: personal_emergency.', '{\"bookingId\":40}', 0, '2026-04-11 16:22:41'),
+(104, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"41\",\"propertyId\":165}', 0, '2026-04-11 22:10:41'),
+(105, 3, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled.', 'تم إلغاء حجز.', '{\"bookingId\":41}', 0, '2026-04-11 22:11:30');
 
 -- --------------------------------------------------------
 
@@ -891,6 +938,27 @@ CREATE TABLE `password_resets` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `payment_transactions`
+--
+
+CREATE TABLE `payment_transactions` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `booking_id` bigint(20) UNSIGNED NOT NULL,
+  `type` enum('charge','refund','partial_refund') NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `currency` char(3) NOT NULL DEFAULT 'EGP',
+  `gateway` enum('stripe','opay','instapay','cash','bank_transfer') NOT NULL,
+  `gateway_reference` varchar(255) DEFAULT NULL COMMENT 'External payment gateway transaction ID',
+  `status` enum('pending','success','failed') NOT NULL DEFAULT 'pending',
+  `failure_reason` varchar(500) DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Gateway-specific response data' CHECK (json_valid(`metadata`)),
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `payouts`
 --
 
@@ -900,12 +968,29 @@ CREATE TABLE `payouts` (
   `amount` decimal(10,2) NOT NULL,
   `currency` char(3) NOT NULL DEFAULT 'EGP',
   `method` enum('instapay','bank_transfer','cash') NOT NULL DEFAULT 'instapay',
-  `account_details` varchar(500) DEFAULT NULL,
+  `account_details` text DEFAULT NULL,
+  `is_auto` tinyint(1) NOT NULL DEFAULT 0,
   `status` enum('pending','processing','completed','failed') NOT NULL DEFAULT 'pending',
   `note` varchar(1000) DEFAULT NULL,
+  `transfer_reference` varchar(255) DEFAULT NULL COMMENT 'Bank transfer / InstaPay / OPay transaction reference',
   `processed_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payout_items`
+--
+
+CREATE TABLE `payout_items` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `payout_id` bigint(20) UNSIGNED NOT NULL,
+  `earning_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `booking_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -930,7 +1015,25 @@ INSERT INTO `platform_settings` (`id`, `key`, `value`, `description`, `updated_a
 (1, 'property_guest_fee_pct', '5', 'Guest service fee % charged on top of property booking subtotal', '2026-04-06 21:46:39'),
 (2, 'property_host_fee_pct', '1', 'Host commission % deducted from property booking payout', '2026-04-06 22:08:58'),
 (3, 'consultation_user_fee_pct', '10', 'Guest service fee % charged on top of experience booking subtotal', '2026-04-06 21:46:39'),
-(4, 'consultation_consultant_fee_pct', '5', 'Host commission % deducted from experience booking payout', '2026-04-06 21:46:39');
+(4, 'consultation_consultant_fee_pct', '5', 'Host commission % deducted from experience booking payout', '2026-04-06 21:46:39'),
+(8, 'maintenance_mode', 'false', NULL, '2026-04-19 18:23:21');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `price_alerts`
+--
+
+CREATE TABLE `price_alerts` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `property_id` bigint(20) UNSIGNED NOT NULL,
+  `target_price` decimal(10,2) NOT NULL,
+  `last_known_price` decimal(10,2) NOT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `notified_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -957,7 +1060,7 @@ CREATE TABLE `properties` (
   `currency` char(3) NOT NULL DEFAULT 'USD',
   `cleaning_fee` decimal(10,2) NOT NULL DEFAULT 0.00,
   `security_deposit` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `service_fee_percent` decimal(5,2) NOT NULL DEFAULT 14.00,
+  `service_fee_percent` decimal(5,2) NOT NULL DEFAULT 5.00,
   `min_nights` int(11) NOT NULL DEFAULT 1,
   `max_nights` int(11) NOT NULL DEFAULT 365,
   `turnover_days` tinyint(4) NOT NULL DEFAULT 1 COMMENT 'Cleaning/preparation buffer days between bookings',
@@ -994,87 +1097,77 @@ CREATE TABLE `properties` (
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `archived_at` timestamp NULL DEFAULT NULL,
   `uuid` varchar(36) DEFAULT NULL,
-  `geo_point` point NOT NULL
+  `geo_point` point NOT NULL,
+  `require_verified_guest` tinyint(1) NOT NULL DEFAULT 0,
+  `min_guest_rating` decimal(2,1) DEFAULT NULL,
+  `wifi_name` varchar(100) DEFAULT NULL,
+  `wifi_password` varchar(100) DEFAULT NULL,
+  `door_code` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `properties`
 --
 
-INSERT INTO `properties` (`id`, `host_id`, `category_id`, `title`, `description`, `space_type`, `property_kind`, `price_per_night`, `weekend_price`, `weekly_discount_percent`, `monthly_discount_percent`, `new_listing_promotion_enabled`, `last_minute_discount_percent`, `booking_mode`, `approved_bookings_count`, `currency`, `cleaning_fee`, `security_deposit`, `service_fee_percent`, `min_nights`, `max_nights`, `turnover_days`, `max_guests`, `bedrooms`, `bathrooms`, `beds`, `address`, `city`, `timezone`, `state`, `country`, `country_code`, `postal_code`, `latitude`, `longitude`, `check_in_after`, `check_out_before`, `check_in_instructions`, `allows_pets`, `allows_smoking`, `allows_parties`, `allows_children`, `instant_book`, `cancellation_policy`, `is_active`, `status`, `is_featured`, `avg_rating`, `review_count`, `view_count`, `impression_count`, `created_at`, `updated_at`, `archived_at`, `uuid`, `geo_point`) VALUES
-(161, 2, 6, 'Sky Penthouse with Panoramic Garden City Views', 'Three floors of pure luxury perched atop a landmark Maadi tower. A private rooftop pool, cinema room, and fully equipped chef\'s kitchen. This is the finest private accommodation in Cairo for discerning travelers and corporate guests.', 'entire_place', 'apartment', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 100.00, 0.00, 14.00, 1, 365, 1, 8, 4, 4.0, 6, 'Road 9, Maadi', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 29.9602000, 31.2587000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 17, 13, 105, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5e93d-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000a779c7293a423f40849ecdaacff53d40),
-(162, 3, 15, 'Authentic Nubian Guesthouse on the West Bank', 'Step into living history on the West Bank of Luxor. This lovingly restored Nubian guesthouse sits minutes from the Valley of the Kings. Hand-painted walls, rooftop sunsets over the Nile, and home-cooked Egyptian breakfasts every morning.', 'entire_place', 'house', 45.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 10.00, 0.00, 14.00, 1, 365, 1, 6, 3, 2.0, 4, 'Al Gezira, West Bank', 'Luxor', NULL, NULL, 'Egypt', 'EG', NULL, 25.6966000, 32.6103000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.91, 63, 6, 283, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5ef8a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d95f764f1e4e4040c364aa6054b23940),
-(163, 4, 1, 'Diver\'s Loft with Rooftop ??? Steps from Blue Hole', 'Purpose-built for divers, this modern loft is a 3-minute walk from the legendary Dahab Blue Hole. Storage rooms for gear, freshwater rinse station, high-speed WiFi, and a rooftop hammock area with mountain views. Breakfast included.', 'entire_place', 'apartment', 65.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 15.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 3, 'Blue Hole Road, Dahab', 'South Sinai', NULL, NULL, 'Egypt', 'EG', NULL, 28.5756000, 34.5150000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 41, 0, 189, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5f055-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000052b81e85eb414140de9387855a933c40),
-(164, 2, 13, 'Desert Ecolodge in Siwa Oasis', 'Disconnect from the world in this eco-lodge built from traditional kershef (salt rock). Solar powered, hot spring access, dune safari at dawn. The ultimate wellness escape in one of Egypt\'s most remote and mystical destinations.', 'entire_place', 'villa', 95.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 30.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 3, 'Siwa Town Center', 'Siwa', NULL, NULL, 'Egypt', 'EG', NULL, 29.2027000, 25.5185000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 29, 0, 7, '2026-03-23 22:25:25', '2026-04-06 00:35:27', NULL, '94f5f1cb-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000dbf97e6abc84394032e6ae25e4333d40),
-(165, 3, 8, 'Designer Apartment near Cairo Festival City', 'Chic and fully furnished 2-bedroom in 5th Settlement. 10 minutes from Cairo International Airport, walking distance to Cairo Festival City Mall. High-speed fiber internet, Netflix, and smart home controls.', 'entire_place', 'apartment', 60.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, '5th Settlement, Ring Road', 'New Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0099000, 31.4777000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.74, 52, 20, 200, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5f250-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000984c158c4a7a3f40fb3a70ce88023e40),
-(166, 4, 11, 'Converted Felucca Houseboat ??? Aswan Nile', 'Sleep on the water in this beautifully converted traditional felucca permanently moored on the Nile. Watch Nubian fishermen at sunrise, sunset cocktails on deck, and close to Philae Temple and the Aswan High Dam.', 'entire_place', 'house', 75.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 2, 'Corniche El Nil, Aswan', 'Aswan', NULL, NULL, 'Egypt', 'EG', NULL, 24.0889000, 32.8998000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.86, 38, 0, 189, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5f34f-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006c787aa52c734040499d8026c2163840),
-(167, 2, 1, 'Beachfront Bungalow ??? Ain Sokhna', 'A quick 1.5-hour drive from Cairo, this private beachfront bungalow on the Red Sea Coast is perfect for weekend escapes. Private beach access, covered terrace, outdoor shower, and fully stocked kitchen.', 'entire_place', 'house', 110.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 35.00, 0.00, 14.00, 1, 365, 1, 6, 2, 2.0, 3, 'Porto Sokhna Resort', 'Sokhna', NULL, NULL, 'Egypt', 'EG', NULL, 29.6155000, 32.3508000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.82, 44, 0, 2, '2026-03-23 22:25:25', '2026-03-28 16:27:06', NULL, '94f5f3c5-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000e9b7af03e72c404021b07268919d3d40),
-(168, 3, 15, 'Belle ??poque Apartment in Downtown Cairo', 'A gem of Cairo\'s golden age. This lovingly maintained 1920s apartment retains original parquet floors, high stucco ceilings, and French windows overlooking a leafy boulevard. Walk to Tahrir Square, the Egyptian Museum, and Opera House.', 'entire_place', 'apartment', 42.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 12.00, 0.00, 14.00, 1, 365, 1, 3, 1, 1.0, 2, 'Talaat Harb Square, Downtown', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0480000, 31.2361000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.68, 71, 0, 199, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5f529-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ea95b20c713c3f403f355eba490c3e40),
-(169, 4, 1, 'White Villa on the Mediterranean ??? North Coast', 'A gleaming white villa on Egypt\'s turquoise Mediterranean coast. Massive private pool, beachfront access, rooftop lounge, and a games room. Sleeps 10 comfortably. Perfect for groups, families, and milestone celebrations.', 'entire_place', 'villa', 450.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 150.00, 0.00, 14.00, 1, 365, 1, 10, 5, 4.0, 7, 'Sidi Heneish, Matruh', 'North Coast', NULL, NULL, 'Egypt', 'EG', NULL, 31.1965000, 27.8742000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 22, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f5f5ab-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c7293a92cbdf3b40fca9f1d24d323f40),
-(170, 2, 3, 'Water Villa with Private Lagoon Dock ??? El Gouna', 'Float between lagoon and sea in this unique water villa. Your private dock means you can kayak or paddleboard directly from home. A golf cart is included, and El Gouna\'s vibrant restaurants and nightlife are minutes away.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 80.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Villa Zone, El Gouna', 'Red Sea', NULL, NULL, 'Egypt', 'EG', NULL, 27.4010000, 33.6843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 31, 0, 7, '2026-03-23 22:25:25', '2026-04-06 00:35:27', NULL, '94f5f69c-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008f53742497d740402db29defa7663b40),
-(171, 3, 11, 'Whitewashed Caldera Cave House ??? Oia, Santorini', 'The quintessential Santorini experience. This traditional cave house in Oia offers unobstructed caldera views and front-row seats to the world\'s most famous sunset. Plunge pool, private terrace, and champagne on arrival.', 'entire_place', 'villa', 520.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 100.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, 'Oia Village', 'Oia', NULL, NULL, 'Greece', 'GR', NULL, 36.4625000, 25.3740000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.99, 88, 1, 101, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5f70e-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000039b4c876be5f394033333333333b4240),
-(172, 4, 6, 'Full-Floor Penthouse ??? Dubai Marina Skyline View', 'An entire floor of a Marina tower, 52 floors up. 270-degree views of the Marina, Palm Jumeirah, and Arabian Gulf. Private pool, home cinema, and a chauffeur service available. The definition of Dubai luxury.', 'entire_place', 'apartment', 850.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AED', 300.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.5, 4, 'Marina Walk, Dubai Marina', 'Dubai', NULL, NULL, 'United Arab Emirates', 'AE', NULL, 25.0806000, 55.1439000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 45, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f5f800-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000007cf2b0506b924b40bf0e9c33a2143940),
-(173, 2, 2, 'Jungle Rice Terrace Villa ??? Ubud, Bali', 'Immerse yourself in Bali\'s emerald heartland. Your private infinity pool seems to pour directly into the rice terraces below. Full staff, daily breakfast, and a private driver to Ubud\'s temples and art galleries.', 'entire_place', 'villa', 185.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 50.00, 0.00, 14.00, 1, 365, 1, 4, 2, 2.0, 2, 'Jalan Raya Tegallalang', 'Ubud', NULL, NULL, 'Indonesia', 'ID', NULL, -8.4095000, 115.2820000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 112, 0, 101, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5f872-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000355eba490cd25c408b6ce7fba9d120c0),
-(174, 3, 15, 'Haussmann Apartment ??? Marais District, Paris', 'A perfectly restored Second Empire apartment in Le Marais ??? Paris\'s most sought-after neighborhood. Exposed limestone walls, parquet floors, and a private courtyard. Walk to the Louvre, Centre Pompidou, and Picasso Museum.', 'entire_place', 'apartment', 220.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 60.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, 'Rue de Bretagne, Le Marais', 'Paris', NULL, NULL, 'France', 'FR', NULL, 48.8620000, 2.3592000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.89, 77, 0, 95, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5f965-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000001dc9e53fa4df024075931804566e4840),
-(175, 4, 8, 'Designer Capsule Studio ??? Shinjuku, Tokyo', 'Experience Tokyo\'s ultra-efficient design philosophy in this architect-designed micro-apartment. Smart storage, a meditation nook, and walking distance to Shinjuku Station, Golden Gai, and all the ramen you can eat.', 'entire_place', 'apartment', 18500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 5000.00, 0.00, 14.00, 1, 365, 1, 2, 0, 1.0, 1, '3-chome, Shinjuku', 'Tokyo', NULL, NULL, 'Japan', 'JP', NULL, 35.6938000, 139.7034000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.84, 93, 0, 2, '2026-03-23 22:25:25', '2026-04-06 00:34:45', NULL, '94f5f9d4-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000003480b740827661407ffb3a70ced84140),
-(176, 2, 15, 'Restored Riad with Plunge Pool ??? Medina, Marrakech', 'A 16th-century merchant\'s house restored to its original splendor. Zellij tilework, cedarwood ceilings, a central fountain courtyard, and a rooftop terrace overlooking the medina\'s minarets. Full riad, sleeps 8.', 'entire_place', 'house', 1800.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'MAD', 400.00, 0.00, 14.00, 1, 365, 1, 8, 4, 3.0, 6, 'Derb Sidi Ahmed Ou Moussa, Medina', 'Marrakech', NULL, NULL, 'Morocco', 'MA', NULL, 31.6294000, -7.9880000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 58, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f5fac3-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c1caa145b6f31fc0371ac05b20a13f40),
-(177, 3, 1, 'Overwater Bungalow with Glass Floor ??? Maldives', 'Wake up to turquoise lagoon directly beneath you through the glass floor panels. Your own ladder into the Indian Ocean, a hammock over the water, and a butler on call 24/7. Snorkeling gear and kayaks included.', 'entire_place', 'villa', 1200.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, 'North Mal?? Atoll', 'North Mal??', NULL, NULL, 'Maldives', 'MV', NULL, 4.3085000, 73.5265000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 5.00, 34, 0, 101, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5fbb4-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000004560e2db261524096438b6ce73b1140),
-(178, 4, 8, 'Industrial Loft in Williamsburg, Brooklyn', 'A 19th-century factory floor transformed into a stunning open-plan loft. Exposed brick, 14-foot ceilings, and a rooftop with Manhattan skyline views. Steps from L train, vibrant restaurants, and Brooklyn\'s best coffee shops.', 'entire_place', 'apartment', 275.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 75.00, 0.00, 14.00, 1, 365, 1, 4, 1, 1.0, 1, 'North 6th Street, Williamsburg', 'New York', NULL, NULL, 'United States', 'US', NULL, 40.7141000, -73.9590000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.87, 66, 0, 2, '2026-03-23 22:25:25', '2026-04-06 00:34:45', NULL, '94f5fca4-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000004c378941607d52c06c09f9a0675b4440),
-(179, 2, 15, 'Georgian Townhouse ??? Notting Hill, London', 'A four-story Georgian townhouse on one of London\'s most photogenic streets, two doors from Portobello Market. Original fireplaces, a private garden, and a wine cellar. Sleeps 8 in period-perfect comfort.', 'entire_place', 'house', 650.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'GBP', 150.00, 0.00, 14.00, 1, 365, 1, 8, 4, 3.5, 5, 'Pembridge Crescent, Notting Hill', 'London', NULL, NULL, 'United Kingdom', 'GB', NULL, 51.5127000, -0.2002000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.91, 29, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f5fd95-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aa60545227a0c9bf61545227a0c14940),
-(180, 3, 11, 'Cliffside Lemon Grove Villa ??? Positano, Amalfi', 'A romantic terraced villa clinging to the Amalfi cliffs above Positano. Private pool, lemon grove, and a boat for private coastal excursions. The view from the breakfast terrace will ruin all other breakfasts forever.', 'entire_place', 'villa', 480.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 120.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Via dei Mulini, Positano', 'Positano', NULL, NULL, 'Italy', 'IT', NULL, 40.6277000, 14.4843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 42, 0, 101, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f5fe87-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d5e76a2bf6f72c407fd93d7958504440),
-(181, 4, 15, 'Machiya Townhouse ??? Gion District, Kyoto', 'A 100-year-old machiya (townhouse) in Kyoto\'s geisha district, thoughtfully updated with underfloor heating and a Japanese soaker bath. A traditional stone garden, tatami rooms, and private tea ceremony available on request.', 'entire_place', 'house', 42000.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 8000.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, 'Gion, Higashiyama-ku', 'Kyoto', NULL, NULL, 'Japan', 'JP', NULL, 35.0039000, 135.7753000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 51, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f5ff75-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d712f241cff860402a3a92cb7f804140),
-(182, 2, 11, 'Clifftop Villa with Atlantic Views ??? Camps Bay', 'Perched above Camps Bay with 180-degree Atlantic Ocean views, this contemporary villa has an infinity pool that merges with the horizon. Table Mountain looms behind, Camps Bay beach is 5 minutes below.', 'entire_place', 'villa', 380.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 90.00, 0.00, 14.00, 1, 365, 1, 8, 4, 4.0, 5, 'The Glen, Camps Bay', 'Cape Town', NULL, NULL, 'South Africa', 'ZA', NULL, -33.9500000, 18.3765000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 38, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f60061-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aaf1d24d626032409a99999999f940c0),
-(183, 3, 10, 'Ski-in Ski-out Alpine Chalet ??? Verbier', 'A classic Swiss chalet with direct piste access in the legendary Verbier ski resort. Stone fireplace, a sauna for apr??s-ski, a wine rack stocked with Swiss Fendant, and sunset views over the Mont-Blanc massif.', 'entire_place', 'house', 820.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 180.00, 0.00, 14.00, 1, 365, 1, 10, 5, 4.0, 7, 'Hameau de Verbier', 'Verbier', NULL, NULL, 'Switzerland', 'CH', NULL, 46.0977000, 7.2281000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 23, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f6014c-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d3dee00b93e91c40dc68006f810c4740),
-(184, 4, 6, 'Sky Garden Suite ??? Marina Bay, Singapore', 'A sky terrace apartment on the 48th floor with unobstructed views of Marina Bay Sands, the Gardens by the Bay, and the Singapore Strait. A private sky garden, lap pool, and full concierge service at your disposal.', 'entire_place', 'apartment', 780.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SGD', 200.00, 0.00, 14.00, 1, 365, 1, 4, 2, 2.0, 2, 'Marina Boulevard', 'Singapore', NULL, NULL, 'Singapore', 'SG', NULL, 1.2784000, 103.8593000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.90, 27, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f60926-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000fb5c6dc5fef659406a4df38e5374f43f),
-(185, 2, 2, 'Restored Farmhouse with Vineyard ??? Chianti, Tuscany', 'A stone farmhouse amid rolling Chianti vineyards with your own olive grove and vineyard terrace. A heated outdoor pool, wood-fired pizza oven, and a private wine cellar. Rolling hills in every direction, total silence at night.', 'entire_place', 'house', 340.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 80.00, 0.00, 14.00, 1, 365, 1, 8, 4, 3.0, 5, 'Via Chiantigiana, Greve in Chianti', 'Florence', NULL, NULL, 'Italy', 'IT', NULL, 43.5843000, 11.3178000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 44, 0, 7, '2026-03-23 22:25:25', '2026-04-06 00:35:27', NULL, '94f60a40-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006d567daeb6a22640c286a757caca4540),
-(186, 3, 6, 'Luxury High-Rise Condo ??? Silom, Bangkok', 'A sleek, hotel-quality condo on the 35th floor in central Bangkok. Rooftop pool, fully equipped gym, and 24-hour concierge. BTS Sala Daeng station is literally downstairs. Perfect for business travelers and luxury seekers.', 'entire_place', 'apartment', 4500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'THB', 1000.00, 0.00, 14.00, 1, 365, 1, 3, 1, 1.0, 1, 'Silom Road', 'Bangkok', NULL, NULL, 'Thailand', 'TH', NULL, 13.7233000, 100.5295000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.81, 60, 0, 2, '2026-03-23 22:25:25', '2026-03-28 16:27:06', NULL, '94f60b30-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d9cef753e3215940c364aa6054722b40),
-(187, 4, 15, 'Azulejo Tile Apartment ??? Alfama, Lisbon', 'Perched in Alfama, Lisbon\'s oldest and most atmospheric neighborhood. This apartment features original azulejo panels, a private balcony for fado evenings, and a spiral staircase to a rooftop with views to the Tagus estuary.', 'entire_place', 'apartment', 130.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 30.00, 0.00, 14.00, 1, 365, 1, 3, 1, 1.0, 2, 'Rua dos Remedios, Alfama', 'Lisbon', NULL, NULL, 'Portugal', 'PT', NULL, 38.7120000, -9.1310000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 73, 0, 95, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f60c1a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000508d976e124322c04260e5d0225b4340),
-(188, 2, 10, 'Lakeview Lodge ??? Queenstown, New Zealand', 'A modern mountain lodge overlooking Lake Wakatipu and The Remarkables mountain range. Hot tub on the deck, a kayak launch, and minutes from Queenstown\'s world-class skiing, bungee jumping, and wine trails.', 'entire_place', 'house', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AUD', 70.00, 0.00, 14.00, 1, 365, 1, 6, 3, 2.0, 4, 'Frankton Road', 'Queenstown', NULL, NULL, 'New Zealand', 'NZ', NULL, -45.0312000, 168.6626000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 35, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f60e4b-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008c4aea04341565404ed1915cfe8346c0),
-(189, 3, 6, 'Contemporary Villa with Pool ??? Al Nakheel, Riyadh', 'A contemporary villa in one of Riyadh\'s most prestigious neighborhoods. Large entertaining spaces, a private pool and garden, a cinema room, and fully equipped diwaniya. Perfect for families and delegations.', 'entire_place', 'villa', 1500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SAR', 400.00, 0.00, 14.00, 1, 365, 1, 8, 4, 4.0, 5, 'Al Nakheel District', 'Riyadh', NULL, NULL, 'Saudi Arabia', 'SA', NULL, 24.7893000, 46.6413000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.83, 19, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f613a9-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000060764f1e1652474099bb96900fca3840),
-(190, 4, 11, 'Ottoman Mansion on the Bosphorus ??? Bebek', 'A genuine 19th-century waterfront mansion in Bebek, the most prestigious address on the Bosphorus. Private boat dock, original painted ceilings, and uninterrupted views of European and Asian shores simultaneously.', 'entire_place', 'house', 8500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'TRY', 2000.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Bebek Sahil', 'Istanbul', NULL, NULL, 'Turkey', 'TR', NULL, 41.0773000, 29.0462000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 27, 0, 7, '2026-03-23 22:25:25', '2026-04-06 00:35:27', NULL, '94f6143a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000401361c3d30b3d408bfd65f7e4894440),
-(191, 2, 13, 'Luxury Desert Camp ??? Wadi Rum, Jordan', 'Sleep under a million stars in this luxury Bedouin-style camp in Wadi Rum. Private transparent geodesic dome for stargazing from bed, gourmet Jordanian dinner, and guided jeep tours of the Mars-like landscape included.', 'entire_place', 'villa', 150.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JOD', 30.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, 'Wadi Rum Protected Area', 'Wadi Rum', NULL, NULL, 'Jordan', 'JO', NULL, 29.5754000, 35.4231000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 48, 0, 101, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f614c1-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000003780b2428b641404f1e166a4d933d40),
-(192, 3, 15, 'Gothic Quarter Penthouse ??? Barcelona', 'A stunning penthouse apartment in Barcelona\'s 2,000-year-old Gothic Quarter, with a private terrace and views of the Barcelona Cathedral. Steps from Las Ramblas, the Born market, and the best tapas bars in Europe.', 'entire_place', 'apartment', 195.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 50.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, 'Carrer del Bisbe, Gothic', 'Barcelona', NULL, NULL, 'Spain', 'ES', NULL, 41.3831000, 2.1761000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.90, 84, 0, 95, '2026-03-23 22:25:25', '2026-04-07 00:16:38', NULL, '94f61536-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d49ae61da76801407e8cb96b09b14440),
-(193, 4, 15, '17th-Century Canal House ??? Jordaan, Amsterdam', 'A five-story Golden Age canal house in Amsterdam\'s prettiest neighborhood. The trademark steep Dutch staircase, period furniture, a canal view breakfast room, and a secret garden terrace. Bikes provided for every guest.', 'entire_place', 'house', 285.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 65.00, 0.00, 14.00, 1, 365, 1, 6, 3, 2.0, 4, 'Prinsengracht, Jordaan', 'Amsterdam', NULL, NULL, 'Netherlands', 'NL', NULL, 52.3736000, 4.8811000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 56, 0, 1, '2026-03-23 22:25:25', '2026-03-28 13:58:55', NULL, '94f615a9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000bc0512143f8613408fe4f21fd22f4a40),
-(194, 2, 1, 'Spice Island Beach Villa ??? Nungwi, Zanzibar', 'A whitewashed villa on the most beautiful beach in Zanzibar. Directly on the Indian Ocean, a private pool, coconut palms, a dhow sunset cruise included, and fresh catch grilled daily by your private cook.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 60.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Nungwi Beach', 'Nungwi', NULL, NULL, 'Tanzania', 'TZ', NULL, -5.7200000, 39.2975000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 39, 0, 7, '2026-03-23 22:25:25', '2026-04-06 00:35:27', NULL, '94f6161e-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ae47e17a14a64340e17a14ae47e116c0),
-(195, 2, 6, 'Sky Penthouse with Panoramic Garden City Views', 'Three floors of pure luxury perched atop a landmark Maadi tower. A private rooftop pool, cinema room, and fully equipped chef\'s kitchen. This is the finest private accommodation in Cairo for discerning travelers and corporate guests.', 'entire_place', 'apartment', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 100.00, 0.00, 14.00, 1, 365, 1, 8, 4, 4.0, 6, 'Road 9, Maadi', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 29.9602000, 31.2587000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 17, 0, 105, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b43052a9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000a779c7293a423f40849ecdaacff53d40),
-(196, 3, 15, 'Authentic Nubian Guesthouse on the West Bank', 'Step into living history on the West Bank of Luxor. This lovingly restored Nubian guesthouse sits minutes from the Valley of the Kings. Hand-painted walls, rooftop sunsets over the Nile, and home-cooked Egyptian breakfasts every morning.', 'entire_place', 'house', 45.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 10.00, 0.00, 14.00, 1, 365, 1, 6, 3, 2.0, 4, 'Al Gezira, West Bank', 'Luxor', NULL, NULL, 'Egypt', 'EG', NULL, 25.6966000, 32.6103000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.91, 63, 0, 283, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b4305c41-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d95f764f1e4e4040c364aa6054b23940),
-(197, 4, 1, 'Diver\'s Loft with Rooftop — Steps from Blue Hole', 'Purpose-built for divers, this modern loft is a 3-minute walk from the legendary Dahab Blue Hole. Storage rooms for gear, freshwater rinse station, high-speed WiFi, and a rooftop hammock area with mountain views. Breakfast included.', 'entire_place', 'apartment', 65.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 15.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 3, 'Blue Hole Road, Dahab', 'South Sinai', NULL, NULL, 'Egypt', 'EG', NULL, 28.5756000, 34.5150000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 41, 0, 189, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b43062d0-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000052b81e85eb414140de9387855a933c40),
-(198, 2, 13, 'Desert Ecolodge in Siwa Oasis', 'Disconnect from the world in this eco-lodge built from traditional kershef (salt rock). Solar powered, hot spring access, dune safari at dawn. The ultimate wellness escape in one of Egypt\'s most remote and mystical destinations.', 'entire_place', 'villa', 95.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 30.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 3, 'Siwa Town Center', 'Siwa', NULL, NULL, 'Egypt', 'EG', NULL, 29.2027000, 25.5185000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 29, 0, 7, '2026-03-23 22:26:17', '2026-04-06 00:35:27', NULL, 'b43063af-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000dbf97e6abc84394032e6ae25e4333d40),
-(199, 3, 8, 'Designer Apartment near Cairo Festival City', 'Chic and fully furnished 2-bedroom in 5th Settlement. 10 minutes from Cairo International Airport, walking distance to Cairo Festival City Mall. High-speed fiber internet, Netflix, and smart home controls.', 'entire_place', 'apartment', 60.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, '5th Settlement, Ring Road', 'New Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0099000, 31.4777000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.74, 52, 0, 200, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b43065c9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000984c158c4a7a3f40fb3a70ce88023e40),
-(200, 4, 11, 'Converted Felucca Houseboat — Aswan Nile', 'Sleep on the water in this beautifully converted traditional felucca permanently moored on the Nile. Watch Nubian fishermen at sunrise, sunset cocktails on deck, and close to Philae Temple and the Aswan High Dam.', 'entire_place', 'house', 75.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 2, 'Corniche El Nil, Aswan', 'Aswan', NULL, NULL, 'Egypt', 'EG', NULL, 24.0889000, 32.8998000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.86, 38, 4, 187, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b4306679-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006c787aa52c734040499d8026c2163840),
-(201, 2, 1, 'Beachfront Bungalow — Ain Sokhna', 'A quick 1.5-hour drive from Cairo, this private beachfront bungalow on the Red Sea Coast is perfect for weekend escapes. Private beach access, covered terrace, outdoor shower, and fully stocked kitchen.', 'entire_place', 'house', 110.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 35.00, 0.00, 14.00, 1, 365, 1, 6, 2, 2.0, 3, 'Porto Sokhna Resort', 'Sokhna', NULL, NULL, 'Egypt', 'EG', NULL, 29.6155000, 32.3508000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.82, 44, 0, 2, '2026-03-23 22:26:17', '2026-03-28 16:27:06', NULL, 'b430670b-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000e9b7af03e72c404021b07268919d3d40),
-(202, 3, 15, 'Belle Époque Apartment in Downtown Cairo', 'A gem of Cairo\'s golden age. This lovingly maintained 1920s apartment retains original parquet floors, high stucco ceilings, and French windows overlooking a leafy boulevard. Walk to Tahrir Square, the Egyptian Museum, and Opera House.', 'entire_place', 'apartment', 42.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 12.00, 0.00, 14.00, 1, 365, 1, 3, 1, 1.0, 2, 'Talaat Harb Square, Downtown', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0480000, 31.2361000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.68, 71, 1, 199, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b4306855-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ea95b20c713c3f403f355eba490c3e40),
-(203, 4, 1, 'White Villa on the Mediterranean — North Coast', 'A gleaming white villa on Egypt\'s turquoise Mediterranean coast. Massive private pool, beachfront access, rooftop lounge, and a games room. Sleeps 10 comfortably. Perfect for groups, families, and milestone celebrations.', 'entire_place', 'villa', 450.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 150.00, 0.00, 14.00, 1, 365, 1, 10, 5, 4.0, 7, 'Sidi Heneish, Matruh', 'North Coast', NULL, NULL, 'Egypt', 'EG', NULL, 31.1965000, 27.8742000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 22, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b43068cc-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c7293a92cbdf3b40fca9f1d24d323f40),
-(204, 2, 3, 'Water Villa with Private Lagoon Dock — El Gouna', 'Float between lagoon and sea in this unique water villa. Your private dock means you can kayak or paddleboard directly from home. A golf cart is included, and El Gouna\'s vibrant restaurants and nightlife are minutes away.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 80.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Villa Zone, El Gouna', 'Red Sea', NULL, NULL, 'Egypt', 'EG', NULL, 27.4010000, 33.6843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 31, 0, 7, '2026-03-23 22:26:17', '2026-04-06 00:35:27', NULL, 'b43069a8-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008f53742497d740402db29defa7663b40),
-(205, 3, 11, 'Whitewashed Caldera Cave House — Oia, Santorini', 'The quintessential Santorini experience. This traditional cave house in Oia offers unobstructed caldera views and front-row seats to the world\'s most famous sunset. Plunge pool, private terrace, and champagne on arrival.', 'entire_place', 'villa', 520.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 100.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, 'Oia Village', 'Oia', NULL, NULL, 'Greece', 'GR', NULL, 36.4625000, 25.3740000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.99, 88, 0, 101, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b4306a32-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000039b4c876be5f394033333333333b4240),
-(206, 4, 6, 'Full-Floor Penthouse — Dubai Marina Skyline View', 'An entire floor of a Marina tower, 52 floors up. 270-degree views of the Marina, Palm Jumeirah, and Arabian Gulf. Private pool, home cinema, and a chauffeur service available. The definition of Dubai luxury.', 'entire_place', 'apartment', 850.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AED', 300.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.5, 4, 'Marina Walk, Dubai Marina', 'Dubai', NULL, NULL, 'United Arab Emirates', 'AE', NULL, 25.0806000, 55.1439000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 45, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b4306b84-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000007cf2b0506b924b40bf0e9c33a2143940),
-(207, 2, 2, 'Jungle Rice Terrace Villa — Ubud, Bali', 'Immerse yourself in Bali\'s emerald heartland. Your private infinity pool seems to pour directly into the rice terraces below. Full staff, daily breakfast, and a private driver to Ubud\'s temples and art galleries.', 'entire_place', 'villa', 185.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 50.00, 0.00, 14.00, 1, 365, 1, 4, 2, 2.0, 2, 'Jalan Raya Tegallalang', 'Ubud', NULL, NULL, 'Indonesia', 'ID', NULL, -8.4095000, 115.2820000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 112, 0, 24, '2026-03-23 22:26:17', '2026-04-06 00:35:27', NULL, 'b4306c36-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000355eba490cd25c408b6ce7fba9d120c0),
-(208, 3, 15, 'Haussmann Apartment — Marais District, Paris', 'A perfectly restored Second Empire apartment in Le Marais — Paris\'s most sought-after neighborhood. Exposed limestone walls, parquet floors, and a private courtyard. Walk to the Louvre, Centre Pompidou, and Picasso Museum.', 'entire_place', 'apartment', 220.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 60.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, 'Rue de Bretagne, Le Marais', 'Paris', NULL, NULL, 'France', 'FR', NULL, 48.8620000, 2.3592000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.89, 77, 1, 95, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b4306d67-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000001dc9e53fa4df024075931804566e4840),
-(209, 4, 8, 'Designer Capsule Studio — Shinjuku, Tokyo', 'Experience Tokyo\'s ultra-efficient design philosophy in this architect-designed micro-apartment. Smart storage, a meditation nook, and walking distance to Shinjuku Station, Golden Gai, and all the ramen you can eat.', 'entire_place', 'apartment', 18500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 5000.00, 0.00, 14.00, 1, 365, 1, 2, 0, 1.0, 1, '3-chome, Shinjuku', 'Tokyo', NULL, NULL, 'Japan', 'JP', NULL, 35.6938000, 139.7034000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.84, 93, 0, 2, '2026-03-23 22:26:17', '2026-04-06 00:34:45', NULL, 'b4306de8-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000003480b740827661407ffb3a70ced84140),
-(210, 2, 15, 'Restored Riad with Plunge Pool — Medina, Marrakech', 'A 16th-century merchant\'s house restored to its original splendor. Zellij tilework, cedarwood ceilings, a central fountain courtyard, and a rooftop terrace overlooking the medina\'s minarets. Full riad, sleeps 8.', 'entire_place', 'house', 1800.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'MAD', 400.00, 0.00, 14.00, 1, 365, 1, 8, 4, 3.0, 6, 'Derb Sidi Ahmed Ou Moussa, Medina', 'Marrakech', NULL, NULL, 'Morocco', 'MA', NULL, 31.6294000, -7.9880000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 58, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b4306e84-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c1caa145b6f31fc0371ac05b20a13f40),
-(211, 3, 1, 'Overwater Bungalow with Glass Floor — Maldives', 'Wake up to turquoise lagoon directly beneath you through the glass floor panels. Your own ladder into the Indian Ocean, a hammock over the water, and a butler on call 24/7. Snorkeling gear and kayaks included.', 'entire_place', 'villa', 1200.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, 'North Malé Atoll', 'North Malé', NULL, NULL, 'Maldives', 'MV', NULL, 4.3085000, 73.5265000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 5.00, 34, 0, 101, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b4306f0c-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000004560e2db261524096438b6ce73b1140),
-(212, 4, 8, 'Industrial Loft in Williamsburg, Brooklyn', 'A 19th-century factory floor transformed into a stunning open-plan loft. Exposed brick, 14-foot ceilings, and a rooftop with Manhattan skyline views. Steps from L train, vibrant restaurants, and Brooklyn\'s best coffee shops.', 'entire_place', 'apartment', 275.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 75.00, 0.00, 14.00, 1, 365, 1, 4, 1, 1.0, 1, 'North 6th Street, Williamsburg', 'New York', NULL, NULL, 'United States', 'US', NULL, 40.7141000, -73.9590000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.87, 66, 0, 2, '2026-03-23 22:26:17', '2026-04-06 00:34:45', NULL, 'b4306f7f-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000004c378941607d52c06c09f9a0675b4440),
-(213, 2, 15, 'Georgian Townhouse — Notting Hill, London', 'A four-story Georgian townhouse on one of London\'s most photogenic streets, two doors from Portobello Market. Original fireplaces, a private garden, and a wine cellar. Sleeps 8 in period-perfect comfort.', 'entire_place', 'house', 650.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'GBP', 150.00, 0.00, 14.00, 1, 365, 1, 8, 4, 3.5, 5, 'Pembridge Crescent, Notting Hill', 'London', NULL, NULL, 'United Kingdom', 'GB', NULL, 51.5127000, -0.2002000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.91, 29, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b4306fed-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aa60545227a0c9bf61545227a0c14940),
-(214, 3, 11, 'Cliffside Lemon Grove Villa — Positano, Amalfi', 'A romantic terraced villa clinging to the Amalfi cliffs above Positano. Private pool, lemon grove, and a boat for private coastal excursions. The view from the breakfast terrace will ruin all other breakfasts forever.', 'entire_place', 'villa', 480.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 120.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Via dei Mulini, Positano', 'Positano', NULL, NULL, 'Italy', 'IT', NULL, 40.6277000, 14.4843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 42, 0, 101, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b4307059-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d5e76a2bf6f72c407fd93d7958504440),
-(215, 4, 15, 'Machiya Townhouse — Gion District, Kyoto', 'A 100-year-old machiya (townhouse) in Kyoto\'s geisha district, thoughtfully updated with underfloor heating and a Japanese soaker bath. A traditional stone garden, tatami rooms, and private tea ceremony available on request.', 'entire_place', 'house', 42000.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 8000.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, 'Gion, Higashiyama-ku', 'Kyoto', NULL, NULL, 'Japan', 'JP', NULL, 35.0039000, 135.7753000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 51, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b43070c5-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d712f241cff860402a3a92cb7f804140),
-(216, 2, 11, 'Clifftop Villa with Atlantic Views — Camps Bay', 'Perched above Camps Bay with 180-degree Atlantic Ocean views, this contemporary villa has an infinity pool that merges with the horizon. Table Mountain looms behind, Camps Bay beach is 5 minutes below.', 'entire_place', 'villa', 380.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 90.00, 0.00, 14.00, 1, 365, 1, 8, 4, 4.0, 5, 'The Glen, Camps Bay', 'Cape Town', NULL, NULL, 'South Africa', 'ZA', NULL, -33.9500000, 18.3765000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 38, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b4307130-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aaf1d24d626032409a99999999f940c0),
-(217, 3, 10, 'Ski-in Ski-out Alpine Chalet — Verbier', 'A classic Swiss chalet with direct piste access in the legendary Verbier ski resort. Stone fireplace, a sauna for après-ski, a wine rack stocked with Swiss Fendant, and sunset views over the Mont-Blanc massif.', 'entire_place', 'house', 820.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 180.00, 0.00, 14.00, 1, 365, 1, 10, 5, 4.0, 7, 'Hameau de Verbier', 'Verbier', NULL, NULL, 'Switzerland', 'CH', NULL, 46.0977000, 7.2281000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 23, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b43071ac-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d3dee00b93e91c40dc68006f810c4740),
-(218, 4, 6, 'Sky Garden Suite — Marina Bay, Singapore', 'A sky terrace apartment on the 48th floor with unobstructed views of Marina Bay Sands, the Gardens by the Bay, and the Singapore Strait. A private sky garden, lap pool, and full concierge service at your disposal.', 'entire_place', 'apartment', 780.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SGD', 200.00, 0.00, 14.00, 1, 365, 1, 4, 2, 2.0, 2, 'Marina Boulevard', 'Singapore', NULL, NULL, 'Singapore', 'SG', NULL, 1.2784000, 103.8593000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.90, 27, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b430725a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000fb5c6dc5fef659406a4df38e5374f43f),
-(219, 2, 2, 'Restored Farmhouse with Vineyard — Chianti, Tuscany', 'A stone farmhouse amid rolling Chianti vineyards with your own olive grove and vineyard terrace. A heated outdoor pool, wood-fired pizza oven, and a private wine cellar. Rolling hills in every direction, total silence at night.', 'entire_place', 'house', 340.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 80.00, 0.00, 14.00, 1, 365, 1, 8, 4, 3.0, 5, 'Via Chiantigiana, Greve in Chianti', 'Florence', NULL, NULL, 'Italy', 'IT', NULL, 43.5843000, 11.3178000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 44, 0, 7, '2026-03-23 22:26:17', '2026-04-06 00:35:27', NULL, 'b43072cc-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006d567daeb6a22640c286a757caca4540),
-(220, 3, 6, 'Luxury High-Rise Condo — Silom, Bangkok', 'A sleek, hotel-quality condo on the 35th floor in central Bangkok. Rooftop pool, fully equipped gym, and 24-hour concierge. BTS Sala Daeng station is literally downstairs. Perfect for business travelers and luxury seekers.', 'entire_place', 'apartment', 4500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'THB', 1000.00, 0.00, 14.00, 1, 365, 1, 3, 1, 1.0, 1, 'Silom Road', 'Bangkok', NULL, NULL, 'Thailand', 'TH', NULL, 13.7233000, 100.5295000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.81, 60, 0, 2, '2026-03-23 22:26:17', '2026-03-28 16:27:06', NULL, 'b430733e-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d9cef753e3215940c364aa6054722b40),
-(221, 4, 15, 'Azulejo Tile Apartment — Alfama, Lisbon', 'Perched in Alfama, Lisbon\'s oldest and most atmospheric neighborhood. This apartment features original azulejo panels, a private balcony for fado evenings, and a spiral staircase to a rooftop with views to the Tagus estuary.', 'entire_place', 'apartment', 130.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 30.00, 0.00, 14.00, 1, 365, 1, 3, 1, 1.0, 2, 'Rua dos Remedios, Alfama', 'Lisbon', NULL, NULL, 'Portugal', 'PT', NULL, 38.7120000, -9.1310000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 73, 0, 95, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b43073c9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000508d976e124322c04260e5d0225b4340),
-(222, 2, 10, 'Lakeview Lodge — Queenstown, New Zealand', 'A modern mountain lodge overlooking Lake Wakatipu and The Remarkables mountain range. Hot tub on the deck, a kayak launch, and minutes from Queenstown\'s world-class skiing, bungee jumping, and wine trails.', 'entire_place', 'house', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AUD', 70.00, 0.00, 14.00, 1, 365, 1, 6, 3, 2.0, 4, 'Frankton Road', 'Queenstown', NULL, NULL, 'New Zealand', 'NZ', NULL, -45.0312000, 168.6626000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 35, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b430746a-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008c4aea04341565404ed1915cfe8346c0),
-(223, 3, 6, 'Contemporary Villa with Pool — Al Nakheel, Riyadh', 'A contemporary villa in one of Riyadh\'s most prestigious neighborhoods. Large entertaining spaces, a private pool and garden, a cinema room, and fully equipped diwaniya. Perfect for families and delegations.', 'entire_place', 'villa', 1500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SAR', 400.00, 0.00, 14.00, 1, 365, 1, 8, 4, 4.0, 5, 'Al Nakheel District', 'Riyadh', NULL, NULL, 'Saudi Arabia', 'SA', NULL, 24.7893000, 46.6413000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.83, 19, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b430756d-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000060764f1e1652474099bb96900fca3840),
-(224, 4, 11, 'Ottoman Mansion on the Bosphorus — Bebek', 'A genuine 19th-century waterfront mansion in Bebek, the most prestigious address on the Bosphorus. Private boat dock, original painted ceilings, and uninterrupted views of European and Asian shores simultaneously.', 'entire_place', 'house', 8500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'TRY', 2000.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Bebek Sahil', 'Istanbul', NULL, NULL, 'Turkey', 'TR', NULL, 41.0773000, 29.0462000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 27, 0, 3, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b43076bc-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000401361c3d30b3d408bfd65f7e4894440),
-(225, 2, 13, 'Luxury Desert Camp — Wadi Rum, Jordan', 'Sleep under a million stars in this luxury Bedouin-style camp in Wadi Rum. Private transparent geodesic dome for stargazing from bed, gourmet Jordanian dinner, and guided jeep tours of the Mars-like landscape included.', 'entire_place', 'villa', 150.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JOD', 30.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, 'Wadi Rum Protected Area', 'Wadi Rum', NULL, NULL, 'Jordan', 'JO', NULL, 29.5754000, 35.4231000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 48, 0, 101, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b43077bb-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000003780b2428b641404f1e166a4d933d40);
-INSERT INTO `properties` (`id`, `host_id`, `category_id`, `title`, `description`, `space_type`, `property_kind`, `price_per_night`, `weekend_price`, `weekly_discount_percent`, `monthly_discount_percent`, `new_listing_promotion_enabled`, `last_minute_discount_percent`, `booking_mode`, `approved_bookings_count`, `currency`, `cleaning_fee`, `security_deposit`, `service_fee_percent`, `min_nights`, `max_nights`, `turnover_days`, `max_guests`, `bedrooms`, `bathrooms`, `beds`, `address`, `city`, `timezone`, `state`, `country`, `country_code`, `postal_code`, `latitude`, `longitude`, `check_in_after`, `check_out_before`, `check_in_instructions`, `allows_pets`, `allows_smoking`, `allows_parties`, `allows_children`, `instant_book`, `cancellation_policy`, `is_active`, `status`, `is_featured`, `avg_rating`, `review_count`, `view_count`, `impression_count`, `created_at`, `updated_at`, `archived_at`, `uuid`, `geo_point`) VALUES
-(226, 3, 15, 'Gothic Quarter Penthouse — Barcelona', 'A stunning penthouse apartment in Barcelona\'s 2,000-year-old Gothic Quarter, with a private terrace and views of the Barcelona Cathedral. Steps from Las Ramblas, the Born market, and the best tapas bars in Europe.', 'entire_place', 'apartment', 195.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 50.00, 0.00, 14.00, 1, 365, 1, 4, 2, 1.0, 2, 'Carrer del Bisbe, Gothic', 'Barcelona', NULL, NULL, 'Spain', 'ES', NULL, 41.3831000, 2.1761000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 5.00, 1, 7, 176, '2026-03-23 22:26:17', '2026-04-07 00:16:38', NULL, 'b43078e2-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d49ae61da76801407e8cb96b09b14440),
-(227, 4, 15, '17th-Century Canal House — Jordaan, Amsterdam', 'A five-story Golden Age canal house in Amsterdam\'s prettiest neighborhood. The trademark steep Dutch staircase, period furniture, a canal view breakfast room, and a secret garden terrace. Bikes provided for every guest.', 'entire_place', 'house', 285.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 65.00, 0.00, 14.00, 1, 365, 1, 6, 3, 2.0, 4, 'Prinsengracht, Jordaan', 'Amsterdam', NULL, NULL, 'Netherlands', 'NL', NULL, 52.3736000, 4.8811000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 56, 0, 1, '2026-03-23 22:26:17', '2026-03-28 13:58:55', NULL, 'b430799a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000bc0512143f8613408fe4f21fd22f4a40),
-(228, 2, 1, 'Spice Island Beach Villa — Nungwi, Zanzibar', 'A whitewashed villa on the most beautiful beach in Zanzibar. Directly on the Indian Ocean, a private pool, coconut palms, a dhow sunset cruise included, and fresh catch grilled daily by your private cook.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 60.00, 0.00, 14.00, 1, 365, 1, 6, 3, 3.0, 4, 'Nungwi Beach', 'Nungwi', NULL, NULL, 'Tanzania', 'TZ', NULL, -5.7200000, 39.2975000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 39, 0, 7, '2026-03-23 22:26:17', '2026-04-06 00:35:27', NULL, 'b4307a89-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ae47e17a14a64340e17a14ae47e116c0),
-(231, 17, 15, 'dfdfg', 'fffffffffffffffffffffffffffffffffffffffffffgdfgdfgdfg', 'private_room', 'apartment', 18700.00, 21505.00, 25.00, 30.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 0.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, '21 ismaiel al kabane', 'Nasr city', NULL, NULL, 'Egypt', NULL, NULL, 0.0000000, 0.0000000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 0.00, 0, 20, 0, '2026-03-27 23:17:35', '2026-04-06 01:11:46', NULL, '167ab0cf-323d-4627-99a4-ed3611320e20', 0x00000000010100000000000000000000000000000000000000),
-(232, 17, 15, 'sddfsdf', 'ewwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwrweeeeeee\n\nWhat makes this place unique:\nSelf check-in', 'entire_place', 'apartment', 100.00, 600.00, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 5000.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, '21 ismaiel al kabane', 'Nasr city', NULL, NULL, 'Egypt', NULL, NULL, 0.0000000, 0.0000000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 0.00, 0, 8, 1, '2026-03-28 16:15:16', '2026-04-06 01:11:44', NULL, '999776a5-b66d-4c1a-976d-742da832d538', 0x00000000010100000000000000000000000000000000000000),
-(233, 10, 8, 'sdfdgdfgdfg', 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 'entire_place', 'apartment', 500.00, 600.00, 25.00, 30.00, 0, 0.00, 'instant_book', 0, 'EGP', 0.00, 5000.00, 14.00, 1, 365, 1, 2, 1, 1.0, 1, '21 ismaiel al kabane', 'Nasr city', NULL, NULL, 'Egypt', NULL, NULL, 0.0000000, 0.0000000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 0.00, 0, 0, 0, '2026-03-29 22:34:40', '2026-04-06 00:45:02', NULL, '5af50630-60f9-45fa-a51d-0fac01bcbf9a', 0x00000000010100000000000000000000000000000000000000),
-(235, 17, 8, 'fdsfgdfhfjghjghk', 'ertretryyutiuyiyuiyuiyuiyuiyuiuytyertytruytrtyruyti\n\nWhat makes this place unique:\nPet-friendly\nGame room\nEV charger\nPrivate parking', 'private_room', 'house', 500.00, 750.00, 25.00, 20.00, 0, 0.00, 'instant_book', 0, 'EGP', 0.00, 5000.00, 14.00, 5, 365, 1, 3, 2, 2.0, 2, '21 ismaiel al kabane', 'Nasr city', NULL, NULL, 'Egypt', NULL, NULL, 0.0000000, 0.0000000, '10:00:00', '18:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 0.00, 0, 0, 0, '2026-04-06 00:48:24', '2026-04-06 01:11:42', NULL, 'f4690c37-a758-4b21-a992-752c0477605b', 0x00000000010100000000000000000000000000000000000000);
+INSERT INTO `properties` (`id`, `host_id`, `category_id`, `title`, `description`, `space_type`, `property_kind`, `price_per_night`, `weekend_price`, `weekly_discount_percent`, `monthly_discount_percent`, `new_listing_promotion_enabled`, `last_minute_discount_percent`, `booking_mode`, `approved_bookings_count`, `currency`, `cleaning_fee`, `security_deposit`, `service_fee_percent`, `min_nights`, `max_nights`, `turnover_days`, `max_guests`, `bedrooms`, `bathrooms`, `beds`, `address`, `city`, `timezone`, `state`, `country`, `country_code`, `postal_code`, `latitude`, `longitude`, `check_in_after`, `check_out_before`, `check_in_instructions`, `allows_pets`, `allows_smoking`, `allows_parties`, `allows_children`, `instant_book`, `cancellation_policy`, `is_active`, `status`, `is_featured`, `avg_rating`, `review_count`, `view_count`, `impression_count`, `created_at`, `updated_at`, `archived_at`, `uuid`, `geo_point`, `require_verified_guest`, `min_guest_rating`, `wifi_name`, `wifi_password`, `door_code`) VALUES
+(161, 2, 6, 'Sky Penthouse with Panoramic Garden City Views', 'Three floors of pure luxury perched atop a landmark Maadi tower. A private rooftop pool, cinema room, and fully equipped chef\'s kitchen. This is the finest private accommodation in Cairo for discerning travelers and corporate guests.', 'entire_place', 'apartment', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 100.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 6, 'Road 9, Maadi', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 29.9602000, 31.2587000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 17, 28, 168, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5e93d-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000a779c7293a423f40849ecdaacff53d40, 0, NULL, NULL, NULL, NULL),
+(162, 3, 15, 'Authentic Nubian Guesthouse on the West Bank', 'Step into living history on the West Bank of Luxor. This lovingly restored Nubian guesthouse sits minutes from the Valley of the Kings. Hand-painted walls, rooftop sunsets over the Nile, and home-cooked Egyptian breakfasts every morning.', 'entire_place', 'house', 45.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 10.00, 0.00, 5.00, 1, 365, 1, 6, 3, 2.0, 4, 'Al Gezira, West Bank', 'Luxor', NULL, NULL, 'Egypt', 'EG', NULL, 25.6966000, 32.6103000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.91, 63, 14, 357, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5ef8a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d95f764f1e4e4040c364aa6054b23940, 0, NULL, NULL, NULL, NULL),
+(163, 4, 1, 'Diver\'s Loft with Rooftop ??? Steps from Blue Hole', 'Purpose-built for divers, this modern loft is a 3-minute walk from the legendary Dahab Blue Hole. Storage rooms for gear, freshwater rinse station, high-speed WiFi, and a rooftop hammock area with mountain views. Breakfast included.', 'entire_place', 'apartment', 65.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 15.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Blue Hole Road, Dahab', 'South Sinai', NULL, NULL, 'Egypt', 'EG', NULL, 28.5756000, 34.5150000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 41, 0, 248, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f055-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000052b81e85eb414140de9387855a933c40, 0, NULL, NULL, NULL, NULL),
+(164, 2, 13, 'Desert Ecolodge in Siwa Oasis', 'Disconnect from the world in this eco-lodge built from traditional kershef (salt rock). Solar powered, hot spring access, dune safari at dawn. The ultimate wellness escape in one of Egypt\'s most remote and mystical destinations.', 'entire_place', 'villa', 95.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 30.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Siwa Town Center', 'Siwa', NULL, NULL, 'Egypt', 'EG', NULL, 29.2027000, 25.5185000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 29, 1, 29, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f5f1cb-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000dbf97e6abc84394032e6ae25e4333d40, 0, NULL, NULL, NULL, NULL),
+(165, 3, 8, 'Designer Apartment near Cairo Festival City', 'Chic and fully furnished 2-bedroom in 5th Settlement. 10 minutes from Cairo International Airport, walking distance to Cairo Festival City Mall. High-speed fiber internet, Netflix, and smart home controls.', 'entire_place', 'apartment', 60.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, '5th Settlement, Ring Road', 'New Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0099000, 31.4777000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.74, 52, 31, 276, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f250-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000984c158c4a7a3f40fb3a70ce88023e40, 0, NULL, NULL, NULL, NULL),
+(166, 4, 11, 'Converted Felucca Houseboat ??? Aswan Nile', 'Sleep on the water in this beautifully converted traditional felucca permanently moored on the Nile. Watch Nubian fishermen at sunrise, sunset cocktails on deck, and close to Philae Temple and the Aswan High Dam.', 'entire_place', 'house', 75.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 2, 'Corniche El Nil, Aswan', 'Aswan', NULL, NULL, 'Egypt', 'EG', NULL, 24.0889000, 32.8998000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.86, 38, 0, 247, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f34f-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006c787aa52c734040499d8026c2163840, 0, NULL, NULL, NULL, NULL),
+(167, 2, 1, 'Beachfront Bungalow ??? Ain Sokhna', 'A quick 1.5-hour drive from Cairo, this private beachfront bungalow on the Red Sea Coast is perfect for weekend escapes. Private beach access, covered terrace, outdoor shower, and fully stocked kitchen.', 'entire_place', 'house', 110.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 35.00, 0.00, 5.00, 1, 365, 1, 6, 2, 2.0, 3, 'Porto Sokhna Resort', 'Sokhna', NULL, NULL, 'Egypt', 'EG', NULL, 29.6155000, 32.3508000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.82, 44, 0, 4, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f3c5-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000e9b7af03e72c404021b07268919d3d40, 0, NULL, NULL, NULL, NULL),
+(168, 3, 15, 'Belle ??poque Apartment in Downtown Cairo', 'A gem of Cairo\'s golden age. This lovingly maintained 1920s apartment retains original parquet floors, high stucco ceilings, and French windows overlooking a leafy boulevard. Walk to Tahrir Square, the Egyptian Museum, and Opera House.', 'entire_place', 'apartment', 42.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 12.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 2, 'Talaat Harb Square, Downtown', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0480000, 31.2361000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.68, 71, 0, 269, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f529-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ea95b20c713c3f403f355eba490c3e40, 0, NULL, NULL, NULL, NULL),
+(169, 4, 1, 'White Villa on the Mediterranean ??? North Coast', 'A gleaming white villa on Egypt\'s turquoise Mediterranean coast. Massive private pool, beachfront access, rooftop lounge, and a games room. Sleeps 10 comfortably. Perfect for groups, families, and milestone celebrations.', 'entire_place', 'villa', 450.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 150.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Sidi Heneish, Matruh', 'North Coast', NULL, NULL, 'Egypt', 'EG', NULL, 31.1965000, 27.8742000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 22, 1, 6, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5f5ab-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c7293a92cbdf3b40fca9f1d24d323f40, 0, NULL, NULL, NULL, NULL),
+(170, 2, 3, 'Water Villa with Private Lagoon Dock ??? El Gouna', 'Float between lagoon and sea in this unique water villa. Your private dock means you can kayak or paddleboard directly from home. A golf cart is included, and El Gouna\'s vibrant restaurants and nightlife are minutes away.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 80.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Villa Zone, El Gouna', 'Red Sea', NULL, NULL, 'Egypt', 'EG', NULL, 27.4010000, 33.6843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 31, 0, 31, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f5f69c-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008f53742497d740402db29defa7663b40, 0, NULL, NULL, NULL, NULL),
+(171, 3, 11, 'Whitewashed Caldera Cave House ??? Oia, Santorini', 'The quintessential Santorini experience. This traditional cave house in Oia offers unobstructed caldera views and front-row seats to the world\'s most famous sunset. Plunge pool, private terrace, and champagne on arrival.', 'entire_place', 'villa', 520.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 100.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'Oia Village', 'Oia', NULL, NULL, 'Greece', 'GR', NULL, 36.4625000, 25.3740000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.99, 88, 2, 164, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f70e-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000039b4c876be5f394033333333333b4240, 0, NULL, NULL, NULL, NULL),
+(172, 4, 6, 'Full-Floor Penthouse ??? Dubai Marina Skyline View', 'An entire floor of a Marina tower, 52 floors up. 270-degree views of the Marina, Palm Jumeirah, and Arabian Gulf. Private pool, home cinema, and a chauffeur service available. The definition of Dubai luxury.', 'entire_place', 'apartment', 850.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AED', 300.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.5, 4, 'Marina Walk, Dubai Marina', 'Dubai', NULL, NULL, 'United Arab Emirates', 'AE', NULL, 25.0806000, 55.1439000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 45, 3, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5f800-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000007cf2b0506b924b40bf0e9c33a2143940, 0, NULL, NULL, NULL, NULL),
+(173, 2, 2, 'Jungle Rice Terrace Villa ??? Ubud, Bali', 'Immerse yourself in Bali\'s emerald heartland. Your private infinity pool seems to pour directly into the rice terraces below. Full staff, daily breakfast, and a private driver to Ubud\'s temples and art galleries.', 'entire_place', 'villa', 185.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 50.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Jalan Raya Tegallalang', 'Ubud', NULL, NULL, 'Indonesia', 'ID', NULL, -8.4095000, 115.2820000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 112, 0, 163, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f872-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000355eba490cd25c408b6ce7fba9d120c0, 0, NULL, NULL, NULL, NULL),
+(174, 3, 15, 'Haussmann Apartment ??? Marais District, Paris', 'A perfectly restored Second Empire apartment in Le Marais ??? Paris\'s most sought-after neighborhood. Exposed limestone walls, parquet floors, and a private courtyard. Walk to the Louvre, Centre Pompidou, and Picasso Museum.', 'entire_place', 'apartment', 220.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 60.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Rue de Bretagne, Le Marais', 'Paris', NULL, NULL, 'France', 'FR', NULL, 48.8620000, 2.3592000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.89, 77, 0, 137, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f965-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000001dc9e53fa4df024075931804566e4840, 0, NULL, NULL, NULL, NULL),
+(175, 4, 8, 'Designer Capsule Studio ??? Shinjuku, Tokyo', 'Experience Tokyo\'s ultra-efficient design philosophy in this architect-designed micro-apartment. Smart storage, a meditation nook, and walking distance to Shinjuku Station, Golden Gai, and all the ramen you can eat.', 'entire_place', 'apartment', 18500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 5000.00, 0.00, 5.00, 1, 365, 1, 2, 0, 1.0, 1, '3-chome, Shinjuku', 'Tokyo', NULL, NULL, 'Japan', 'JP', NULL, 35.6938000, 139.7034000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.84, 93, 0, 3, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f9d4-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000003480b740827661407ffb3a70ced84140, 0, NULL, NULL, NULL, NULL),
+(176, 2, 15, 'Restored Riad with Plunge Pool ??? Medina, Marrakech', 'A 16th-century merchant\'s house restored to its original splendor. Zellij tilework, cedarwood ceilings, a central fountain courtyard, and a rooftop terrace overlooking the medina\'s minarets. Full riad, sleeps 8.', 'entire_place', 'house', 1800.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'MAD', 400.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 6, 'Derb Sidi Ahmed Ou Moussa, Medina', 'Marrakech', NULL, NULL, 'Morocco', 'MA', NULL, 31.6294000, -7.9880000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 58, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5fac3-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c1caa145b6f31fc0371ac05b20a13f40, 0, NULL, NULL, NULL, NULL),
+(177, 3, 1, 'Overwater Bungalow with Glass Floor ??? Maldives', 'Wake up to turquoise lagoon directly beneath you through the glass floor panels. Your own ladder into the Indian Ocean, a hammock over the water, and a butler on call 24/7. Snorkeling gear and kayaks included.', 'entire_place', 'villa', 1200.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'North Mal?? Atoll', 'North Mal??', NULL, NULL, 'Maldives', 'MV', NULL, 4.3085000, 73.5265000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 5.00, 34, 1, 166, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5fbb4-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000004560e2db261524096438b6ce73b1140, 0, NULL, NULL, NULL, NULL),
+(178, 4, 8, 'Industrial Loft in Williamsburg, Brooklyn', 'A 19th-century factory floor transformed into a stunning open-plan loft. Exposed brick, 14-foot ceilings, and a rooftop with Manhattan skyline views. Steps from L train, vibrant restaurants, and Brooklyn\'s best coffee shops.', 'entire_place', 'apartment', 275.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 75.00, 0.00, 5.00, 1, 365, 1, 4, 1, 1.0, 1, 'North 6th Street, Williamsburg', 'New York', NULL, NULL, 'United States', 'US', NULL, 40.7141000, -73.9590000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.87, 66, 0, 16, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5fca4-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000004c378941607d52c06c09f9a0675b4440, 0, NULL, NULL, NULL, NULL),
+(179, 2, 15, 'Georgian Townhouse ??? Notting Hill, London', 'A four-story Georgian townhouse on one of London\'s most photogenic streets, two doors from Portobello Market. Original fireplaces, a private garden, and a wine cellar. Sleeps 8 in period-perfect comfort.', 'entire_place', 'house', 650.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'GBP', 150.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.5, 5, 'Pembridge Crescent, Notting Hill', 'London', NULL, NULL, 'United Kingdom', 'GB', NULL, 51.5127000, -0.2002000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.91, 29, 0, 1, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5fd95-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aa60545227a0c9bf61545227a0c14940, 0, NULL, NULL, NULL, NULL),
+(180, 3, 11, 'Cliffside Lemon Grove Villa ??? Positano, Amalfi', 'A romantic terraced villa clinging to the Amalfi cliffs above Positano. Private pool, lemon grove, and a boat for private coastal excursions. The view from the breakfast terrace will ruin all other breakfasts forever.', 'entire_place', 'villa', 480.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 120.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Via dei Mulini, Positano', 'Positano', NULL, NULL, 'Italy', 'IT', NULL, 40.6277000, 14.4843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 42, 0, 163, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5fe87-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d5e76a2bf6f72c407fd93d7958504440, 0, NULL, NULL, NULL, NULL),
+(181, 4, 15, 'Machiya Townhouse ??? Gion District, Kyoto', 'A 100-year-old machiya (townhouse) in Kyoto\'s geisha district, thoughtfully updated with underfloor heating and a Japanese soaker bath. A traditional stone garden, tatami rooms, and private tea ceremony available on request.', 'entire_place', 'house', 42000.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 8000.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Gion, Higashiyama-ku', 'Kyoto', NULL, NULL, 'Japan', 'JP', NULL, 35.0039000, 135.7753000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 51, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5ff75-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d712f241cff860402a3a92cb7f804140, 0, NULL, NULL, NULL, NULL),
+(182, 2, 11, 'Clifftop Villa with Atlantic Views ??? Camps Bay', 'Perched above Camps Bay with 180-degree Atlantic Ocean views, this contemporary villa has an infinity pool that merges with the horizon. Table Mountain looms behind, Camps Bay beach is 5 minutes below.', 'entire_place', 'villa', 380.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 90.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 5, 'The Glen, Camps Bay', 'Cape Town', NULL, NULL, 'South Africa', 'ZA', NULL, -33.9500000, 18.3765000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 38, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f60061-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aaf1d24d626032409a99999999f940c0, 0, NULL, NULL, NULL, NULL),
+(183, 3, 10, 'Ski-in Ski-out Alpine Chalet ??? Verbier', 'A classic Swiss chalet with direct piste access in the legendary Verbier ski resort. Stone fireplace, a sauna for apr??s-ski, a wine rack stocked with Swiss Fendant, and sunset views over the Mont-Blanc massif.', 'entire_place', 'house', 820.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 180.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Hameau de Verbier', 'Verbier', NULL, NULL, 'Switzerland', 'CH', NULL, 46.0977000, 7.2281000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 23, 3, 10, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f6014c-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d3dee00b93e91c40dc68006f810c4740, 0, NULL, NULL, NULL, NULL),
+(184, 4, 6, 'Sky Garden Suite ??? Marina Bay, Singapore', 'A sky terrace apartment on the 48th floor with unobstructed views of Marina Bay Sands, the Gardens by the Bay, and the Singapore Strait. A private sky garden, lap pool, and full concierge service at your disposal.', 'entire_place', 'apartment', 780.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SGD', 200.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Marina Boulevard', 'Singapore', NULL, NULL, 'Singapore', 'SG', NULL, 1.2784000, 103.8593000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.90, 27, 0, 1, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f60926-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000fb5c6dc5fef659406a4df38e5374f43f, 0, NULL, NULL, NULL, NULL),
+(185, 2, 2, 'Restored Farmhouse with Vineyard ??? Chianti, Tuscany', 'A stone farmhouse amid rolling Chianti vineyards with your own olive grove and vineyard terrace. A heated outdoor pool, wood-fired pizza oven, and a private wine cellar. Rolling hills in every direction, total silence at night.', 'entire_place', 'house', 340.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 80.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 5, 'Via Chiantigiana, Greve in Chianti', 'Florence', NULL, NULL, 'Italy', 'IT', NULL, 43.5843000, 11.3178000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 44, 0, 29, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f60a40-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006d567daeb6a22640c286a757caca4540, 0, NULL, NULL, NULL, NULL),
+(186, 3, 6, 'Luxury High-Rise Condo ??? Silom, Bangkok', 'A sleek, hotel-quality condo on the 35th floor in central Bangkok. Rooftop pool, fully equipped gym, and 24-hour concierge. BTS Sala Daeng station is literally downstairs. Perfect for business travelers and luxury seekers.', 'entire_place', 'apartment', 4500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'THB', 1000.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 1, 'Silom Road', 'Bangkok', NULL, NULL, 'Thailand', 'TH', NULL, 13.7233000, 100.5295000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.81, 60, 0, 3, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f60b30-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d9cef753e3215940c364aa6054722b40, 0, NULL, NULL, NULL, NULL),
+(187, 4, 15, 'Azulejo Tile Apartment ??? Alfama, Lisbon', 'Perched in Alfama, Lisbon\'s oldest and most atmospheric neighborhood. This apartment features original azulejo panels, a private balcony for fado evenings, and a spiral staircase to a rooftop with views to the Tagus estuary.', 'entire_place', 'apartment', 130.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 30.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 2, 'Rua dos Remedios, Alfama', 'Lisbon', NULL, NULL, 'Portugal', 'PT', NULL, 38.7120000, -9.1310000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 73, 0, 137, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f60c1a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000508d976e124322c04260e5d0225b4340, 0, NULL, NULL, NULL, NULL),
+(188, 2, 10, 'Lakeview Lodge ??? Queenstown, New Zealand', 'A modern mountain lodge overlooking Lake Wakatipu and The Remarkables mountain range. Hot tub on the deck, a kayak launch, and minutes from Queenstown\'s world-class skiing, bungee jumping, and wine trails.', 'entire_place', 'house', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AUD', 70.00, 0.00, 5.00, 1, 365, 1, 6, 3, 2.0, 4, 'Frankton Road', 'Queenstown', NULL, NULL, 'New Zealand', 'NZ', NULL, -45.0312000, 168.6626000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 35, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f60e4b-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008c4aea04341565404ed1915cfe8346c0, 0, NULL, NULL, NULL, NULL),
+(189, 3, 6, 'Contemporary Villa with Pool ??? Al Nakheel, Riyadh', 'A contemporary villa in one of Riyadh\'s most prestigious neighborhoods. Large entertaining spaces, a private pool and garden, a cinema room, and fully equipped diwaniya. Perfect for families and delegations.', 'entire_place', 'villa', 1500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SAR', 400.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 5, 'Al Nakheel District', 'Riyadh', NULL, NULL, 'Saudi Arabia', 'SA', NULL, 24.7893000, 46.6413000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.83, 19, 0, 2, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f613a9-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000060764f1e1652474099bb96900fca3840, 0, NULL, NULL, NULL, NULL),
+(190, 4, 11, 'Ottoman Mansion on the Bosphorus ??? Bebek', 'A genuine 19th-century waterfront mansion in Bebek, the most prestigious address on the Bosphorus. Private boat dock, original painted ceilings, and uninterrupted views of European and Asian shores simultaneously.', 'entire_place', 'house', 8500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'TRY', 2000.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Bebek Sahil', 'Istanbul', NULL, NULL, 'Turkey', 'TR', NULL, 41.0773000, 29.0462000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 27, 1, 29, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f6143a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000401361c3d30b3d408bfd65f7e4894440, 0, NULL, NULL, NULL, NULL),
+(191, 2, 13, 'Luxury Desert Camp ??? Wadi Rum, Jordan', 'Sleep under a million stars in this luxury Bedouin-style camp in Wadi Rum. Private transparent geodesic dome for stargazing from bed, gourmet Jordanian dinner, and guided jeep tours of the Mars-like landscape included.', 'entire_place', 'villa', 150.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JOD', 30.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'Wadi Rum Protected Area', 'Wadi Rum', NULL, NULL, 'Jordan', 'JO', NULL, 29.5754000, 35.4231000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 48, 0, 164, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f614c1-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000003780b2428b641404f1e166a4d933d40, 0, NULL, NULL, NULL, NULL),
+(192, 3, 15, 'Gothic Quarter Penthouse ??? Barcelona', 'A stunning penthouse apartment in Barcelona\'s 2,000-year-old Gothic Quarter, with a private terrace and views of the Barcelona Cathedral. Steps from Las Ramblas, the Born market, and the best tapas bars in Europe.', 'entire_place', 'apartment', 195.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 50.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Carrer del Bisbe, Gothic', 'Barcelona', NULL, NULL, 'Spain', 'ES', NULL, 41.3831000, 2.1761000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.90, 84, 0, 137, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f61536-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d49ae61da76801407e8cb96b09b14440, 0, NULL, NULL, NULL, NULL),
+(193, 4, 15, '17th-Century Canal House ??? Jordaan, Amsterdam', 'A five-story Golden Age canal house in Amsterdam\'s prettiest neighborhood. The trademark steep Dutch staircase, period furniture, a canal view breakfast room, and a secret garden terrace. Bikes provided for every guest.', 'entire_place', 'house', 285.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 65.00, 0.00, 5.00, 1, 365, 1, 6, 3, 2.0, 4, 'Prinsengracht, Jordaan', 'Amsterdam', NULL, NULL, 'Netherlands', 'NL', NULL, 52.3736000, 4.8811000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 56, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f615a9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000bc0512143f8613408fe4f21fd22f4a40, 0, NULL, NULL, NULL, NULL),
+(194, 2, 1, 'Spice Island Beach Villa ??? Nungwi, Zanzibar', 'A whitewashed villa on the most beautiful beach in Zanzibar. Directly on the Indian Ocean, a private pool, coconut palms, a dhow sunset cruise included, and fresh catch grilled daily by your private cook.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 60.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Nungwi Beach', 'Nungwi', NULL, NULL, 'Tanzania', 'TZ', NULL, -5.7200000, 39.2975000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 39, 0, 30, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f6161e-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ae47e17a14a64340e17a14ae47e116c0, 0, NULL, NULL, NULL, NULL),
+(197, 4, 1, 'Diver\'s Loft with Rooftop — Steps from Blue Hole', 'Purpose-built for divers, this modern loft is a 3-minute walk from the legendary Dahab Blue Hole. Storage rooms for gear, freshwater rinse station, high-speed WiFi, and a rooftop hammock area with mountain views. Breakfast included.', 'entire_place', 'apartment', 65.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 15.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Blue Hole Road, Dahab', 'South Sinai', NULL, NULL, 'Egypt', 'EG', NULL, 28.5756000, 34.5150000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 41, 0, 248, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43062d0-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000052b81e85eb414140de9387855a933c40, 0, NULL, NULL, NULL, NULL),
+(198, 2, 13, 'Desert Ecolodge in Siwa Oasis', 'Disconnect from the world in this eco-lodge built from traditional kershef (salt rock). Solar powered, hot spring access, dune safari at dawn. The ultimate wellness escape in one of Egypt\'s most remote and mystical destinations.', 'entire_place', 'villa', 95.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 30.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Siwa Town Center', 'Siwa', NULL, NULL, 'Egypt', 'EG', NULL, 29.2027000, 25.5185000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 29, 0, 35, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43063af-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000dbf97e6abc84394032e6ae25e4333d40, 0, NULL, NULL, NULL, NULL),
+(199, 3, 8, 'Designer Apartment near Cairo Festival City', 'Chic and fully furnished 2-bedroom in 5th Settlement. 10 minutes from Cairo International Airport, walking distance to Cairo Festival City Mall. High-speed fiber internet, Netflix, and smart home controls.', 'entire_place', 'apartment', 60.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, '5th Settlement, Ring Road', 'New Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0099000, 31.4777000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.74, 52, 0, 276, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43065c9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000984c158c4a7a3f40fb3a70ce88023e40, 0, NULL, NULL, NULL, NULL),
+(200, 4, 11, 'Converted Felucca Houseboat — Aswan Nile', 'Sleep on the water in this beautifully converted traditional felucca permanently moored on the Nile. Watch Nubian fishermen at sunrise, sunset cocktails on deck, and close to Philae Temple and the Aswan High Dam.', 'entire_place', 'house', 75.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 2, 'Corniche El Nil, Aswan', 'Aswan', NULL, NULL, 'Egypt', 'EG', NULL, 24.0889000, 32.8998000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.86, 38, 4, 245, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306679-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006c787aa52c734040499d8026c2163840, 0, NULL, NULL, NULL, NULL),
+(201, 2, 1, 'Beachfront Bungalow — Ain Sokhna', 'A quick 1.5-hour drive from Cairo, this private beachfront bungalow on the Red Sea Coast is perfect for weekend escapes. Private beach access, covered terrace, outdoor shower, and fully stocked kitchen.', 'entire_place', 'house', 110.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 35.00, 0.00, 5.00, 1, 365, 1, 6, 2, 2.0, 3, 'Porto Sokhna Resort', 'Sokhna', NULL, NULL, 'Egypt', 'EG', NULL, 29.6155000, 32.3508000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.82, 44, 0, 4, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b430670b-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000e9b7af03e72c404021b07268919d3d40, 0, NULL, NULL, NULL, NULL),
+(202, 3, 15, 'Belle Époque Apartment in Downtown Cairo', 'A gem of Cairo\'s golden age. This lovingly maintained 1920s apartment retains original parquet floors, high stucco ceilings, and French windows overlooking a leafy boulevard. Walk to Tahrir Square, the Egyptian Museum, and Opera House.', 'entire_place', 'apartment', 42.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 12.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 2, 'Talaat Harb Square, Downtown', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0480000, 31.2361000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.68, 71, 1, 275, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306855-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ea95b20c713c3f403f355eba490c3e40, 0, NULL, NULL, NULL, NULL),
+(203, 4, 1, 'White Villa on the Mediterranean — North Coast', 'A gleaming white villa on Egypt\'s turquoise Mediterranean coast. Massive private pool, beachfront access, rooftop lounge, and a games room. Sleeps 10 comfortably. Perfect for groups, families, and milestone celebrations.', 'entire_place', 'villa', 450.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 150.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Sidi Heneish, Matruh', 'North Coast', NULL, NULL, 'Egypt', 'EG', NULL, 31.1965000, 27.8742000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 22, 0, 6, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b43068cc-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c7293a92cbdf3b40fca9f1d24d323f40, 0, NULL, NULL, NULL, NULL),
+(204, 2, 3, 'Water Villa with Private Lagoon Dock — El Gouna', 'Float between lagoon and sea in this unique water villa. Your private dock means you can kayak or paddleboard directly from home. A golf cart is included, and El Gouna\'s vibrant restaurants and nightlife are minutes away.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 80.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Villa Zone, El Gouna', 'Red Sea', NULL, NULL, 'Egypt', 'EG', NULL, 27.4010000, 33.6843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 31, 0, 31, '2026-03-23 22:26:17', '2026-04-19 23:56:13', NULL, 'b43069a8-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008f53742497d740402db29defa7663b40, 0, NULL, NULL, NULL, NULL),
+(205, 3, 11, 'Whitewashed Caldera Cave House — Oia, Santorini', 'The quintessential Santorini experience. This traditional cave house in Oia offers unobstructed caldera views and front-row seats to the world\'s most famous sunset. Plunge pool, private terrace, and champagne on arrival.', 'entire_place', 'villa', 520.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 100.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'Oia Village', 'Oia', NULL, NULL, 'Greece', 'GR', NULL, 36.4625000, 25.3740000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.99, 88, 2, 164, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306a32-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000039b4c876be5f394033333333333b4240, 0, NULL, NULL, NULL, NULL),
+(206, 4, 6, 'Full-Floor Penthouse — Dubai Marina Skyline View', 'An entire floor of a Marina tower, 52 floors up. 270-degree views of the Marina, Palm Jumeirah, and Arabian Gulf. Private pool, home cinema, and a chauffeur service available. The definition of Dubai luxury.', 'entire_place', 'apartment', 850.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AED', 300.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.5, 4, 'Marina Walk, Dubai Marina', 'Dubai', NULL, NULL, 'United Arab Emirates', 'AE', NULL, 25.0806000, 55.1439000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 45, 0, 5, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4306b84-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000007cf2b0506b924b40bf0e9c33a2143940, 0, NULL, NULL, NULL, NULL),
+(207, 2, 2, 'Jungle Rice Terrace Villa — Ubud, Bali', 'Immerse yourself in Bali\'s emerald heartland. Your private infinity pool seems to pour directly into the rice terraces below. Full staff, daily breakfast, and a private driver to Ubud\'s temples and art galleries.', 'entire_place', 'villa', 185.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 50.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Jalan Raya Tegallalang', 'Ubud', NULL, NULL, 'Indonesia', 'ID', NULL, -8.4095000, 115.2820000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 112, 0, 59, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306c36-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000355eba490cd25c408b6ce7fba9d120c0, 0, NULL, NULL, NULL, NULL),
+(208, 3, 15, 'Haussmann Apartment — Marais District, Paris', 'A perfectly restored Second Empire apartment in Le Marais — Paris\'s most sought-after neighborhood. Exposed limestone walls, parquet floors, and a private courtyard. Walk to the Louvre, Centre Pompidou, and Picasso Museum.', 'entire_place', 'apartment', 220.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 60.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Rue de Bretagne, Le Marais', 'Paris', NULL, NULL, 'France', 'FR', NULL, 48.8620000, 2.3592000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.89, 77, 1, 137, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306d67-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000001dc9e53fa4df024075931804566e4840, 0, NULL, NULL, NULL, NULL),
+(209, 4, 8, 'Designer Capsule Studio — Shinjuku, Tokyo', 'Experience Tokyo\'s ultra-efficient design philosophy in this architect-designed micro-apartment. Smart storage, a meditation nook, and walking distance to Shinjuku Station, Golden Gai, and all the ramen you can eat.', 'entire_place', 'apartment', 18500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 5000.00, 0.00, 5.00, 1, 365, 1, 2, 0, 1.0, 1, '3-chome, Shinjuku', 'Tokyo', NULL, NULL, 'Japan', 'JP', NULL, 35.6938000, 139.7034000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.84, 93, 0, 9, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306de8-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000003480b740827661407ffb3a70ced84140, 0, NULL, NULL, NULL, NULL),
+(210, 2, 15, 'Restored Riad with Plunge Pool — Medina, Marrakech', 'A 16th-century merchant\'s house restored to its original splendor. Zellij tilework, cedarwood ceilings, a central fountain courtyard, and a rooftop terrace overlooking the medina\'s minarets. Full riad, sleeps 8.', 'entire_place', 'house', 1800.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'MAD', 400.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 6, 'Derb Sidi Ahmed Ou Moussa, Medina', 'Marrakech', NULL, NULL, 'Morocco', 'MA', NULL, 31.6294000, -7.9880000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 58, 0, 5, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4306e84-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c1caa145b6f31fc0371ac05b20a13f40, 0, NULL, NULL, NULL, NULL),
+(211, 3, 1, 'Overwater Bungalow with Glass Floor — Maldives', 'Wake up to turquoise lagoon directly beneath you through the glass floor panels. Your own ladder into the Indian Ocean, a hammock over the water, and a butler on call 24/7. Snorkeling gear and kayaks included.', 'entire_place', 'villa', 1200.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'North Malé Atoll', 'North Malé', NULL, NULL, 'Maldives', 'MV', NULL, 4.3085000, 73.5265000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 5.00, 34, 1, 166, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306f0c-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000004560e2db261524096438b6ce73b1140, 0, NULL, NULL, NULL, NULL),
+(212, 4, 8, 'Industrial Loft in Williamsburg, Brooklyn', 'A 19th-century factory floor transformed into a stunning open-plan loft. Exposed brick, 14-foot ceilings, and a rooftop with Manhattan skyline views. Steps from L train, vibrant restaurants, and Brooklyn\'s best coffee shops.', 'entire_place', 'apartment', 275.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 75.00, 0.00, 5.00, 1, 365, 1, 4, 1, 1.0, 1, 'North 6th Street, Williamsburg', 'New York', NULL, NULL, 'United States', 'US', NULL, 40.7141000, -73.9590000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.87, 66, 0, 16, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306f7f-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000004c378941607d52c06c09f9a0675b4440, 0, NULL, NULL, NULL, NULL),
+(213, 2, 15, 'Georgian Townhouse — Notting Hill, London', 'A four-story Georgian townhouse on one of London\'s most photogenic streets, two doors from Portobello Market. Original fireplaces, a private garden, and a wine cellar. Sleeps 8 in period-perfect comfort.', 'entire_place', 'house', 650.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'GBP', 150.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.5, 5, 'Pembridge Crescent, Notting Hill', 'London', NULL, NULL, 'United Kingdom', 'GB', NULL, 51.5127000, -0.2002000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.91, 29, 0, 1, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4306fed-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aa60545227a0c9bf61545227a0c14940, 0, NULL, NULL, NULL, NULL),
+(214, 3, 11, 'Cliffside Lemon Grove Villa — Positano, Amalfi', 'A romantic terraced villa clinging to the Amalfi cliffs above Positano. Private pool, lemon grove, and a boat for private coastal excursions. The view from the breakfast terrace will ruin all other breakfasts forever.', 'entire_place', 'villa', 480.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 120.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Via dei Mulini, Positano', 'Positano', NULL, NULL, 'Italy', 'IT', NULL, 40.6277000, 14.4843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 42, 0, 163, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4307059-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d5e76a2bf6f72c407fd93d7958504440, 0, NULL, NULL, NULL, NULL),
+(215, 4, 15, 'Machiya Townhouse — Gion District, Kyoto', 'A 100-year-old machiya (townhouse) in Kyoto\'s geisha district, thoughtfully updated with underfloor heating and a Japanese soaker bath. A traditional stone garden, tatami rooms, and private tea ceremony available on request.', 'entire_place', 'house', 42000.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 8000.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Gion, Higashiyama-ku', 'Kyoto', NULL, NULL, 'Japan', 'JP', NULL, 35.0039000, 135.7753000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 51, 0, 10, '2026-03-23 22:26:17', '2026-04-19 23:56:13', NULL, 'b43070c5-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d712f241cff860402a3a92cb7f804140, 0, NULL, NULL, NULL, NULL),
+(216, 2, 11, 'Clifftop Villa with Atlantic Views — Camps Bay', 'Perched above Camps Bay with 180-degree Atlantic Ocean views, this contemporary villa has an infinity pool that merges with the horizon. Table Mountain looms behind, Camps Bay beach is 5 minutes below.', 'entire_place', 'villa', 380.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 90.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 5, 'The Glen, Camps Bay', 'Cape Town', NULL, NULL, 'South Africa', 'ZA', NULL, -33.9500000, 18.3765000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 38, 0, 5, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4307130-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aaf1d24d626032409a99999999f940c0, 0, NULL, NULL, NULL, NULL),
+(217, 3, 10, 'Ski-in Ski-out Alpine Chalet — Verbier', 'A classic Swiss chalet with direct piste access in the legendary Verbier ski resort. Stone fireplace, a sauna for après-ski, a wine rack stocked with Swiss Fendant, and sunset views over the Mont-Blanc massif.', 'entire_place', 'house', 820.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 180.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Hameau de Verbier', 'Verbier', NULL, NULL, 'Switzerland', 'CH', NULL, 46.0977000, 7.2281000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 23, 0, 10, '2026-03-23 22:26:17', '2026-04-19 23:56:13', NULL, 'b43071ac-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d3dee00b93e91c40dc68006f810c4740, 0, NULL, NULL, NULL, NULL),
+(218, 4, 6, 'Sky Garden Suite — Marina Bay, Singapore', 'A sky terrace apartment on the 48th floor with unobstructed views of Marina Bay Sands, the Gardens by the Bay, and the Singapore Strait. A private sky garden, lap pool, and full concierge service at your disposal.', 'entire_place', 'apartment', 780.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SGD', 200.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Marina Boulevard', 'Singapore', NULL, NULL, 'Singapore', 'SG', NULL, 1.2784000, 103.8593000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.90, 27, 0, 1, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b430725a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000fb5c6dc5fef659406a4df38e5374f43f, 0, NULL, NULL, NULL, NULL),
+(219, 2, 2, 'Restored Farmhouse with Vineyard — Chianti, Tuscany', 'A stone farmhouse amid rolling Chianti vineyards with your own olive grove and vineyard terrace. A heated outdoor pool, wood-fired pizza oven, and a private wine cellar. Rolling hills in every direction, total silence at night.', 'entire_place', 'house', 340.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 80.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 5, 'Via Chiantigiana, Greve in Chianti', 'Florence', NULL, NULL, 'Italy', 'IT', NULL, 43.5843000, 11.3178000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 44, 0, 42, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43072cc-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006d567daeb6a22640c286a757caca4540, 0, NULL, NULL, NULL, NULL),
+(220, 3, 6, 'Luxury High-Rise Condo — Silom, Bangkok', 'A sleek, hotel-quality condo on the 35th floor in central Bangkok. Rooftop pool, fully equipped gym, and 24-hour concierge. BTS Sala Daeng station is literally downstairs. Perfect for business travelers and luxury seekers.', 'entire_place', 'apartment', 4500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'THB', 1000.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 1, 'Silom Road', 'Bangkok', NULL, NULL, 'Thailand', 'TH', NULL, 13.7233000, 100.5295000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.81, 60, 0, 3, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b430733e-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d9cef753e3215940c364aa6054722b40, 0, NULL, NULL, NULL, NULL);
 
 --
 -- Triggers `properties`
@@ -1562,82 +1655,7 @@ INSERT INTO `property_amenities` (`property_id`, `amenity_id`) VALUES
 (220, 13),
 (220, 21),
 (220, 22),
-(220, 23),
-(221, 1),
-(221, 2),
-(221, 5),
-(221, 8),
-(221, 9),
-(221, 21),
-(221, 22),
-(222, 1),
-(222, 2),
-(222, 5),
-(222, 12),
-(222, 14),
-(222, 19),
-(222, 20),
-(222, 21),
-(222, 22),
-(223, 1),
-(223, 2),
-(223, 3),
-(223, 4),
-(223, 9),
-(223, 11),
-(223, 13),
-(223, 21),
-(223, 22),
-(223, 23),
-(224, 1),
-(224, 2),
-(224, 4),
-(224, 8),
-(224, 9),
-(224, 14),
-(224, 21),
-(224, 22),
-(225, 1),
-(225, 14),
-(225, 18),
-(225, 21),
-(225, 22),
-(225, 23),
-(226, 1),
-(226, 2),
-(226, 4),
-(226, 8),
-(226, 9),
-(226, 11),
-(226, 21),
-(226, 22),
-(226, 23),
-(227, 1),
-(227, 2),
-(227, 5),
-(227, 6),
-(227, 9),
-(227, 19),
-(227, 21),
-(227, 22),
-(228, 1),
-(228, 2),
-(228, 4),
-(228, 11),
-(228, 14),
-(228, 15),
-(228, 18),
-(228, 21),
-(228, 22),
-(228, 23),
-(232, 13),
-(233, 17),
-(235, 3),
-(235, 4),
-(235, 6),
-(235, 9),
-(235, 11),
-(235, 14);
+(220, 23);
 
 -- --------------------------------------------------------
 
@@ -1660,7 +1678,6 @@ CREATE TABLE `property_availability` (
 --
 
 INSERT INTO `property_availability` (`id`, `property_id`, `date`, `is_blocked`, `price_override`, `source`, `ical_source_id`) VALUES
-(51, 226, '2026-03-23', 1, NULL, 'host', NULL),
 (53, 171, '2026-03-26', 1, NULL, 'host', NULL),
 (54, 171, '2026-03-27', 1, NULL, 'host', NULL),
 (55, 165, '2026-03-27', 1, NULL, 'host', NULL),
@@ -1670,8 +1687,6 @@ INSERT INTO `property_availability` (`id`, `property_id`, `date`, `is_blocked`, 
 (59, 165, '2026-03-31', 1, NULL, 'host', NULL),
 (60, 165, '2026-04-01', 1, NULL, 'host', NULL),
 (61, 165, '2026-04-02', 1, NULL, 'host', NULL),
-(62, 232, '2026-03-29', 1, NULL, 'host', NULL),
-(63, 232, '2026-03-30', 1, NULL, 'host', NULL),
 (64, 162, '2026-03-28', 1, NULL, 'host', NULL),
 (65, 162, '2026-03-29', 1, NULL, 'host', NULL),
 (66, 162, '2026-03-30', 1, NULL, 'host', NULL),
@@ -1689,19 +1704,32 @@ INSERT INTO `property_availability` (`id`, `property_id`, `date`, `is_blocked`, 
 (78, 165, '2026-04-13', 1, NULL, 'host', NULL),
 (79, 165, '2026-04-14', 1, NULL, 'host', NULL),
 (80, 165, '2026-04-15', 1, NULL, 'host', NULL),
-(81, 232, '2026-04-09', 0, 10000.00, 'host', NULL),
-(82, 232, '2026-04-10', 0, 10000.00, 'host', NULL),
-(83, 232, '2026-04-11', 0, 10000.00, 'host', NULL),
 (84, 161, '2026-04-08', 0, NULL, 'host', NULL),
 (85, 161, '2026-04-09', 0, NULL, 'host', NULL),
 (86, 161, '2026-04-10', 0, NULL, 'host', NULL),
-(87, 161, '2026-04-11', 0, NULL, 'host', NULL),
+(87, 161, '2026-04-11', 1, NULL, 'host', NULL),
 (88, 161, '2026-04-12', 0, NULL, 'host', NULL),
 (89, 161, '2026-04-13', 0, NULL, 'host', NULL),
 (90, 161, '2026-04-14', 0, NULL, 'host', NULL),
 (91, 161, '2026-04-15', 0, NULL, 'host', NULL),
 (92, 161, '2026-04-16', 0, NULL, 'host', NULL),
-(93, 161, '2026-04-17', 0, NULL, 'host', NULL);
+(93, 161, '2026-04-17', 0, NULL, 'host', NULL),
+(95, 161, '2026-04-18', 0, NULL, 'host', NULL),
+(96, 161, '2026-04-19', 0, NULL, 'host', NULL),
+(97, 161, '2026-04-20', 0, NULL, 'host', NULL),
+(98, 161, '2026-04-21', 0, NULL, 'host', NULL),
+(99, 161, '2026-04-22', 0, NULL, 'host', NULL),
+(100, 161, '2026-04-23', 0, NULL, 'host', NULL),
+(101, 161, '2026-04-24', 0, NULL, 'host', NULL),
+(102, 165, '2026-04-16', 0, NULL, 'host', NULL),
+(103, 165, '2026-04-17', 0, NULL, 'host', NULL),
+(104, 165, '2026-04-18', 0, NULL, 'host', NULL),
+(105, 165, '2026-04-19', 0, NULL, 'host', NULL),
+(106, 165, '2026-04-20', 0, NULL, 'host', NULL),
+(107, 165, '2026-04-21', 0, NULL, 'host', NULL),
+(108, 165, '2026-04-22', 0, NULL, 'host', NULL),
+(109, 165, '2026-04-23', 0, NULL, 'host', NULL),
+(110, 165, '2026-04-24', 0, NULL, 'host', NULL);
 
 -- --------------------------------------------------------
 
@@ -1715,15 +1743,6 @@ CREATE TABLE `property_house_rules` (
   `rule` varchar(500) NOT NULL,
   `rule_ar` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `property_house_rules`
---
-
-INSERT INTO `property_house_rules` (`id`, `property_id`, `rule`, `rule_ar`) VALUES
-(8, 233, 'Government ID required at check-in', NULL),
-(33, 235, 'Government ID required at check-in', NULL),
-(34, 235, 'No pets', NULL);
 
 -- --------------------------------------------------------
 
@@ -1889,43 +1908,20 @@ INSERT INTO `property_photos` (`id`, `property_id`, `url`, `caption`, `display_o
 (226, 219, 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
 (227, 219, 'https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
 (228, 220, 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(229, 220, 'https://images.unsplash.com/photo-1559628233-100c798642d5?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(230, 221, 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(231, 221, 'https://images.unsplash.com/photo-1548707309-dcebeab9ea9b?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(232, 222, 'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(233, 222, 'https://images.unsplash.com/photo-1434394354979-a235cd36269d?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(234, 223, 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(235, 223, 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(236, 224, 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(237, 224, 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(238, 225, 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(239, 225, 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(240, 226, 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(241, 226, 'https://images.unsplash.com/photo-1464790719320-516ecd75af6c?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(242, 227, 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(243, 227, 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(244, 228, 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(245, 228, 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(256, 231, '/uploads/properties/231/photo-1774646292562-864684824.png', NULL, 0, 1, '2026-03-27 23:18:12'),
-(257, 231, '/uploads/properties/231/photo-1774646292573-488397909.png', NULL, 1, 0, '2026-03-27 23:18:12'),
-(258, 231, '/uploads/properties/231/photo-1774646292575-707854639.png', NULL, 2, 0, '2026-03-27 23:18:12'),
-(259, 231, '/uploads/properties/231/photo-1774646292575-63683015.png', NULL, 3, 0, '2026-03-27 23:18:12'),
-(260, 231, '/uploads/properties/231/photo-1774646292605-842309290.png', NULL, 4, 0, '2026-03-27 23:18:12'),
-(261, 232, '/uploads/properties/232/photo-1774707339400-935373413.png', NULL, 0, 1, '2026-03-28 16:15:39'),
-(262, 232, '/uploads/properties/232/photo-1774707339412-570840205.png', NULL, 1, 0, '2026-03-28 16:15:39'),
-(263, 232, '/uploads/properties/232/photo-1774707339415-273036506.png', NULL, 2, 0, '2026-03-28 16:15:39'),
-(264, 232, '/uploads/properties/232/photo-1774707339415-758453499.png', NULL, 3, 0, '2026-03-28 16:15:39'),
-(265, 232, '/uploads/properties/232/photo-1774707339437-585291632.png', NULL, 4, 0, '2026-03-28 16:15:39'),
-(266, 233, '/uploads/properties/233/photo-1774816506202-25134401.png', NULL, 0, 1, '2026-03-29 22:35:06'),
-(267, 233, '/uploads/properties/233/photo-1774816506206-526504403.png', NULL, 1, 0, '2026-03-29 22:35:06'),
-(268, 233, '/uploads/properties/233/photo-1774816506213-10833324.png', NULL, 2, 0, '2026-03-29 22:35:06'),
-(269, 233, '/uploads/properties/233/photo-1774816506215-744411853.jpg', NULL, 3, 0, '2026-03-29 22:35:06'),
-(270, 233, '/uploads/properties/233/photo-1774816506221-306956643.png', NULL, 4, 0, '2026-03-29 22:35:06'),
-(271, 235, '/uploads/properties/235/photo-1775429822386-543557440.png', NULL, 0, 1, '2026-04-06 00:57:02'),
-(272, 235, '/uploads/properties/235/photo-1775429822389-753942973.png', NULL, 1, 0, '2026-04-06 00:57:02'),
-(273, 235, '/uploads/properties/235/photo-1775429822390-755102699.png', NULL, 2, 0, '2026-04-06 00:57:02'),
-(274, 235, '/uploads/properties/235/photo-1775429822392-519604864.jpg', NULL, 3, 0, '2026-04-06 00:57:02'),
-(275, 235, '/uploads/properties/235/photo-1775429822398-156240867.png', NULL, 4, 0, '2026-04-06 00:57:02');
+(229, 220, 'https://images.unsplash.com/photo-1559628233-100c798642d5?w=1200', NULL, 2, 0, '2026-03-23 22:26:18');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `property_price_history`
+--
+
+CREATE TABLE `property_price_history` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `property_id` bigint(20) UNSIGNED NOT NULL,
+  `base_price` decimal(10,2) NOT NULL,
+  `recorded_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1949,17 +1945,13 @@ CREATE TABLE `reviews` (
   `is_flagged` tinyint(1) NOT NULL DEFAULT 0,
   `admin_note` text DEFAULT NULL,
   `photos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`photos`)),
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `deleted_at` datetime DEFAULT NULL,
+  `deleted_by` enum('admin','guest','host') DEFAULT NULL,
   `host_reply` text DEFAULT NULL,
   `host_replied_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ;
-
---
--- Dumping data for table `reviews`
---
-
-INSERT INTO `reviews` (`id`, `booking_id`, `reviewer_id`, `property_id`, `overall_rating`, `cleanliness_rating`, `accuracy_rating`, `communication_rating`, `location_rating`, `value_rating`, `checkin_rating`, `comment`, `is_flagged`, `admin_note`, `photos`, `host_reply`, `host_replied_at`, `created_at`) VALUES
-(5, 20, 10, 226, 5, 5, NULL, 5, 5, 5, 5, 'great', 0, NULL, NULL, NULL, NULL, '2026-03-27 21:33:25');
 
 -- --------------------------------------------------------
 
@@ -1972,8 +1964,28 @@ CREATE TABLE `saved_searches` (
   `user_id` bigint(20) UNSIGNED NOT NULL,
   `name` varchar(100) NOT NULL,
   `filters` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`filters`)),
+  `alert_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `last_alerted_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `unified_audit_logs`
+-- (See below for the actual view)
+--
+CREATE TABLE `unified_audit_logs` (
+`log_source` varchar(5)
+,`id` bigint(20) unsigned
+,`actor_id` bigint(20) unsigned
+,`action` varchar(120)
+,`entity_type` varchar(60)
+,`entity_id` varchar(60)
+,`details` longtext
+,`ip_address` varchar(45)
+,`created_at` datetime(6)
+);
 
 -- --------------------------------------------------------
 
@@ -2010,27 +2022,44 @@ CREATE TABLE `users` (
   `totp_secret` varchar(255) DEFAULT NULL COMMENT '2FA TOTP secret (null when 2FA not set up)',
   `is_totp_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether 2FA is active for this account',
   `last_login_at` datetime(6) DEFAULT NULL,
+  `failed_login_attempts` smallint(5) UNSIGNED NOT NULL DEFAULT 0,
+  `locked_until` datetime DEFAULT NULL,
   `last_booking_at` datetime(6) DEFAULT NULL,
   `last_profile_edit_at` datetime(6) DEFAULT NULL,
-  `notification_preferences` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`notification_preferences`))
+  `host_cancelled_bookings_count` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `last_host_cancellation_at` datetime DEFAULT NULL,
+  `auto_payout_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `auto_payout_frequency` enum('weekly','monthly') NOT NULL DEFAULT 'weekly',
+  `auto_payout_day` tinyint(3) UNSIGNED DEFAULT NULL,
+  `auto_payout_min_balance` decimal(10,2) NOT NULL DEFAULT 100.00,
+  `auto_payout_method` enum('instapay','bank_transfer','cash') NOT NULL DEFAULT 'instapay',
+  `auto_payout_account_details` text DEFAULT NULL,
+  `notification_preferences` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`notification_preferences`)),
+  `auto_reply_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `auto_reply_message` varchar(500) DEFAULT NULL,
+  `fcm_token` varchar(500) DEFAULT NULL,
+  `average_response_minutes` decimal(10,1) NOT NULL DEFAULT 0.0,
+  `response_rate` decimal(5,2) NOT NULL DEFAULT 100.00,
+  `id_rejection_reason` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `profile_uuid`, `email`, `password_hash`, `first_name`, `last_name`, `avatar_url`, `phone`, `bio`, `date_of_birth`, `is_host`, `is_superhost`, `is_consultant`, `is_email_verified`, `is_phone_verified`, `is_id_verified`, `id_document_url`, `id_verification_status`, `is_admin`, `is_active`, `preferred_language`, `google_id`, `refresh_token`, `created_at`, `updated_at`, `totp_secret`, `is_totp_enabled`, `last_login_at`, `last_booking_at`, `last_profile_edit_at`, `notification_preferences`) VALUES
-(2, 'c2f153d2-26ed-11f1-8811-84a938fc7bd1', 'ahmed.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Ahmed', 'Hassan', NULL, NULL, 'Passionate host based in Cairo. Love showing guests the best of Egypt!', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, '$2b$10$D2vf3mg40qEImUx1CLQsFuE6Q7gz6LlGuR6d1joP6xAyJyD/G3HMa', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(3, 'c2f17149-26ed-11f1-8811-84a938fc7bd1', 'sara.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Sara', 'Mohamed', NULL, NULL, 'Superhost with 5 years of experience. I love meeting travelers!', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(4, 'c2f1725e-26ed-11f1-8811-84a938fc7bd1', 'omar.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Omar', 'Khalil', NULL, NULL, 'Professional property manager in Hurghada and Sharm El Sheikh.', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(5, 'c2f172c5-26ed-11f1-8811-84a938fc7bd1', 'guest1@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Layla', 'Ibrahim', NULL, NULL, 'Love exploring new places!', NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, '$2b$10$sXrVtm5rCaJ0epXA3xZp3.rUBZOvjq39Q2XYexOh7PzqxZvYT2b3a', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(6, 'c2f17abb-26ed-11f1-8811-84a938fc7bd1', 'guest2@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'James', 'Wilson', NULL, NULL, 'Digital nomad always looking for cozy workspaces.', NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(7, 'c2f17bea-26ed-11f1-8811-84a938fc7bd1', 'test@test.com', '$2b$12$W7Skfw1pI.HmTCiRAPCjkuYw1kY8FMS3CeU0q7/PO1EC3YVDO5alq', 'Test', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$7hRD3T32FNHYjas2zijTfePO0NtnXm5Gn87cEYbJFnija.Www/AqS', '2026-03-17 01:16:17', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(8, 'c2f17c50-26ed-11f1-8811-84a938fc7bd1', 'new20892@test.com', '$2b$12$b.65UQmEBB8E8HAl5Ve.5OuCIXT9MiBi9lcJdSWGhjpLKYavq0bV2', 'New', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$D.7jHC3Nke.W7YrqE.1sm.w0ns3z4N83Sr.TlmGmBnu40/uP5lVNi', '2026-03-17 01:23:54', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(10, 'c2f17cb5-26ed-11f1-8811-84a938fc7bd1', 'tahamoataz@gmail.com', '$2b$12$5nnbEX5UkSLFZiouo16JrOtbrLhBI9G0uVRYOnCPtAvvmuf/ccHre', 'taha', 'moataz', '/uploads/avatars/avatar-1774381377258-749934226.png', NULL, NULL, NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$W3vAr533b0LercWMEs4KMuz/BsV1P66SNbFjHPFzfnIQnn9N2Aa1O', '2026-03-20 11:39:30', '2026-04-07 00:16:38', NULL, 0, '2026-04-06 22:16:38.082000', NULL, NULL, NULL),
-(11, 'c2f17d03-26ed-11f1-8811-84a938fc7bd1', 'tahamoataz1@gmail.com', '$2b$12$NzUhyCNqL0luqRuM.q6awu/n1ZAm9xZDa3m1X1Vf/sHfA36ccNUny', 'taha1', 'moataz', '/uploads/avatars/avatar-1774006008124-202380198.png', '', '', NULL, 0, 0, 0, 0, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$HzpBPTkJDLWj5Tc31mojWeAlBWp24PW52vZi.CVlPV6BR9gf4sKlK', '2026-03-20 13:25:37', '2026-03-23 21:22:17', NULL, 0, NULL, NULL, NULL, NULL),
-(15, 'c2f17e01-26ed-11f1-8811-84a938fc7bd1', 'admin@sakan.app', '$2b$10$qhup6zWen75uuBiJICCb4.RUKGGU8pE91LjfZI/apirVgF.5I0Lm6', 'Admin', 'Sakan', NULL, NULL, 'Platform administrator', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 1, 1, 'en', NULL, '$2b$10$NBqWLnjWwsQ4H2.1BPGjneNwrHJm20baYV1PFCMy0gtP.JHJCZ0ya', '2026-03-23 11:21:24', '2026-04-07 00:06:04', NULL, 0, '2026-04-06 22:06:04.572000', NULL, NULL, NULL),
-(17, '233c20ed-ed51-458a-a9b9-24ac1b11fff8', 'tahamoataz5@gmail.com', NULL, 'taha', 'moataz', 'https://lh3.googleusercontent.com/a/ACg8ocIhokSZ7I-yDtXC4sLNCE8-xCGOriQx5JjDqruvwAn73AvoaWOg=s96-c', '01153450920', '', NULL, 1, 0, 1, 1, 1, 1, '/uploads/id-documents/id-1774635979255-132034350.png', 'approved', 0, 0, 'en', '111444434132856504879', '$2b$10$7ytc8sA1lKf70ppQseKNCek.Sw9FzyWcKecTT9.8JGZgn1NLbu6M.', '2026-03-27 15:00:58', '2026-04-07 00:20:59', NULL, 0, NULL, '2026-04-05 23:03:39.971000', NULL, NULL);
+INSERT INTO `users` (`id`, `profile_uuid`, `email`, `password_hash`, `first_name`, `last_name`, `avatar_url`, `phone`, `bio`, `date_of_birth`, `is_host`, `is_superhost`, `is_consultant`, `is_email_verified`, `is_phone_verified`, `is_id_verified`, `id_document_url`, `id_verification_status`, `is_admin`, `is_active`, `preferred_language`, `google_id`, `refresh_token`, `created_at`, `updated_at`, `totp_secret`, `is_totp_enabled`, `last_login_at`, `failed_login_attempts`, `locked_until`, `last_booking_at`, `last_profile_edit_at`, `host_cancelled_bookings_count`, `last_host_cancellation_at`, `auto_payout_enabled`, `auto_payout_frequency`, `auto_payout_day`, `auto_payout_min_balance`, `auto_payout_method`, `auto_payout_account_details`, `notification_preferences`, `auto_reply_enabled`, `auto_reply_message`, `fcm_token`, `average_response_minutes`, `response_rate`, `id_rejection_reason`) VALUES
+(2, 'c2f153d2-26ed-11f1-8811-84a938fc7bd1', 'ahmed.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Ahmed', 'Hassan', NULL, NULL, 'Passionate host based in Cairo. Love showing guests the best of Egypt!', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, '$2b$10$D2vf3mg40qEImUx1CLQsFuE6Q7gz6LlGuR6d1joP6xAyJyD/G3HMa', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(3, 'c2f17149-26ed-11f1-8811-84a938fc7bd1', 'sara.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Sara', 'Mohamed', NULL, NULL, 'Superhost with 5 years of experience. I love meeting travelers!', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(4, 'c2f1725e-26ed-11f1-8811-84a938fc7bd1', 'omar.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Omar', 'Khalil', NULL, NULL, 'Professional property manager in Hurghada and Sharm El Sheikh.', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(5, 'c2f172c5-26ed-11f1-8811-84a938fc7bd1', 'guest1@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Layla', 'Ibrahim', NULL, NULL, 'Love exploring new places!', NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, '$2b$10$sXrVtm5rCaJ0epXA3xZp3.rUBZOvjq39Q2XYexOh7PzqxZvYT2b3a', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(6, 'c2f17abb-26ed-11f1-8811-84a938fc7bd1', 'guest2@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'James', 'Wilson', NULL, NULL, 'Digital nomad always looking for cozy workspaces.', NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(7, 'c2f17bea-26ed-11f1-8811-84a938fc7bd1', 'test@test.com', '$2b$12$W7Skfw1pI.HmTCiRAPCjkuYw1kY8FMS3CeU0q7/PO1EC3YVDO5alq', 'Test', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$7hRD3T32FNHYjas2zijTfePO0NtnXm5Gn87cEYbJFnija.Www/AqS', '2026-03-17 01:16:17', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(8, 'c2f17c50-26ed-11f1-8811-84a938fc7bd1', 'new20892@test.com', '$2b$12$b.65UQmEBB8E8HAl5Ve.5OuCIXT9MiBi9lcJdSWGhjpLKYavq0bV2', 'New', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$D.7jHC3Nke.W7YrqE.1sm.w0ns3z4N83Sr.TlmGmBnu40/uP5lVNi', '2026-03-17 01:23:54', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(10, 'c2f17cb5-26ed-11f1-8811-84a938fc7bd1', 'tahamoataz@gmail.com', '$2b$12$5nnbEX5UkSLFZiouo16JrOtbrLhBI9G0uVRYOnCPtAvvmuf/ccHre', 'taha', 'moataz', '/uploads/avatars/avatar-1774381377258-749934226.png', NULL, NULL, NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$W3vAr533b0LercWMEs4KMuz/BsV1P66SNbFjHPFzfnIQnn9N2Aa1O', '2026-03-20 11:39:30', '2026-04-07 00:16:38', NULL, 0, '2026-04-06 22:16:38.082000', 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(15, 'c2f17e01-26ed-11f1-8811-84a938fc7bd1', 'admin@sakan.app', '$2b$10$qhup6zWen75uuBiJICCb4.RUKGGU8pE91LjfZI/apirVgF.5I0Lm6', 'Admin', 'Sakan', NULL, NULL, 'Platform administrator', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 1, 1, 'en', NULL, '$2b$10$ioGABw4s4lxALKMDJQXdluIr7AQ5fv4Oe.Ar08Vp1eeIq.S8S40jS', '2026-03-23 11:21:24', '2026-04-19 20:00:15', NULL, 0, '2026-04-19 18:00:15.310000', 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(29, 'f19ae354-f436-4f7f-946b-77084223be65', 'taha@bme-global.com', '$2b$12$.1eEXsnivXLc8fecoosZtujcSwj26kvMeOrCWVHyDwC.VbjDLVA0.', 'Taha', 'Moataz', NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$HsikquL45LCd2r0JAJuNL.AmbxkPBcI.fYZcTlWWN86bzHb4fyUdO', '2026-04-10 23:32:44', '2026-04-10 23:32:44', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(31, '8a3d43b9-5946-4d33-9519-566cdffe70d3', 'tahamoata@gmail.com', '$2b$12$N.zG5eTqZdp3Guc8rDb0l.jPwq.ZsGrchvloD3LWGtTwjhOs2uGmi', 'taha', 'moataz', NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$vvp/.uKpKBnIP5o6C98yQuZ6cZB4QEjxbj1XWw2tjJky8oC6jaLem', '2026-04-11 16:26:10', '2026-04-19 23:43:44', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(33, '301dae64-e100-41f9-908b-9709b3a3c35c', 'tahamoataz5@gmail.com', NULL, 'taha', 'moataz', 'https://lh3.googleusercontent.com/a/ACg8ocIhokSZ7I-yDtXC4sLNCE8-xCGOriQx5JjDqruvwAn73AvoaWOg=s96-c', '+201153450920', '', NULL, 1, 0, 0, 1, 1, 0, NULL, 'none', 0, 1, 'en', '111444434132856504879', '$2b$10$CzapFAXNTAMBsjjEJkKYVuUq3tVNGBrOut2.VHwPAwRQUUBx/lPs.', '2026-04-11 19:28:29', '2026-04-19 23:47:12', NULL, 0, NULL, 0, NULL, '2026-04-11 20:10:41.246000', '2026-04-11 17:28:47.747000', 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -2057,7 +2086,9 @@ INSERT INTO `user_sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `expir
 (2, 15, '::1', NULL, '2026-05-05 19:43:54', '2026-04-05 22:43:54', '2026-04-05 22:43:54'),
 (3, 15, '::1', NULL, '2026-05-06 17:54:44', '2026-04-06 20:54:44', '2026-04-06 20:54:44'),
 (4, 15, '::1', NULL, '2026-05-06 19:06:04', '2026-04-06 22:06:04', '2026-04-06 22:06:04'),
-(5, 10, '::1', NULL, '2026-05-06 19:16:38', '2026-04-06 22:16:38', '2026-04-06 22:16:38');
+(5, 10, '::1', NULL, '2026-05-06 19:16:38', '2026-04-06 22:16:38', '2026-04-06 22:16:38'),
+(6, 15, '::1', NULL, '2026-05-10 15:22:15', '2026-04-10 18:22:15', '2026-04-10 18:22:15'),
+(7, 15, '::1', NULL, '2026-05-19 15:00:15', '2026-04-19 18:00:15', '2026-04-19 18:00:15');
 
 -- --------------------------------------------------------
 
@@ -2080,7 +2111,9 @@ CREATE TABLE `verification_tokens` (
 --
 
 INSERT INTO `verification_tokens` (`id`, `user_id`, `type`, `token`, `expires_at`, `used_at`, `created_at`) VALUES
-(8, 17, 'phone', '327837', '2026-03-27 13:40:59', '2026-03-27 13:31:20', '2026-03-27 15:30:59');
+(28, 29, 'email', 'b1503c13-ad02-4db5-9cf8-5f903139310e', '2026-04-11 21:32:44', NULL, '2026-04-10 23:32:44'),
+(33, 33, 'phone', '208086', '2026-04-11 17:38:51', '2026-04-11 17:29:07', '2026-04-11 19:28:51'),
+(34, 31, 'email', 'ebd81742-692a-4e17-ad3c-819a9660bfc2', '2026-04-12 19:03:13', NULL, '2026-04-11 21:03:13');
 
 -- --------------------------------------------------------
 
@@ -2103,7 +2136,8 @@ CREATE TABLE `wishlists` (
 --
 
 INSERT INTO `wishlists` (`id`, `user_id`, `name`, `visibility`, `share_token`, `cover_photo`, `created_at`) VALUES
-(1, 5, 'Egypt Favorites', 'private', '4d3d5b2d-304e-11f1-b636-84a938fc7bd1', NULL, '2026-03-17 01:21:28');
+(1, 5, 'Egypt Favorites', 'private', '4d3d5b2d-304e-11f1-b636-84a938fc7bd1', NULL, '2026-03-17 01:21:28'),
+(10, 29, 'My Wishlist', 'private', '3832a226-bfe4-4bbb-bb1f-f68f89561fa7', NULL, '2026-04-10 23:43:01');
 
 -- --------------------------------------------------------
 
@@ -2117,6 +2151,22 @@ CREATE TABLE `wishlist_items` (
   `property_id` bigint(20) UNSIGNED NOT NULL,
   `added_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `wishlist_items`
+--
+
+INSERT INTO `wishlist_items` (`id`, `wishlist_id`, `property_id`, `added_at`) VALUES
+(7, 10, 205, '2026-04-10 23:43:01');
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `unified_audit_logs`
+--
+DROP TABLE IF EXISTS `unified_audit_logs`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `unified_audit_logs`  AS SELECT 'user' AS `log_source`, `al`.`id` AS `id`, `al`.`actor_id` AS `actor_id`, `al`.`event_type` AS `action`, `al`.`entity_type` AS `entity_type`, `al`.`entity_id` AS `entity_id`, `al`.`metadata` AS `details`, `al`.`ip_address` AS `ip_address`, `al`.`created_at` AS `created_at` FROM `audit_logs` AS `al`union all select 'admin' AS `log_source`,`aal`.`id` AS `id`,`aal`.`admin_id` AS `actor_id`,`aal`.`action` AS `action`,`aal`.`entity_type` AS `entity_type`,`aal`.`entity_id` AS `entity_id`,`aal`.`details` AS `details`,`aal`.`ip_address` AS `ip_address`,`aal`.`created_at` AS `created_at` from `admin_activity_logs` `aal`  ;
 
 --
 -- Indexes for dumped tables
@@ -2160,7 +2210,22 @@ ALTER TABLE `bookings`
   ADD KEY `idx_bookings_idempotency` (`guest_id`,`property_id`,`check_in`,`check_out`,`created_at`),
   ADD KEY `idx_bookings_payment` (`payment_status`,`payment_method`),
   ADD KEY `idx_bookings_deposit_release` (`deposit_status`,`deposit_claim_deadline`),
-  ADD KEY `idx_bookings_host_status` (`host_id`,`status`);
+  ADD KEY `idx_bookings_host_status` (`host_id`,`status`),
+  ADD KEY `idx_bookings_prop_status_checkin` (`property_id`,`status`,`check_in`),
+  ADD KEY `idx_bookings_guest_status` (`guest_id`,`status`),
+  ADD KEY `idx_bookings_property_status` (`property_id`,`status`),
+  ADD KEY `idx_bookings_payment_status` (`payment_status`),
+  ADD KEY `idx_bookings_checkin` (`check_in`),
+  ADD KEY `idx_bookings_checkout` (`check_out`);
+
+--
+-- Indexes for table `booking_status_history`
+--
+ALTER TABLE `booking_status_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_bsh_booking` (`booking_id`),
+  ADD KEY `idx_bsh_booking_created` (`booking_id`,`created_at`),
+  ADD KEY `fk_bsh_changed_by` (`changed_by_id`);
 
 --
 -- Indexes for table `categories`
@@ -2256,7 +2321,9 @@ ALTER TABLE `conversations`
   ADD KEY `property_id` (`property_id`),
   ADD KEY `booking_id` (`booking_id`),
   ADD KEY `idx_conversations_host` (`host_id`),
-  ADD KEY `idx_conversations_guest` (`guest_id`);
+  ADD KEY `idx_conversations_guest` (`guest_id`),
+  ADD KEY `idx_conversations_last_message` (`updated_at`),
+  ADD KEY `idx_conversations_updated` (`updated_at`);
 
 --
 -- Indexes for table `disputes`
@@ -2265,7 +2332,9 @@ ALTER TABLE `disputes`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_disputes_booking` (`booking_id`),
   ADD KEY `idx_disputes_raised_by` (`raised_by_id`),
-  ADD KEY `idx_disputes_status` (`status`);
+  ADD KEY `idx_disputes_status` (`status`),
+  ADD KEY `idx_disputes_assigned_to` (`assigned_to_id`),
+  ADD KEY `idx_disputes_priority` (`priority`);
 
 --
 -- Indexes for table `earnings`
@@ -2353,13 +2422,22 @@ ALTER TABLE `experience_schedule`
   ADD KEY `idx_exps_exp` (`experience_id`);
 
 --
+-- Indexes for table `login_attempts`
+--
+ALTER TABLE `login_attempts`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_login_email_time` (`email`,`attempted_at`),
+  ADD KEY `idx_login_ip_time` (`ip_address`,`attempted_at`);
+
+--
 -- Indexes for table `messages`
 --
 ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_messages_conversation` (`conversation_id`),
   ADD KEY `idx_messages_sender` (`sender_id`),
-  ADD KEY `idx_messages_conversation_time` (`conversation_id`,`created_at`);
+  ADD KEY `idx_messages_conversation_time` (`conversation_id`,`created_at`),
+  ADD KEY `idx_messages_conversation_created` (`conversation_id`,`created_at`);
 
 --
 -- Indexes for table `notifications`
@@ -2368,7 +2446,9 @@ ALTER TABLE `notifications`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_notifications_user` (`user_id`),
   ADD KEY `idx_notifications_read` (`user_id`,`is_read`),
-  ADD KEY `idx_notifications_user_time` (`user_id`,`created_at`);
+  ADD KEY `idx_notifications_user_time` (`user_id`,`created_at`),
+  ADD KEY `idx_notifications_user_unread` (`user_id`,`is_read`,`created_at`),
+  ADD KEY `idx_notifications_user_read` (`user_id`,`is_read`);
 
 --
 -- Indexes for table `password_resets`
@@ -2379,6 +2459,15 @@ ALTER TABLE `password_resets`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_pt_booking` (`booking_id`),
+  ADD KEY `idx_pt_gateway_ref` (`gateway`,`gateway_reference`),
+  ADD KEY `idx_pt_status_created` (`status`,`created_at`);
+
+--
 -- Indexes for table `payouts`
 --
 ALTER TABLE `payouts`
@@ -2387,11 +2476,28 @@ ALTER TABLE `payouts`
   ADD KEY `idx_payouts_status` (`status`);
 
 --
+-- Indexes for table `payout_items`
+--
+ALTER TABLE `payout_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_pi_payout` (`payout_id`),
+  ADD KEY `idx_pi_earning` (`earning_id`),
+  ADD KEY `idx_pi_booking` (`booking_id`);
+
+--
 -- Indexes for table `platform_settings`
 --
 ALTER TABLE `platform_settings`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `UQ_platform_settings_key` (`key`);
+
+--
+-- Indexes for table `price_alerts`
+--
+ALTER TABLE `price_alerts`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_price_alerts_user` (`user_id`),
+  ADD KEY `idx_price_alerts_property` (`property_id`);
 
 --
 -- Indexes for table `properties`
@@ -2409,7 +2515,11 @@ ALTER TABLE `properties`
   ADD SPATIAL KEY `idx_properties_geo_point` (`geo_point`),
   ADD KEY `idx_properties_booking_mode` (`booking_mode`),
   ADD KEY `idx_properties_active_status_city` (`is_active`,`status`,`city`),
-  ADD KEY `idx_properties_country_city` (`country_code`,`city`,`is_active`);
+  ADD KEY `idx_properties_country_city` (`country_code`,`city`,`is_active`),
+  ADD KEY `idx_properties_featured` (`is_featured`,`status`),
+  ADD KEY `idx_properties_host_status_active` (`host_id`,`status`,`is_active`),
+  ADD KEY `idx_properties_city_status_active` (`city`,`status`,`is_active`),
+  ADD KEY `idx_properties_status_active` (`status`,`is_active`);
 
 --
 -- Indexes for table `property_amenities`
@@ -2424,7 +2534,8 @@ ALTER TABLE `property_amenities`
 ALTER TABLE `property_availability`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uk_availability` (`property_id`,`date`),
-  ADD KEY `fk_av_ical_source` (`ical_source_id`);
+  ADD KEY `fk_av_ical_source` (`ical_source_id`),
+  ADD KEY `idx_availability_property_date` (`property_id`,`date`);
 
 --
 -- Indexes for table `property_house_rules`
@@ -2449,6 +2560,13 @@ ALTER TABLE `property_photos`
   ADD KEY `idx_property_photos_cover` (`property_id`,`is_cover`,`display_order`);
 
 --
+-- Indexes for table `property_price_history`
+--
+ALTER TABLE `property_price_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_price_history_prop_date` (`property_id`,`recorded_at`);
+
+--
 -- Indexes for table `reviews`
 --
 ALTER TABLE `reviews`
@@ -2456,7 +2574,8 @@ ALTER TABLE `reviews`
   ADD UNIQUE KEY `booking_id` (`booking_id`),
   ADD KEY `idx_reviews_property` (`property_id`),
   ADD KEY `idx_reviews_reviewer` (`reviewer_id`),
-  ADD KEY `idx_reviews_property_date` (`property_id`,`created_at`);
+  ADD KEY `idx_reviews_property_date` (`property_id`,`created_at`),
+  ADD KEY `idx_reviews_property_deleted` (`property_id`,`is_deleted`);
 
 --
 -- Indexes for table `saved_searches`
@@ -2473,7 +2592,8 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `email` (`email`),
   ADD UNIQUE KEY `idx_users_profile_uuid` (`profile_uuid`),
   ADD KEY `idx_users_google` (`google_id`),
-  ADD KEY `idx_users_is_consultant` (`is_consultant`);
+  ADD KEY `idx_users_is_consultant` (`is_consultant`),
+  ADD KEY `idx_users_consultant` (`is_consultant`,`is_active`);
 
 --
 -- Indexes for table `user_sessions`
@@ -2517,7 +2637,7 @@ ALTER TABLE `wishlist_items`
 -- AUTO_INCREMENT for table `admin_activity_logs`
 --
 ALTER TABLE `admin_activity_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `amenities`
@@ -2529,13 +2649,19 @@ ALTER TABLE `amenities`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+
+--
+-- AUTO_INCREMENT for table `booking_status_history`
+--
+ALTER TABLE `booking_status_history`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -2553,7 +2679,7 @@ ALTER TABLE `cohosts`
 -- AUTO_INCREMENT for table `consultants`
 --
 ALTER TABLE `consultants`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `consultant_availability`
@@ -2607,7 +2733,7 @@ ALTER TABLE `conversations`
 -- AUTO_INCREMENT for table `disputes`
 --
 ALTER TABLE `disputes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `earnings`
@@ -2619,7 +2745,7 @@ ALTER TABLE `earnings`
 -- AUTO_INCREMENT for table `expenses`
 --
 ALTER TABLE `expenses`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `experiences`
@@ -2670,6 +2796,12 @@ ALTER TABLE `experience_schedule`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
+-- AUTO_INCREMENT for table `login_attempts`
+--
+ALTER TABLE `login_attempts`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
@@ -2679,13 +2811,19 @@ ALTER TABLE `messages`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=98;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=106;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payouts`
@@ -2694,22 +2832,34 @@ ALTER TABLE `payouts`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `payout_items`
+--
+ALTER TABLE `payout_items`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `platform_settings`
 --
 ALTER TABLE `platform_settings`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `price_alerts`
+--
+ALTER TABLE `price_alerts`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `properties`
 --
 ALTER TABLE `properties`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=236;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=239;
 
 --
 -- AUTO_INCREMENT for table `property_availability`
 --
 ALTER TABLE `property_availability`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
 
 --
 -- AUTO_INCREMENT for table `property_house_rules`
@@ -2727,7 +2877,13 @@ ALTER TABLE `property_ical_sources`
 -- AUTO_INCREMENT for table `property_photos`
 --
 ALTER TABLE `property_photos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=276;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=281;
+
+--
+-- AUTO_INCREMENT for table `property_price_history`
+--
+ALTER TABLE `property_price_history`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `reviews`
@@ -2739,37 +2895,37 @@ ALTER TABLE `reviews`
 -- AUTO_INCREMENT for table `saved_searches`
 --
 ALTER TABLE `saved_searches`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `verification_tokens`
 --
 ALTER TABLE `verification_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `wishlists`
 --
 ALTER TABLE `wishlists`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `wishlist_items`
 --
 ALTER TABLE `wishlist_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables
@@ -2785,9 +2941,16 @@ ALTER TABLE `admin_activity_logs`
 -- Constraints for table `bookings`
 --
 ALTER TABLE `bookings`
-  ADD CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `bookings_ibfk_2` FOREIGN KEY (`guest_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `bookings_ibfk_3` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`),
+  ADD CONSTRAINT `bookings_ibfk_2` FOREIGN KEY (`guest_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `bookings_ibfk_3` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `booking_status_history`
+--
+ALTER TABLE `booking_status_history`
+  ADD CONSTRAINT `fk_bsh_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`),
+  ADD CONSTRAINT `fk_bsh_changed_by` FOREIGN KEY (`changed_by_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `cohosts`
@@ -2862,15 +3025,15 @@ ALTER TABLE `conversations`
 -- Constraints for table `disputes`
 --
 ALTER TABLE `disputes`
-  ADD CONSTRAINT `fk_disputes_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_disputes_raised_by` FOREIGN KEY (`raised_by_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_disputes_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`),
+  ADD CONSTRAINT `fk_disputes_raised_by` FOREIGN KEY (`raised_by_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `earnings`
 --
 ALTER TABLE `earnings`
-  ADD CONSTRAINT `earnings_ibfk_1` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `earnings_ibfk_2` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `earnings_ibfk_1` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `earnings_ibfk_2` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`);
 
 --
 -- Constraints for table `experiences`
@@ -2939,16 +3102,37 @@ ALTER TABLE `password_resets`
   ADD CONSTRAINT `password_resets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  ADD CONSTRAINT `fk_pt_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`);
+
+--
 -- Constraints for table `payouts`
 --
 ALTER TABLE `payouts`
-  ADD CONSTRAINT `payouts_ibfk_1` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `payouts_ibfk_1` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `payout_items`
+--
+ALTER TABLE `payout_items`
+  ADD CONSTRAINT `fk_pi_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`),
+  ADD CONSTRAINT `fk_pi_earning` FOREIGN KEY (`earning_id`) REFERENCES `earnings` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_pi_payout` FOREIGN KEY (`payout_id`) REFERENCES `payouts` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `price_alerts`
+--
+ALTER TABLE `price_alerts`
+  ADD CONSTRAINT `fk_price_alerts_property` FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_price_alerts_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `properties`
 --
 ALTER TABLE `properties`
-  ADD CONSTRAINT `properties_ibfk_1` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `properties_ibfk_1` FOREIGN KEY (`host_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `properties_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL;
 
 --
@@ -2982,6 +3166,12 @@ ALTER TABLE `property_ical_sources`
 --
 ALTER TABLE `property_photos`
   ADD CONSTRAINT `property_photos_ibfk_1` FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `property_price_history`
+--
+ALTER TABLE `property_price_history`
+  ADD CONSTRAINT `fk_price_history_property` FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `reviews`

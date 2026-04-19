@@ -16,7 +16,8 @@ import {
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'fs';
+import { randomUUID } from 'crypto';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -48,8 +49,8 @@ function makeImageStorage(subDir: string) {
       cb(null, dir);
     },
     filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      cb(null, `photo-${uniqueSuffix}${extname(file.originalname)}`);
+      // FIX O8: Use crypto.randomUUID instead of Math.random to eliminate collision risk
+      cb(null, `photo-${Date.now()}-${randomUUID()}${extname(file.originalname)}`);
     },
   });
 }
@@ -60,6 +61,38 @@ const imageFilter = (req: Express.Request, file: Express.Multer.File, cb: (error
   }
   cb(null, true);
 };
+
+// SEC: Magic-byte validation — verify file content matches claimed image type
+const IMAGE_MAGIC_BYTES: Array<{ ext: string; bytes: number[] }> = [
+  { ext: 'jpg',  bytes: [0xFF, 0xD8, 0xFF] },              // JPEG
+  { ext: 'png',  bytes: [0x89, 0x50, 0x4E, 0x47] },        // PNG
+  { ext: 'gif',  bytes: [0x47, 0x49, 0x46] },               // GIF
+  { ext: 'webp', bytes: [0x52, 0x49, 0x46, 0x46] },         // WebP (RIFF)
+];
+
+function validateImageMagicBytes(filePath: string): boolean {
+  try {
+    const buf = Buffer.alloc(12);
+    const fd = require('fs').openSync(filePath, 'r');
+    require('fs').readSync(fd, buf, 0, 12, 0);
+    require('fs').closeSync(fd);
+    return IMAGE_MAGIC_BYTES.some(({ bytes }) =>
+      bytes.every((b, i) => buf[i] === b),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validateUploadedFiles(files: Express.Multer.File[]): void {
+  for (const file of files) {
+    if (!validateImageMagicBytes(file.path)) {
+      // Delete the spoofed file immediately
+      try { unlinkSync(file.path); } catch { /* best-effort cleanup */ }
+      throw new BadRequestException(`File "${file.originalname}" is not a valid image (magic bytes mismatch)`);
+    }
+  }
+}
 
 @ApiTags('uploads')
 @Controller('uploads')
@@ -99,6 +132,9 @@ export class UploadsController {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files uploaded');
     }
+
+    // SEC: Validate file content via magic bytes (prevents MIME spoofing)
+    validateUploadedFiles(files);
 
     const property = await this.propertiesRepo.findOne({ where: { id: propertyId } });
     if (!property) throw new BadRequestException('Property not found');
@@ -205,6 +241,9 @@ export class UploadsController {
       throw new BadRequestException('No files uploaded');
     }
 
+    // SEC: Validate file content via magic bytes (prevents MIME spoofing)
+    validateUploadedFiles(files);
+
     const experience = await this.experiencesRepo.findOne({ where: { id: experienceId } });
     if (!experience) throw new BadRequestException('Experience not found');
     if (experience.hostId !== user.id) {
@@ -255,8 +294,7 @@ export class UploadsController {
           cb(null, dir);
         },
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `avatar-${uniqueSuffix}${extname(file.originalname)}`);
+          cb(null, `avatar-${Date.now()}-${randomUUID()}${extname(file.originalname)}`);
         },
       }),
       fileFilter: (req, file, cb) => {
@@ -273,6 +311,10 @@ export class UploadsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
+
+    // SEC: Validate file content via magic bytes (prevents MIME spoofing)
+    validateUploadedFiles([file]);
+
     const avatarUrl = `/uploads/avatars/${file.filename}`;
     await this.usersRepo.update(user.id, { avatarUrl });
     return { avatarUrl };

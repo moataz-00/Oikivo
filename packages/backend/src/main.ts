@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import helmet from 'helmet';
 import * as jwt from 'jsonwebtoken';
 import sharp from 'sharp';
@@ -38,6 +39,9 @@ async function bootstrap() {
   // Cookie parser (required for httpOnly cookie auth)
   app.use(cookieParser());
 
+  // Gzip/Brotli response compression
+  app.use(compression());
+
   // Security headers (S3: Helmet + CSP)
   app.use(
     helmet({
@@ -65,6 +69,9 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
+
+  // Trust first proxy (nginx/Cloudflare) so req.ip reflects real client IP
+  app.set('trust proxy', 1);
 
   // Protect sensitive file directories — require valid JWT before serving
   // Files must be accessed through authenticated controller endpoints instead:
@@ -152,6 +159,7 @@ async function bootstrap() {
     '/uploads/messages',
     '/uploads/id-documents',
     '/uploads/consultant-docs',
+    '/uploads/disputes', // FIX O9: Dispute evidence requires authentication
   ];
 
   authenticatedDirectories.forEach((dir) => {
@@ -239,35 +247,37 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: false,
+      forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),
   );
 
-  // Swagger
-  const config = new DocumentBuilder()
-    .setTitle('Sakan API')
-    .setDescription('Sakan (سكن) — Airbnb-clone platform REST API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('auth', 'Authentication')
-    .addTag('users', 'User profiles')
-    .addTag('properties', 'Property listings')
-    .addTag('search', 'Search & discovery')
-    .addTag('bookings', 'Booking management')
-    .addTag('reviews', 'Reviews')
-    .addTag('messages', 'Messaging')
-    .addTag('wishlists', 'Wishlists')
-    .addTag('categories', 'Categories')
-    .addTag('amenities', 'Amenities')
-    .addTag('notifications', 'Notifications')
-    .addTag('availability', 'Property availability & calendar')
-    .addTag('admin', 'Admin panel')
-    .build();
+  // Swagger — disabled in production
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Sakan API')
+      .setDescription('Sakan (سكن) — Airbnb-clone platform REST API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('auth', 'Authentication')
+      .addTag('users', 'User profiles')
+      .addTag('properties', 'Property listings')
+      .addTag('search', 'Search & discovery')
+      .addTag('bookings', 'Booking management')
+      .addTag('reviews', 'Reviews')
+      .addTag('messages', 'Messaging')
+      .addTag('wishlists', 'Wishlists')
+      .addTag('categories', 'Categories')
+      .addTag('amenities', 'Amenities')
+      .addTag('notifications', 'Notifications')
+      .addTag('availability', 'Property availability & calendar')
+      .addTag('admin', 'Admin panel')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

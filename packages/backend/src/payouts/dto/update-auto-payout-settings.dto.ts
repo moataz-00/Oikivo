@@ -20,7 +20,7 @@ export class UpdateAutoPayoutSettingsDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(1)
+  @Min(50, { message: 'Minimum auto-payout balance must be at least 50 EGP' })
   minBalance?: number;
 
   @IsOptional()

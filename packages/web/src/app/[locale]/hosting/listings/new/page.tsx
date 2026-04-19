@@ -1601,11 +1601,15 @@ export default function NewListingPage() {
                 <span className="text-neutral-500">{price} × 5 nights</span>
                 <span className="text-neutral-700">EGP {(price * 5).toLocaleString()}</span>
               </div>
+              <div className="flex justify-between text-sm py-1.5 text-red-500">
+                <span>Platform commission (5%)</span>
+                <span>− EGP {(price * 5 * 0.05).toLocaleString()}</span>
+              </div>
               <div className="flex justify-between text-sm py-1.5 border-t border-neutral-200 mt-1 pt-2.5 font-semibold">
                 <span className="text-neutral-900">Your estimated earnings</span>
-                <span className="text-neutral-900">EGP {(price * 5).toLocaleString()}</span>
+                <span className="text-neutral-900">EGP {(price * 5 * 0.95).toLocaleString()}</span>
               </div>
-              <p className="text-xs text-neutral-400 mt-2">A 14% service fee is added to the guest's total — you keep 100% of your listed price.</p>
+              <p className="text-xs text-neutral-400 mt-2">A 5% service fee is added to the guest&apos;s total. A 5% commission is deducted from your payout.</p>
             </div>
           </div>
         );

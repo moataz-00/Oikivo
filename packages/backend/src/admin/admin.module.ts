@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminActivityLogService } from './admin-activity-log.service';
 import { AdminLogInterceptor } from './admin-log.interceptor';
+import { AdminIpAllowlistGuard } from './admin-ip-allowlist.guard';
 import { UserEntity } from '../entities/user.entity';
 import { PropertyEntity } from '../entities/property.entity';
 import { BookingEntity } from '../entities/booking.entity';
@@ -55,9 +57,10 @@ import { ExpenseEntity } from '../entities/expense.entity';
     NotificationsModule,
     AvailabilityModule,
     MailModule,
+    ConfigModule,
   ],
   controllers: [AdminController],
-  providers: [AdminService, AdminActivityLogService, AdminLogInterceptor],
+  providers: [AdminService, AdminActivityLogService, AdminLogInterceptor, AdminIpAllowlistGuard],
   exports: [AdminActivityLogService],
 })
 export class AdminModule {}

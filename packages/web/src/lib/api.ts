@@ -98,14 +98,13 @@ apiClient.interceptors.response.use(
               refreshToken,
             });
             localStorage.setItem('access_token', data.accessToken);
-            if (data.refreshToken) localStorage.setItem('refresh_token', data.refreshToken);
+            // refresh_token is managed via httpOnly cookie — never store in localStorage
             if (error.config) {
               error.config.headers.Authorization = `Bearer ${data.accessToken}`;
               return apiClient(error.config);
             }
           } catch {
             localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
             window.location.href = getLocalizedLoginPath();
           }
         } else {
@@ -118,7 +117,7 @@ apiClient.interceptors.response.use(
               { withCredentials: true },
             );
             localStorage.setItem('access_token', data.accessToken);
-            if (data.refreshToken) localStorage.setItem('refresh_token', data.refreshToken);
+            // refresh_token is managed via httpOnly cookie — never store in localStorage
             if (error.config) {
               error.config.headers.Authorization = `Bearer ${data.accessToken}`;
               return apiClient(error.config);
@@ -548,7 +547,7 @@ export const reviewsApi = {
     apiClient.post<Review>('/reviews', payload).then((r) => r.data),
 
   replyReview: (id: number, reply: string) =>
-    apiClient.patch<Review>(`/reviews/${id}/reply`, { reply }).then((r) => r.data),
+    apiClient.patch<Review>(`/reviews/${id}/reply`, { hostReply: reply }).then((r) => r.data),
 
   updateReview: (id: number, payload: Partial<CreateReviewPayload>) =>
     apiClient.patch<Review>(`/reviews/${id}`, payload).then((r) => r.data),
@@ -1115,20 +1114,16 @@ export const paymentsApi = {
 
   // ─── OPay ────────────────────────────────────────────────────────────────
 
-  /** Non-3DS OPay card payment — returns immediately with success/fail status */
-  opayCard: (payload: {
+  // FIX P1: OPay hosted checkout — card data never passes through our backend (PCI compliant)
+  /** Creates an OPay hosted checkout session. Returns a redirect URL for the user. */
+  opayCheckout: (payload: {
     bookingId: number;
     bookingType: 'stay' | 'experience';
-    cardHolderName: string;
-    cardNumber: string;
-    expiryMonth: string;
-    expiryYear: string;
-    cvv: string;
     returnUrl?: string;
   }) =>
     apiClient
-      .post<{ status: 'success' | 'failed'; orderNo?: string; message?: string }>(
-        '/payments/opay/card',
+      .post<{ status: 'redirect'; cashierUrl: string; orderNo?: string; reference: string }>(
+        '/payments/opay/checkout',
         payload,
       )
       .then((r) => r.data),

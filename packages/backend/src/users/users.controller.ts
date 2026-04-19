@@ -212,8 +212,12 @@ export class UsersController {
 
   @Get(':id/reviews')
   @ApiOperation({ summary: 'Get reviews for a user (as host)' })
-  getUserReviews(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.getUserReviews(id);
+  getUserReviews(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.usersService.getUserReviews(id, page || 1, limit || 20);
   }
 
   @Get(':id/stats')

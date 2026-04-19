@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,7 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
   confirmed: 'bg-sky-900/50 text-sky-400',
   completed: 'bg-emerald-900/50 text-emerald-400',
   cancelled: 'bg-red-900/50 text-red-400',
-  declined: 'bg-gray-700 text-gray-400',
+  declined: 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
 };
 
 const PAYMENT_COLORS: Record<string, string> = {
@@ -48,8 +48,8 @@ export default function ExperienceBookingDetailPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 bg-gray-800 rounded w-64 animate-pulse" />
-        <div className="h-64 bg-gray-800 rounded-xl animate-pulse" />
+        <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded w-64 animate-pulse" />
+        <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
       </div>
     );
   }
@@ -69,16 +69,16 @@ export default function ExperienceBookingDetailPage() {
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
+        <button onClick={() => router.back()} className="rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-white">Experience Booking #{b.id}</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Experience Booking #{b.id}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Created {b.createdAt ? new Date(b.createdAt).toLocaleString() : '—'}
           </p>
         </div>
-        <span className={cn('rounded-full px-3 py-1 text-xs font-medium', STATUS_COLORS[b.status] ?? 'bg-gray-700 text-gray-400')}>
+        <span className={cn('rounded-full px-3 py-1 text-xs font-medium', STATUS_COLORS[b.status] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400')}>
           {b.status}
         </span>
       </div>
@@ -115,7 +115,7 @@ export default function ExperienceBookingDetailPage() {
             <Row label="Discount" value={`-EGP ${Number(b.discountAmount).toLocaleString()}`} valueClass="text-red-400" />
           )}
           <Row label="Service fee" value={`EGP ${Number(b.serviceFee ?? 0).toLocaleString()}`} />
-          <div className="border-t border-gray-700 pt-2 mt-2">
+          <div className="border-t border-gray-300 dark:border-gray-700 pt-2 mt-2">
             <Row label="Total" value={`EGP ${Number(b.totalAmount ?? 0).toLocaleString()}`} bold />
           </div>
         </Card>
@@ -124,7 +124,7 @@ export default function ExperienceBookingDetailPage() {
         <Card title="Payment" icon={<CreditCard className="h-4 w-4 text-amber-400" />}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-gray-500">Status:</span>
-            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', PAYMENT_COLORS[b.paymentStatus] ?? 'bg-gray-700 text-gray-400')}>
+            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', PAYMENT_COLORS[b.paymentStatus] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400')}>
               {b.paymentStatus}
             </span>
           </div>
@@ -157,20 +157,20 @@ export default function ExperienceBookingDetailPage() {
 
       {/* Review */}
       {b.review && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
-          <h3 className="text-sm font-semibold text-white mb-3">Guest Review</h3>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Guest Review</h3>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-amber-400 font-bold">{b.review.rating ?? b.review.overallRating}/5</span>
-            <span className="text-xs text-gray-400">stars</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">stars</span>
           </div>
-          <p className="text-sm text-gray-300">{b.review.comment ?? 'No comment'}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">{b.review.comment ?? 'No comment'}</p>
         </div>
       )}
 
       {/* Admin Actions */}
       {b.paymentStatus !== 'paid' && b.paymentStatus !== 'refunded' && b.status !== 'cancelled' && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
-          <h3 className="text-sm font-semibold text-white mb-3">Admin Actions</h3>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Admin Actions</h3>
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => confirmPayment.mutate()}
@@ -189,10 +189,10 @@ export default function ExperienceBookingDetailPage() {
 
 function Card({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
       <div className="flex items-center gap-2 mb-3">
         {icon}
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
       </div>
       <div className="space-y-1.5 text-sm">{children}</div>
     </div>
@@ -202,8 +202,8 @@ function Card({ title, icon, children }: { title: string; icon: React.ReactNode;
 function Row({ label, value, valueClass, bold }: { label: string; value: string; valueClass?: string; bold?: boolean }) {
   return (
     <div className={cn('flex justify-between gap-2', bold ? 'font-medium' : '')}>
-      <span className="text-gray-400">{label}</span>
-      <span className={valueClass ?? 'text-white'}>{value}</span>
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
+      <span className={valueClass ?? 'text-gray-900 dark:text-white'}>{value}</span>
     </div>
   );
 }

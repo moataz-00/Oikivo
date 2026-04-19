@@ -47,36 +47,25 @@ export class PaymentsController {
 
   // ─── OPay ─────────────────────────────────────────────────────────────────
 
-  @Post('opay/card')
+  // FIX P1: Replaced raw card endpoint with OPay hosted checkout — card data never touches backend (PCI compliant)
+  @Post('opay/checkout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @ApiOperation({ summary: 'Non-3DS OPay card payment for a booking' })
-  opayCard(
+  @ApiOperation({ summary: 'Create OPay hosted checkout session (PCI compliant — no card data passes through backend)' })
+  opayCheckout(
     @CurrentUser() user: UserEntity,
     @Body()
     body: {
       bookingId: number;
       bookingType: 'stay' | 'experience';
-      cardHolderName: string;
-      cardNumber: string;
-      expiryMonth: string;
-      expiryYear: string;
-      cvv: string;
       returnUrl?: string;
     },
   ) {
-    return this.paymentsService.createOpayCardPayment(
+    return this.paymentsService.createOpayCheckout(
       user.id,
       body.bookingId,
       body.bookingType,
-      {
-        cardHolderName: body.cardHolderName,
-        cardNumber: body.cardNumber,
-        expiryMonth: body.expiryMonth,
-        expiryYear: body.expiryYear,
-        cvv: body.cvv,
-      },
       body.returnUrl ?? '',
     );
   }

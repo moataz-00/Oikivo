@@ -105,14 +105,32 @@ export class DisputesService {
 
   // ─── Admin methods ─────────────────────────────────────────────────────────
 
-  async getAllDisputes(status?: string): Promise<DisputeEntity[]> {
-    const where: any = {};
-    if (status) where.status = status;
-    return this.disputesRepo.find({
-      where,
-      relations: ['booking', 'booking.property', 'raisedBy'],
-      order: { createdAt: 'DESC' },
-    });
+  async getAllDisputes(
+    status?: string,
+    page = 1,
+    limit = 20,
+    search?: string,
+  ): Promise<{ items: DisputeEntity[]; total: number; totalPages: number; page: number }> {
+    const qb = this.disputesRepo
+      .createQueryBuilder('dispute')
+      .leftJoinAndSelect('dispute.booking', 'booking')
+      .leftJoinAndSelect('booking.property', 'property')
+      .leftJoinAndSelect('dispute.raisedBy', 'raisedBy')
+      .leftJoinAndSelect('dispute.assignedTo', 'assignedTo')
+      .orderBy('dispute.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (status) qb.andWhere('dispute.status = :status', { status });
+    if (search) {
+      qb.andWhere(
+        '(LOWER(dispute.title) LIKE LOWER(:s) OR LOWER(dispute.description) LIKE LOWER(:s))',
+        { s: `%${search}%` },
+      );
+    }
+
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, totalPages: Math.ceil(total / limit), page };
   }
 
   async resolveDispute(
@@ -139,6 +157,29 @@ export class DisputesService {
           { bookingId: dispute.bookingId, status: 'pending' },
           { status: 'available' },
         );
+      } else if (resolution === 'split') {
+        // FIX O2: Split — refund 50% to guest, release 50% of earnings to host
+        const booking = await manager.getRepository(BookingEntity).findOne({
+          where: { id: dispute.bookingId },
+        });
+        if (booking && booking.paymentStatus === 'paid') {
+          const splitRefund = parseFloat((Number(booking.totalAmount) / 2).toFixed(2));
+          await manager.update(BookingEntity, dispute.bookingId, {
+            refundAmount: splitRefund,
+            paymentStatus: 'partially_refunded' as any,
+          });
+        }
+        // Release earnings at 50% value to host
+        const earning = await manager.getRepository(EarningEntity).findOne({
+          where: { bookingId: dispute.bookingId },
+        });
+        if (earning) {
+          const halfAmount = parseFloat((Number(earning.amount) / 2).toFixed(2));
+          await manager.update(EarningEntity, earning.id, {
+            amount: halfAmount,
+            status: 'available',
+          });
+        }
       }
 
       // Only mark as resolved if financial action succeeded
@@ -157,6 +198,30 @@ export class DisputesService {
     const dispute = await this.disputesRepo.findOne({ where: { id } });
     if (!dispute) throw new NotFoundException('Dispute not found');
     await this.disputesRepo.update(id, { status });
+    return this.disputesRepo.findOne({ where: { id } });
+  }
+
+  // FIX AD2: Assign dispute to admin
+  async assignDispute(id: number, assignedToId: number | null): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({ where: { id } });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+    await this.disputesRepo.update(id, { assignedToId });
+    return this.disputesRepo.findOne({ where: { id }, relations: ['assignedTo'] });
+  }
+
+  // FIX AD2: Set dispute priority
+  async setDisputePriority(id: number, priority: 'low' | 'medium' | 'high' | 'critical'): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({ where: { id } });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+    await this.disputesRepo.update(id, { priority });
+    return this.disputesRepo.findOne({ where: { id } });
+  }
+
+  // FIX AD2: Set SLA deadline
+  async setDisputeSla(id: number, slaDeadline: string | null): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({ where: { id } });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+    await this.disputesRepo.update(id, { slaDeadline: slaDeadline ? new Date(slaDeadline) : null });
     return this.disputesRepo.findOne({ where: { id } });
   }
 

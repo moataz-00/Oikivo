@@ -12,7 +12,7 @@ export class PayoutEntity {
   @Column({ name: 'host_id', type: 'bigint', unsigned: true })
   hostId: number;
 
-  @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'host_id' })
   host: UserEntity;
 
@@ -36,6 +36,9 @@ export class PayoutEntity {
 
   @Column({ type: 'text', nullable: true })
   note: string | null;
+
+  @Column({ name: 'transfer_reference', type: 'varchar', length: 255, nullable: true, comment: 'Bank transfer / InstaPay / OPay transaction reference' })
+  transferReference: string | null;
 
   @Column({ name: 'processed_at', type: 'datetime', nullable: true })
   processedAt: Date | null;

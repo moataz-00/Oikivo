@@ -151,7 +151,7 @@ export class PropertiesController {
   @Delete(':id/permanent')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Permanently delete a property (irreversible)' })
+  @ApiOperation({ summary: 'Permanently delete an archived property (irreversible)' })
   permanentDelete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
     return this.propertiesService.permanentDelete(id, user.id);
   }

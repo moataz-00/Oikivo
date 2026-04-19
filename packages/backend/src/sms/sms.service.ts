@@ -47,12 +47,14 @@ export class SmsService {
     }
 
     const mobile = this.normalisePhone(to);
-    const params = new URLSearchParams({ username, password, mobile, message, sender });
-    const url    = `${baseUrl.replace(/\/$/, '')}?${params.toString()}`;
+    // FIX O5: Send credentials in POST body instead of URL query parameters
+    // to prevent them from appearing in server logs and error reporting
+    const formBody = new URLSearchParams({ username, password, mobile, message, sender }).toString();
+    const url = baseUrl.replace(/\/$/, '');
 
     let responseBody = '';
     try {
-      responseBody = await this.httpGet(url);
+      responseBody = await this.httpPost(url, formBody);
     } catch (err: any) {
       this.logger.error(`WhySMS transport error for ${mobile}: ${err.message}`);
       throw err;
@@ -84,10 +86,21 @@ export class SmsService {
     return digits; // leave as-is for non-Egyptian or already-normalised numbers
   }
 
-  private httpGet(url: string): Promise<string> {
+  private httpPost(url: string, body: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const transport = url.startsWith('https') ? https : http;
-      const req = transport.get(url, (res) => {
+      const parsedUrl = new URL(url);
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || (url.startsWith('https') ? 443 : 80),
+        path: parsedUrl.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      };
+      const req = transport.request(options, (res) => {
         let data = '';
         res.on('data', (chunk) => { data += chunk; });
         res.on('end', () => resolve(data));
@@ -96,6 +109,8 @@ export class SmsService {
       req.setTimeout(10_000, () => {
         req.destroy(new Error('WhySMS request timed out after 10 s'));
       });
+      req.write(body);
+      req.end();
     });
   }
 }

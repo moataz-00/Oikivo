@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,7 +47,14 @@ export default function SettingsPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [saveAllLoading, setSaveAllLoading] = useState(false);
+  const [confirmSaveAll, setConfirmSaveAll] = useState(false);
   const [example, setExample] = useState(1000);
+
+  const feeWarning = FEE_KEYS.find((f) => {
+    const n = parseFloat(values[f.key] ?? '');
+    return n === 0 || n === 100;
+  });
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['admin-settings'],
@@ -82,33 +89,33 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-white">Platform Settings</h1>
-        <p className="text-sm text-gray-400 mt-1">Configure service fees for property and consultation bookings</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Platform Settings</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure service fees for property and consultation bookings</p>
       </div>
 
       {/* ─── Fee Configuration ─────────────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-800 flex items-center gap-2">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
           <Percent className="h-4 w-4 text-indigo-400" />
-          <h2 className="font-semibold text-white">Service Fee Configuration</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white">Service Fee Configuration</h2>
         </div>
 
-        <div className="divide-y divide-gray-800">
+        <div className="divide-y divide-gray-200 dark:divide-gray-800">
           {isLoading
             ? [...Array(4)].map((_, i) => (
                 <div key={i} className="px-5 py-4 flex items-center justify-between gap-4">
                   <div className="space-y-1.5 flex-1">
-                    <div className="h-4 bg-gray-800 rounded w-52 animate-pulse" />
-                    <div className="h-3 bg-gray-800 rounded w-80 animate-pulse" />
+                    <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-52 animate-pulse" />
+                    <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-80 animate-pulse" />
                   </div>
-                  <div className="h-9 bg-gray-800 rounded w-32 animate-pulse" />
+                  <div className="h-9 bg-gray-100 dark:bg-gray-800 rounded w-32 animate-pulse" />
                 </div>
               ))
             : FEE_KEYS.map((fee) => (
                 <div key={fee.key} className="px-5 py-4 flex flex-wrap items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <p className={cn('font-medium', fee.color)}>{fee.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{fee.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{fee.description}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="relative">
@@ -125,13 +132,13 @@ export default function SettingsPage() {
                           setErrors((prev) => ({ ...prev, [fee.key]: err ?? '' }));
                         }}
                         className={cn(
-                          'w-24 rounded-lg border bg-gray-800 pl-3 pr-7 py-2 text-sm text-white text-right focus:outline-none focus:ring-2',
+                          'w-24 rounded-lg border bg-gray-100 dark:bg-gray-800 pl-3 pr-7 py-2 text-sm text-gray-900 dark:text-white text-right focus:outline-none focus:ring-2',
                           errors[fee.key]
                             ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-700 focus:ring-indigo-500',
+                            : 'border-gray-300 dark:border-gray-700 focus:ring-indigo-500',
                         )}
                       />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm pointer-events-none">
                         %
                       </span>
                     </div>
@@ -166,6 +173,70 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* ─── 0 / 100 % edge-case warning ─────────────────────────────── */}
+      {feeWarning && (() => {
+        const n = parseFloat(values[feeWarning.key] ?? '');
+        return (
+          <div className="rounded-xl border border-amber-600/40 bg-amber-900/15 px-5 py-3 flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-300">
+              <strong>{feeWarning.label}</strong> is set to{' '}
+              <strong>{n}%</strong>.{' '}
+              {n === 0 ? 'Setting a fee to 0% disables it entirely — guests or hosts will not be charged.' : 'Setting a fee to 100% would capture all revenue from guests or pay nothing to the host.'}{' '}
+              Make sure this is intentional.
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* ─── Save All Fees ───────────────────────────────────────────── */}
+      <div className="flex justify-end">
+        {confirmSaveAll ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-amber-400">Overwrite all 4 fee settings?</span>
+            <button
+              onClick={() => setConfirmSaveAll(false)}
+              className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                setConfirmSaveAll(false);
+                const errs: Record<string, string> = {};
+                FEE_KEYS.forEach((f) => {
+                  const err = validatePercent(values[f.key] ?? '');
+                  if (err) errs[f.key] = err;
+                });
+                if (Object.keys(errs).length) { setErrors((p) => ({ ...p, ...errs })); return; }
+                setSaveAllLoading(true);
+                try {
+                  await Promise.all(FEE_KEYS.map((f) => update.mutateAsync({ key: f.key, value: values[f.key] ?? '' })));
+                  toast.success('All fees saved');
+                } catch {
+                  toast.error('Failed to save some fees');
+                } finally {
+                  setSaveAllLoading(false);
+                }
+              }}
+              disabled={saveAllLoading}
+              className="flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+            >
+              <Save className="h-4 w-4" />
+              {saveAllLoading ? 'Saving…' : 'Confirm Save All'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmSaveAll(true)}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            Save All Fees
+          </button>
+        )}
+      </div>
+
       {/* ─── Info banner ───────────────────────────────────────────────── */}
       <div className="rounded-xl border border-amber-800/40 bg-amber-900/10 px-5 py-3 flex items-start gap-3">
         <Info className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
@@ -176,14 +247,14 @@ export default function SettingsPage() {
       </div>
 
       {/* ─── Fee Preview Calculator ─────────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 p-5 space-y-4">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Calculator className="h-4 w-4 text-indigo-400" />
-          <h2 className="font-semibold text-white">Fee Preview Calculator</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white">Fee Preview Calculator</h2>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
             Booking subtotal (EGP)
           </label>
           <input
@@ -192,18 +263,18 @@ export default function SettingsPage() {
             step="50"
             value={example}
             onChange={(e) => setExample(Number(e.target.value))}
-            className="w-40 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-40 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
           {/* Property */}
-          <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-4 space-y-3">
+          <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-4 space-y-3">
             <p className="text-xs font-semibold text-sky-400 uppercase tracking-wide">
               Property Booking
             </p>
             <div className="text-sm space-y-1.5">
-              <Row label="Subtotal" value={`EGP ${example.toLocaleString()}`} valueClass="text-white" />
+              <Row label="Subtotal" value={`EGP ${example.toLocaleString()}`} valueClass="text-gray-900 dark:text-white" />
               <Row
                 label={`Guest service fee (+${pGuestFee}%)`}
                 value={`+EGP ${(example * pGuestFee / 100).toFixed(0)}`}
@@ -214,7 +285,7 @@ export default function SettingsPage() {
                 value={`−EGP ${(example * pHostFee / 100).toFixed(0)}`}
                 valueClass="text-red-400"
               />
-              <div className="border-t border-gray-600 pt-2 space-y-1.5">
+              <div className="border-t border-gray-300 dark:border-gray-600 pt-2 space-y-1.5">
                 <Row label="Guest pays total" value={`EGP ${(example * (1 + pGuestFee / 100)).toFixed(0)}`} bold />
                 <Row label="Host receives" value={`EGP ${(example * (1 - pHostFee / 100)).toFixed(0)}`} valueClass="text-emerald-400" bold />
                 <Row label="Platform earns" value={`EGP ${(example * (pGuestFee + pHostFee) / 100).toFixed(0)}`} valueClass="text-violet-400" bold />
@@ -223,12 +294,12 @@ export default function SettingsPage() {
           </div>
 
           {/* Consultation */}
-          <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-4 space-y-3">
+          <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-4 space-y-3">
             <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">
               Consultation Booking
             </p>
             <div className="text-sm space-y-1.5">
-              <Row label="Consultation price" value={`EGP ${example.toLocaleString()}`} valueClass="text-white" />
+              <Row label="Consultation price" value={`EGP ${example.toLocaleString()}`} valueClass="text-gray-900 dark:text-white" />
               <Row
                 label={`Client service fee (+${cUserFee}%)`}
                 value={`+EGP ${(example * cUserFee / 100).toFixed(0)}`}
@@ -239,7 +310,7 @@ export default function SettingsPage() {
                 value={`−EGP ${(example * cConsultFee / 100).toFixed(0)}`}
                 valueClass="text-red-400"
               />
-              <div className="border-t border-gray-600 pt-2 space-y-1.5">
+              <div className="border-t border-gray-300 dark:border-gray-600 pt-2 space-y-1.5">
                 <Row label="Client pays total" value={`EGP ${(example * (1 + cUserFee / 100)).toFixed(0)}`} bold />
                 <Row label="Consultant receives" value={`EGP ${(example * (1 - cConsultFee / 100)).toFixed(0)}`} valueClass="text-emerald-400" bold />
                 <Row label="Platform earns" value={`EGP ${(example * (cUserFee + cConsultFee) / 100).toFixed(0)}`} valueClass="text-violet-400" bold />
@@ -250,21 +321,21 @@ export default function SettingsPage() {
       </div>
 
       {/* ─── Gateway Fees Reference ─────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 p-5 space-y-3">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-3">
         <div className="flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-indigo-400" />
-          <h2 className="font-semibold text-white">Payment Gateway Fees (Reference)</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white">Payment Gateway Fees (Reference)</h2>
         </div>
-        <p className="text-xs text-gray-400">These are fixed costs charged by payment providers — not configurable.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">These are fixed costs charged by payment providers — not configurable.</p>
         <div className="grid sm:grid-cols-2 gap-4">
-          <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-4 space-y-2">
+          <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-4 space-y-2">
             <p className="text-xs font-semibold text-sky-400 uppercase tracking-wide">OPay (Card Payments)</p>
             <div className="text-sm space-y-1">
               <Row label="Pay-in fee" value="2.25% + EGP 2" valueClass="text-amber-400" />
               <Row label="Refund fee" value="Free" valueClass="text-emerald-400" />
             </div>
           </div>
-          <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-4 space-y-2">
+          <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-4 space-y-2">
             <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">InstaPay</p>
             <div className="text-sm space-y-1">
               <Row label="Pay-in fee" value="Free" valueClass="text-emerald-400" />
@@ -296,8 +367,8 @@ function Row({
 }) {
   return (
     <div className={cn('flex justify-between gap-2', bold ? 'font-medium' : '')}>
-      <span className="text-gray-400">{label}</span>
-      <span className={valueClass ?? 'text-white'}>{value}</span>
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
+      <span className={valueClass ?? 'text-gray-900 dark:text-white'}>{value}</span>
     </div>
   );
 }
@@ -308,23 +379,23 @@ function MaintenanceModeSection({ settings, update }: { settings: any[]; update:
   const [msg, setMsg] = useState(currentMsg || 'Platform is under maintenance. Please try again later.');
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-800 flex items-center gap-2">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-amber-400" />
-        <h2 className="font-semibold text-white">Maintenance Mode</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">Maintenance Mode</h2>
       </div>
       <div className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-white">Scheduled Maintenance</p>
-            <p className="text-xs text-gray-400 mt-0.5">When enabled, the platform shows a maintenance page to users</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Scheduled Maintenance</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">When enabled, the platform shows a maintenance page to users</p>
           </div>
           <button
             onClick={() => update.mutate({ key: 'maintenance_mode', value: isEnabled ? 'false' : 'true' })}
             disabled={update.isPending}
             className={cn(
               'relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ease-in-out cursor-pointer disabled:opacity-50',
-              isEnabled ? 'bg-amber-500' : 'bg-gray-700',
+              isEnabled ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-700',
             )}
           >
             <span className={cn(
@@ -345,7 +416,7 @@ function MaintenanceModeSection({ settings, update }: { settings: any[]; update:
             <input
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
-              className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
               onClick={() => update.mutate({ key: 'maintenance_message', value: msg })}
@@ -387,15 +458,15 @@ function PaymentGatewaySection({ settings, update }: { settings: any[]; update: 
   const [editValues, setEditValues] = useState<Record<string, string>>({});
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-800 flex items-center gap-2">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
         <CreditCard className="h-4 w-4 text-emerald-400" />
-        <h2 className="font-semibold text-white">Payment Gateway Configuration</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">Payment Gateway Configuration</h2>
       </div>
-      <div className="divide-y divide-gray-800">
+      <div className="divide-y divide-gray-200 dark:divide-gray-800">
         {gateways.map((gw) => (
           <div key={gw.name} className="p-5 space-y-3">
-            <p className="text-sm font-medium text-white">{gw.icon} {gw.name}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{gw.icon} {gw.name}</p>
             <div className="grid sm:grid-cols-2 gap-3">
               {gw.fields.map((f) => {
                 const current = getValue(f.key);
@@ -408,7 +479,7 @@ function PaymentGatewaySection({ settings, update }: { settings: any[]; update: 
                         value={editVal ?? current}
                         onChange={(e) => setEditValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
                         placeholder={`Enter ${f.label.toLowerCase()}`}
-                        className="flex-1 rounded border border-gray-700 bg-gray-800 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="flex-1 rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-2.5 py-1.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
                       {editVal !== undefined && editVal !== current && (
                         <button
@@ -430,7 +501,7 @@ function PaymentGatewaySection({ settings, update }: { settings: any[]; update: 
           </div>
         ))}
       </div>
-      <div className="px-5 py-3 border-t border-gray-800 bg-gray-950/30">
+      <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/30">
         <p className="text-xs text-gray-500 flex items-center gap-1.5">
           <Shield className="h-3.5 w-3.5" />
           Sensitive keys (secret keys, API secrets) should be configured via environment variables, not here.

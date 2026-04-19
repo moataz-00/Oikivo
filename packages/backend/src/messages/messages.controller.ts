@@ -21,6 +21,7 @@ import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { MessagesService } from './messages.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -85,6 +86,7 @@ export class MessagesController {
 
   /** Send a text message to an existing conversation */
   @Post('conversations/:id/messages')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @ApiOperation({ summary: 'Send a text message to an existing conversation' })
   sendToConversation(
     @Param('id', ParseIntPipe) conversationId: number,
@@ -148,6 +150,7 @@ export class MessagesController {
 
   /** Start a new conversation (guest → host) and send first message */
   @Post('conversations')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @ApiOperation({ summary: 'Start a new conversation or send to existing' })
   startOrSend(@CurrentUser() user: UserEntity, @Body() dto: SendMessageDto) {
     return this.messagesService.sendMessage(user.id, dto);
@@ -155,6 +158,7 @@ export class MessagesController {
 
   /** Legacy: send a message (kept for backward compat) */
   @Post()
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @ApiOperation({ summary: 'Send a message (legacy)' })
   sendMessage(@CurrentUser() user: UserEntity, @Body() dto: SendMessageDto) {
     return this.messagesService.sendMessage(user.id, dto);

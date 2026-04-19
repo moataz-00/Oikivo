@@ -1,8 +1,10 @@
-'use client';
+﻿'use client';
 
+import Link from 'next/link';
+import { useLocale } from 'next-intl';
 import { FadeIn } from '@/components/ui/Motion';
 import {
-  Calendar, XCircle, AlertTriangle, Clock, HelpCircle, Shield,
+  Calendar, XCircle, AlertTriangle, Clock, HelpCircle, Shield, ArrowRight,
 } from 'lucide-react';
 
 const sections = [
@@ -15,6 +17,7 @@ const sections = [
 ];
 
 export default function CancellationPage() {
+  const locale = useLocale();
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}
@@ -28,7 +31,7 @@ export default function CancellationPage() {
               <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Support</span>
               <h1 className="font-display font-bold text-4xl text-white mb-3">Cancellation Policy</h1>
               <p className="text-indigo-100 text-sm max-w-xl leading-relaxed">
-                How cancellations, refunds, and exceptions are handled on Journey Stay.
+                How cancellations, refunds, and exceptions are handled on Oikivo.
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
                 {['3 policy tiers', 'Flexible · Moderate · Strict', '5–10 day refunds'].map((chip) => (
@@ -88,6 +91,13 @@ export default function CancellationPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">2. Guest Cancellations</h2>
                 </div>
                 <p className="mb-4">Guests can cancel from the Trips page. Refund eligibility depends on timing and the listing&apos;s policy tier:</p>
+                <Link
+                  href={`/${locale}/trips`}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors mb-4"
+                >
+                  Go to My Trips to cancel a booking
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
                     {
@@ -170,7 +180,7 @@ export default function CancellationPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">5. Special Circumstances</h2>
                 </div>
                 <p>
-                  In certain verified cases — major travel disruptions, government travel restrictions, or serious safety issues — Journey Stay may apply special handling beyond the standard policy. Supporting documentation is required to qualify.
+                  In certain verified cases — major travel disruptions, government travel restrictions, or serious safety issues — Oikivo may apply special handling beyond the standard policy. Supporting documentation is required to qualify.
                 </p>
               </section>
 
@@ -181,9 +191,25 @@ export default function CancellationPage() {
                   </span>
                   <h2 className="font-display font-bold text-xl text-neutral-900">6. Need Help?</h2>
                 </div>
-                <p>
+                <p className="mb-4">
                   For cancellation support, visit the Help Center or Contact Us page. Include your booking ID, the timeline of events, and any supporting evidence for faster resolution.
                 </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href={`/${locale}/help`}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+                  >
+                    Help Center
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                  <Link
+                    href={`/${locale}/contact`}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+                  >
+                    Contact Us
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </section>
 
             </div>

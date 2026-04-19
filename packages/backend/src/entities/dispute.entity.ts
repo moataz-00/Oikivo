@@ -24,14 +24,14 @@ export class DisputeEntity {
   @Column({ name: 'booking_id', type: 'bigint', unsigned: true })
   bookingId: number;
 
-  @ManyToOne(() => BookingEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => BookingEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'booking_id' })
   booking: BookingEntity;
 
   @Column({ name: 'raised_by_id', type: 'bigint', unsigned: true })
   raisedById: number;
 
-  @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'raised_by_id' })
   raisedBy: UserEntity;
 
@@ -64,6 +64,24 @@ export class DisputeEntity {
 
   @Column({ name: 'admin_note', type: 'text', nullable: true })
   adminNote: string | null;
+
+  // FIX AD2: Dispute assignment & workflow
+  @Column({ name: 'assigned_to_id', type: 'bigint', unsigned: true, nullable: true })
+  assignedToId: number | null;
+
+  @ManyToOne(() => UserEntity, { onDelete: 'SET NULL', eager: false })
+  @JoinColumn({ name: 'assigned_to_id' })
+  assignedTo: UserEntity;
+
+  @Column({
+    type: 'enum',
+    enum: ['low', 'medium', 'high', 'critical'],
+    default: 'medium',
+  })
+  priority: 'low' | 'medium' | 'high' | 'critical';
+
+  @Column({ name: 'sla_deadline', type: 'datetime', nullable: true })
+  slaDeadline: Date | null;
 
   @Column({ name: 'resolved_at', type: 'datetime', nullable: true })
   resolvedAt: Date | null;

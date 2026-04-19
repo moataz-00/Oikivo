@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
@@ -36,10 +36,10 @@ export default function PaymentTermsPage() {
               <span className="inline-block text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">Legal</span>
               <h1 className="font-display font-bold text-4xl text-white mb-3">Payments Terms of Service</h1>
               <p className="text-neutral-400 text-sm max-w-xl leading-relaxed">
-                These terms govern all payment transactions on Journey Stay, including booking charges, host payouts, and refunds.
+                These terms govern all payment transactions on Oikivo, including booking charges, host payouts, and refunds.
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
-                {['EGP base currency', '14% guest service fee', '1-day host payout', 'Last updated Mar 2026'].map((chip) => (
+                {['EGP base currency', '5% guest service fee', '5% host commission', '1-day host payout', 'Last updated Apr 2026'].map((chip) => (
                   <span key={chip} className="rounded-full bg-white/10 px-3 py-1 text-xs text-neutral-300">{chip}</span>
                 ))}
               </div>
@@ -84,7 +84,7 @@ export default function PaymentTermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">1. Payment Overview</h2>
                 </div>
                 <p>
-                  Journey Stay operates as a payment intermediary between guests and hosts. When you make a booking, your payment is collected by Journey Stay and held securely until the stay begins, at which point funds are released to the host minus applicable service fees.
+                  Oikivo operates as a payment intermediary between guests and hosts. When you make a booking, your payment is collected by Oikivo and held securely until the stay begins, at which point funds are released to the host minus applicable service fees.
                 </p>
               </section>
 
@@ -95,7 +95,7 @@ export default function PaymentTermsPage() {
                   </span>
                   <h2 className="font-display font-bold text-xl text-neutral-900">2. Payment Methods</h2>
                 </div>
-                <p className="mb-4">Journey Stay supports the following payment methods:</p>
+                <p className="mb-4">Oikivo supports the following payment methods:</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   {[
                     { name: 'Visa / Mastercard / Meeza', note: 'Processed securely via Stripe', emoji: '💳' },
@@ -112,7 +112,7 @@ export default function PaymentTermsPage() {
                     </div>
                   ))}
                 </div>
-                <p>By submitting a payment, you authorize Journey Stay to charge the full booking amount using your selected payment method.</p>
+                <p>By submitting a payment, you authorize Oikivo to charge the full booking amount using your selected payment method.</p>
               </section>
 
               <section id="fees" className="scroll-mt-28">
@@ -127,7 +127,8 @@ export default function PaymentTermsPage() {
                   {[
                     { label: 'Nightly rate', desc: 'Set by the host' },
                     { label: 'Cleaning fee', desc: 'Set by the host (if applicable)' },
-                    { label: 'Guest service fee', desc: 'Charged by Journey Stay (typically 14% of subtotal)' },
+                    { label: 'Guest service fee', desc: 'Charged by Oikivo (5% of subtotal, added to your total)' },
+                    { label: 'Host commission', desc: 'Deducted from host payout by Oikivo (5% of subtotal)' },
                     { label: 'Taxes', desc: 'Applicable government taxes based on property location' },
                   ].map((fee) => (
                     <li key={fee.label} className="flex items-start gap-2">
@@ -149,7 +150,7 @@ export default function PaymentTermsPage() {
                   <p className="text-sm font-semibold text-violet-900">Payouts become available 1 day after guest checkout.</p>
                 </div>
                 <p className="mb-3">
-                  Hosts may request payouts via InstaPay, bank transfer, or cash. Journey Stay deducts a platform fee from each completed booking before releasing funds.
+                  Hosts may request payouts via InstaPay, bank transfer, or cash. Oikivo deducts a platform fee from each completed booking before releasing funds.
                 </p>
                 <p>All payout requests are reviewed before processing. Typical processing time is 1–5 business days depending on the method selected.</p>
               </section>
@@ -218,11 +219,11 @@ export default function PaymentTermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">6. Payment Disputes</h2>
                 </div>
                 <p className="mb-3">
-                  If you believe a charge is incorrect or unauthorized, open a dispute through Journey Stay within 30 days of the charge. Our resolution team will investigate and respond within 5 business days.
+                  If you believe a charge is incorrect or unauthorized, open a dispute through Oikivo within 30 days of the charge. Our resolution team will investigate and respond within 5 business days.
                 </p>
                 <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
                   <p className="text-sm text-amber-800">
-                    <strong>Important:</strong> Do not initiate chargebacks with your bank before contacting Journey Stay support — doing so may result in account suspension.
+                    <strong>Important:</strong> Do not initiate chargebacks with your bank before contacting Oikivo support — doing so may result in account suspension.
                   </p>
                 </div>
               </section>
@@ -235,7 +236,7 @@ export default function PaymentTermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">7. Currency</h2>
                 </div>
                 <p>
-                  All transactions on Journey Stay are processed in Egyptian Pounds (EGP) by default. Hosts set prices in EGP. Currency conversion, if applicable, is handled by your payment provider — Journey Stay is not responsible for exchange rate fluctuations.
+                  All transactions on Oikivo are processed in Egyptian Pounds (EGP) by default. Hosts set prices in EGP. Currency conversion, if applicable, is handled by your payment provider — Oikivo is not responsible for exchange rate fluctuations.
                 </p>
               </section>
 
@@ -247,7 +248,7 @@ export default function PaymentTermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">8. Taxes</h2>
                 </div>
                 <p>
-                  Guests may be charged applicable taxes (e.g., VAT, tourism levies) based on property location. Hosts are responsible for reporting and remitting taxes on rental income as required by local law. Journey Stay does not provide tax advice.
+                  Guests may be charged applicable taxes (e.g., VAT, tourism levies) based on property location. Hosts are responsible for reporting and remitting taxes on rental income as required by local law. Oikivo does not provide tax advice.
                 </p>
               </section>
 
@@ -259,11 +260,11 @@ export default function PaymentTermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">9. Security</h2>
                 </div>
                 <p className="mb-3">
-                  Journey Stay employs industry-standard security measures including encryption of payment data in transit and at rest.
+                  Oikivo employs industry-standard security measures including encryption of payment data in transit and at rest.
                 </p>
                 <div className="rounded-xl bg-neutral-50 border border-neutral-200 px-4 py-3">
                   <p className="text-sm text-neutral-700">
-                    <strong>Reminder:</strong> Never share payment credentials with anyone claiming to represent Journey Stay. We will never ask for card details via message or email.
+                    <strong>Reminder:</strong> Never share payment credentials with anyone claiming to represent Oikivo. We will never ask for card details via message or email.
                   </p>
                 </div>
               </section>

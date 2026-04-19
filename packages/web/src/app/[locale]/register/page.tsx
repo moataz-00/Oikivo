@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -43,7 +43,7 @@ export default function RegisterPage() {
     mutationFn: authApi.register,
     onSuccess: (data) => {
       login(data.user, data.accessToken, data.refreshToken);
-      toast.success('Welcome to Journey Stay!');
+      toast.success('Welcome to Oikivo!');
       router.push(`/${locale}`);
     },
     onError: () => toast.error(t('registerError')),
@@ -67,7 +67,7 @@ export default function RegisterPage() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
             <Home className="h-5 w-5 text-white" strokeWidth={2.5} />
           </div>
-          <span className="text-2xl font-bold text-white tracking-tight">Journey Stay</span>
+          <span className="text-2xl font-bold text-white tracking-tight">Oikivo</span>
         </Link>
 
         {/* Content */}
@@ -106,7 +106,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="relative z-10 text-sm text-indigo-300">
-          © {new Date().getFullYear()} Journey Stay — All rights reserved
+          © {new Date().getFullYear()} Oikivo — All rights reserved
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default function RegisterPage() {
             style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
             <Home className="h-5 w-5 text-white" strokeWidth={2.5} />
           </div>
-          <span className="text-xl font-bold" style={{ color: '#4f46e5' }}>Journey Stay</span>
+          <span className="text-xl font-bold" style={{ color: '#4f46e5' }}>Oikivo</span>
         </Link>
 
         <div className="w-full max-w-sm">
@@ -157,7 +157,7 @@ export default function RegisterPage() {
               error={errors.confirmPassword?.message} {...register('confirmPassword')} />
 
             <p className="text-xs text-neutral-500 leading-relaxed">
-              By continuing, you agree to Journey Stay&apos;s{' '}
+              By continuing, you agree to Oikivo&apos;s{' '}
               <Link href={`/${locale}/terms`} className="text-indigo-600 hover:text-indigo-800 underline">Terms of Service</Link>
               {', '}
               <Link href={`/${locale}/payment-terms`} className="text-indigo-600 hover:text-indigo-800 underline">Payments Terms</Link>

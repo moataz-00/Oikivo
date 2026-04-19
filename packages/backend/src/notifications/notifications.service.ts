@@ -98,16 +98,26 @@ export class NotificationsService {
     return { count };
   }
 
-  /** Daily cleanup: delete notifications older than 30 days */
+  /** Daily cleanup: delete non-financial notifications older than 30 days.
+   *  FIX O4: Financial notifications are preserved indefinitely for audit trail. */
   @Cron('0 3 * * *') // Runs at 03:00 AM every day
   async cleanupOldNotifications(): Promise<void> {
+    const financialTypes = [
+      'payment_received', 'payment_confirmed', 'refund_initiated',
+      'payout_processed', 'payout_approved', 'payout_rejected',
+      'instapay_refund_pending', 'earning_available', 'charge_disputed',
+    ];
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
-    const result = await this.notificationsRepo.delete({
-      createdAt: LessThan(cutoff),
-    });
+    const result = await this.notificationsRepo
+      .createQueryBuilder()
+      .delete()
+      .from(NotificationEntity)
+      .where('created_at < :cutoff', { cutoff })
+      .andWhere('type NOT IN (:...financialTypes)', { financialTypes })
+      .execute();
     if ((result.affected ?? 0) > 0) {
-      this.logger.log(`Deleted ${result.affected} notifications older than 30 days`);
+      this.logger.log(`Deleted ${result.affected} non-financial notifications older than 30 days`);
     }
   }
 }

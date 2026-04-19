@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -53,14 +53,15 @@ function DualBarChart({
 }) {
   const maxRev = Math.max(...data.map((d) => d.revenue), 1);
   const maxBook = Math.max(...data.map((d) => d.bookings), 1);
+  const t = useTranslations('hosting');
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-neutral-900">Monthly Performance (12 months)</h3>
         <div className="flex items-center gap-4 text-xs text-neutral-500">
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-indigo-600 inline-block" /> Revenue</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 inline-block" /> Bookings</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-indigo-600 inline-block" /> {t('revenue')}</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 inline-block" /> {t('bookings')}</span>
         </div>
       </div>
       <div className="flex items-end gap-1.5 h-40 mt-2">
@@ -102,6 +103,7 @@ function StatusBreakdown({
   byStatus: Record<string, number>;
   total: number;
 }) {
+  const t = useTranslations('hosting');
   const statuses = [
     { key: 'confirmed', label: 'Confirmed', color: 'bg-emerald-500', text: 'text-emerald-700' },
     { key: 'completed', label: 'Completed', color: 'bg-indigo-600', text: 'text-neutral-700' },
@@ -112,7 +114,7 @@ function StatusBreakdown({
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-      <h3 className="font-semibold text-neutral-900 mb-4">Booking Status</h3>
+      <h3 className="font-semibold text-neutral-900 mb-4">{t('bookingStatus')}</h3>
       {total === 0 ? (
         <p className="text-sm text-neutral-400 py-6 text-center">No bookings yet</p>
       ) : (
@@ -162,6 +164,7 @@ function RevenueBreakdown({
   cleaning: number;
   total: number;
 }) {
+  const t = useTranslations('hosting');
   const items = [
     { label: 'Base rent', amount: base, color: 'bg-indigo-600' },
     { label: 'Cleaning fees', amount: cleaning, color: 'bg-neutral-500' },
@@ -169,7 +172,7 @@ function RevenueBreakdown({
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-      <h3 className="font-semibold text-neutral-900 mb-4">Revenue Breakdown</h3>
+      <h3 className="font-semibold text-neutral-900 mb-4">{t('revenueBreakdown')}</h3>
       {total === 0 ? (
         <p className="text-sm text-neutral-400 py-6 text-center">No revenue yet</p>
       ) : (
@@ -214,6 +217,7 @@ export default function HostAnalyticsPage() {
   const locale = useLocale();
   const router = useRouter();
   const { isLoggedIn, isHost, hasHydrated } = useAuth();
+  const t = useTranslations('hosting');
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -244,8 +248,8 @@ export default function HostAnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Analytics</h1>
-          <p className="text-sm text-neutral-500 mt-1">Your hosting performance at a glance</p>
+          <h1 className="text-2xl font-semibold text-neutral-900">{t('analyticsTitle')}</h1>
+          <p className="text-sm text-neutral-500 mt-1">{t('analyticsDesc')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link

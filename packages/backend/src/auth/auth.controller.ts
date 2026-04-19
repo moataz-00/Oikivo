@@ -47,7 +47,7 @@ export class AuthController {
     const isProd = this.configService.get('NODE_ENV') === 'production';
     const base = { httpOnly: true, sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax', secure: isProd, path: '/' };
     res.cookie('access_token',  accessToken,  { ...base, maxAge: 60 * 60 * 1000 });          // 1 h
-    res.cookie('refresh_token', refreshToken, { ...base, maxAge: 30 * 24 * 60 * 60 * 1000 }); // 30 d
+    res.cookie('refresh_token', refreshToken, { ...base, maxAge: 30 * 24 * 60 * 60 * 1000, path: '/api/auth/refresh' }); // 30 d — scoped to refresh endpoint
   }
 
   @Post('register')
@@ -55,15 +55,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email already in use' })
-  async register(
-    @Body() dto: RegisterDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.authService.register(dto);
-    if (result.accessToken && result.refreshToken) {
-      this.setAuthCookies(res, result.accessToken, result.refreshToken);
-    }
-    return result;
+  async register(@Body() dto: RegisterDto) {
+    // AU2: No tokens returned — user must verify email first, then login
+    return this.authService.register(dto);
   }
 
   @Post('login')
@@ -85,10 +79,11 @@ export class AuthController {
 
   @Post('admin-logout')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Clear admin httpOnly cookie session' })
   adminLogout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('access_token',  { path: '/', httpOnly: true });
-    res.clearCookie('refresh_token', { path: '/', httpOnly: true });
+    res.clearCookie('refresh_token', { path: '/api/auth/refresh', httpOnly: true });
     return { message: 'Logged out' };
   }
 
@@ -112,7 +107,8 @@ export class AuthController {
     // Verify signature before extracting sub — prevents unsigned token forgery
     let decoded: { sub: number };
     try {
-      const jwtRefreshSecret = this.configService.get('JWT_REFRESH_SECRET', 'sakan-refresh-secret');
+      const jwtRefreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
+      if (!jwtRefreshSecret) throw new UnauthorizedException('Server misconfiguration: JWT_REFRESH_SECRET not set');
       decoded = await this.jwtService.verifyAsync(refreshToken, { secret: jwtRefreshSecret });
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');

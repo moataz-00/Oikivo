@@ -9,6 +9,8 @@ import {
   IsInt,
   IsPositive,
   MaxLength,
+  ArrayMaxSize,
+  Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -85,6 +87,8 @@ export class CreateReviewDto {
   @ApiProperty({ required: false, type: [String], example: ['https://cdn.example.com/review1.jpg'] })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(5, { message: 'Reviews can have a maximum of 5 photos' })
   @IsUrl({}, { each: true })
+  @Matches(/\.(jpg|jpeg|png|webp)([?#].*)?$/i, { each: true, message: 'Only jpg, jpeg, png, and webp image URLs are allowed' })
   photos?: string[];
 }

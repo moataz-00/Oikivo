@@ -19,7 +19,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         ExtractJwt.fromAuthHeaderAsBearerToken(),
         (req: Request) => (req?.cookies as Record<string, string>)?.access_token ?? null,
       ]),
-      secretOrKey: config.get('JWT_SECRET', 'sakan-secret'),
+      secretOrKey: (() => {
+        const secret = config.get<string>('JWT_SECRET');
+        if (!secret) throw new Error('JWT_SECRET environment variable is required');
+        return secret;
+      })(),
     });
   }
 

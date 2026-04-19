@@ -26,10 +26,11 @@ import { UserSessionEntity } from '../entities/user-session.entity';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET', 'sakan-secret'),
-        signOptions: { expiresIn: '30d' },
-      }),
+      useFactory: (config: ConfigService) => {
+        const secret = config.get<string>('JWT_SECRET');
+        if (!secret) throw new Error('JWT_SECRET environment variable is required');
+        return { secret, signOptions: { expiresIn: '1h' } };
+      },
       inject: [ConfigService],
     }),
   ],

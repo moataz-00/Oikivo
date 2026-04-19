@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useLocale } from 'next-intl';
@@ -86,7 +86,7 @@ export default function HostActivationRequestPage() {
             <h1 className="mt-4 text-2xl font-semibold text-neutral-900">Activate hosting</h1>
             <p className="mt-3 text-neutral-600">
               We'll send an activation link to your email address. Click it to start hosting on
-              Journey Stay.
+              Oikivo.
             </p>
             <Button
               className="mt-6 w-full"

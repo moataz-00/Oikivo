@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FadeIn } from '@/components/ui/Motion';
 
@@ -19,7 +19,7 @@ export default function AccessibilityPage() {
           <div className="mx-auto max-w-5xl">
             <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Company</span>
             <h1 className="font-display font-bold text-4xl text-white mb-3">Accessibility Statement</h1>
-            <p className="text-indigo-100 text-sm">Journey Stay is committed to making our website and booking experience usable for everyone.</p>
+            <p className="text-indigo-100 text-sm">Oikivo is committed to making our website and booking experience usable for everyone.</p>
           </div>
         </section>
       </FadeIn>

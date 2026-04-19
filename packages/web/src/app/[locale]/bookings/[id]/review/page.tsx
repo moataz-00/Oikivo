@@ -113,6 +113,18 @@ export default function ReviewPage() {
 
   if (!hasHydrated || isLoading) return <FullPageSpinner />;
 
+  // W18: Guard against reviewing an already-reviewed booking
+  if (booking?.review || booking?.hasReview) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-20 text-center space-y-3">
+        <Star className="h-10 w-10 mx-auto text-amber-400 fill-amber-400" />
+        <h2 className="text-xl font-bold text-neutral-900">Already reviewed</h2>
+        <p className="text-neutral-500 text-sm">You have already submitted a review for this booking.</p>
+        <Button onClick={() => router.push(`/${locale}/trips`)}>Back to Trips</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-xl px-4 py-10 space-y-8">
       {/* Header */}

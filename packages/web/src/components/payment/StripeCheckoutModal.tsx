@@ -17,9 +17,8 @@ import { paymentsApi } from '@/lib/api';
 import { useCurrency } from '@/hooks/useCurrency';
 
 // Stripe publishable key — set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in .env
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
-);
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 interface StripeCheckoutModalProps {
   bookingId: number;

@@ -77,6 +77,9 @@ export class UserEntity {
   })
   idVerificationStatus: 'none' | 'pending' | 'approved' | 'rejected';
 
+  @Column({ name: 'id_rejection_reason', type: 'text', nullable: true })
+  idRejectionReason: string | null;
+
   @Column({ name: 'is_admin', default: false })
   isAdmin: boolean;
 
@@ -105,6 +108,14 @@ export class UserEntity {
 
   @Column({ name: 'last_login_at', type: 'datetime', nullable: true })
   lastLoginAt: Date | null;
+
+  /** AU1: Failed consecutive login attempts — resets to 0 on successful login */
+  @Column({ name: 'failed_login_attempts', type: 'smallint', unsigned: true, default: 0 })
+  failedLoginAttempts: number;
+
+  /** AU1: Account locked until this timestamp (null = not locked) */
+  @Column({ name: 'locked_until', type: 'datetime', nullable: true })
+  lockedUntil: Date | null;
 
   @Column({ name: 'last_booking_at', type: 'datetime', nullable: true })
   lastBookingAt: Date | null;

@@ -13,14 +13,14 @@ export class EarningEntity {
   @Column({ name: 'host_id', type: 'bigint', unsigned: true })
   hostId: number;
 
-  @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'host_id' })
   host: UserEntity;
 
   @Column({ name: 'booking_id', type: 'bigint', unsigned: true })
   bookingId: number;
 
-  @ManyToOne(() => BookingEntity, { onDelete: 'CASCADE', eager: false })
+  @ManyToOne(() => BookingEntity, { onDelete: 'RESTRICT', eager: false })
   @JoinColumn({ name: 'booking_id' })
   booking: BookingEntity;
 

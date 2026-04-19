@@ -39,6 +39,11 @@ desktop.ini
 *.sln
 *.sw?
 
+# Secrets — never commit OAuth/API key files
+client_secret_*.json
+*.pem
+*.key
+
 # TypeScript
 *.tsbuildinfo
 

@@ -8,10 +8,16 @@
 
 body {
   margin: 0;
-  background-color: #030712;
-  color: #f9fafb;
+  background-color: #f9fafb;
+  color: #111827;
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.dark body,
+html.dark body {
+  background-color: #030712;
+  color: #f9fafb;
 }
 
 ::-webkit-scrollbar {
@@ -22,9 +28,15 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: #d1d5db;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
 }

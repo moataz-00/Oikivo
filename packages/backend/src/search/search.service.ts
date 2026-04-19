@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
 import { PropertyEntity } from '../entities/property.entity';
@@ -8,7 +8,10 @@ import { AvailabilityEntity } from '../entities/availability.entity';
 import { SearchDto } from './search.dto';
 
 @Injectable()
-export class SearchService {
+export class SearchService implements OnModuleDestroy {
+  private popularCitiesCache: { data: any[] | null; cachedAt: number } = { data: null, cachedAt: 0 };
+  private static readonly CITIES_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
   constructor(
     @InjectRepository(PropertyEntity)
     private propertiesRepo: Repository<PropertyEntity>,
@@ -24,6 +27,15 @@ export class SearchService {
   // ── Impression batch queue — flush every 30 s instead of per-request writes ──
   private impressionQueue: number[] = [];
   private impressionTimer: ReturnType<typeof setInterval> | null = null;
+
+  // FIX S3: Flush pending impressions on shutdown so counts aren't lost
+  async onModuleDestroy() {
+    if (this.impressionTimer) {
+      clearInterval(this.impressionTimer);
+      this.impressionTimer = null;
+    }
+    await this.flushImpressions();
+  }
 
   private enqueueImpressions(ids: number[]) {
     this.impressionQueue.push(...ids);
@@ -125,11 +137,11 @@ export class SearchService {
 
     // Date availability check
     if (dto.checkIn && dto.checkOut) {
-      // Exclude properties that have confirmed/pending bookings overlapping with requested dates
+      // Exclude properties that have confirmed/pending/in_progress bookings overlapping with requested dates
       const subQuery = this.bookingsRepo
         .createQueryBuilder('booking')
         .select('booking.propertyId')
-        .where('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed'] })
+        .where('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'in_progress'] })
         .andWhere('booking.checkIn < :checkOut', { checkOut: dto.checkOut })
         .andWhere('booking.checkOut > :checkIn', { checkIn: dto.checkIn });
 
@@ -272,7 +284,18 @@ export class SearchService {
     const results = await this.dataSource.query(
       `
       SELECT
-        p.*,
+        p.id, p.uuid, p.title, p.description,
+        p.city, p.state, p.country, p.country_code AS countryCode,
+        p.address, p.latitude, p.longitude,
+        p.price_per_night AS pricePerNight, p.weekend_price AS weekendPrice,
+        p.currency, p.cleaning_fee AS cleaningFee,
+        p.space_type AS spaceType, p.property_kind AS propertyKind,
+        p.bedrooms, p.beds, p.bathrooms, p.max_guests AS maxGuests,
+        p.min_nights AS minNights, p.max_nights AS maxNights,
+        p.instant_book AS instantBook, p.avg_rating AS avgRating,
+        p.review_count AS reviewCount, p.category_id AS categoryId,
+        p.host_id AS hostId, p.cancellation_policy AS cancellationPolicy,
+        p.created_at AS createdAt,
         (6371 * 2 * ASIN(SQRT(
           POWER(SIN(RADIANS((p.latitude - ?) / 2)), 2) +
           COS(RADIANS(?)) * COS(RADIANS(p.latitude)) *
@@ -300,6 +323,11 @@ export class SearchService {
   }
 
   async getPopularCities() {
+    const now = Date.now();
+    if (this.popularCitiesCache.data && now - this.popularCitiesCache.cachedAt < SearchService.CITIES_CACHE_TTL) {
+      return this.popularCitiesCache.data;
+    }
+
     const results = await this.propertiesRepo
       .createQueryBuilder('property')
       .select('property.city', 'city')
@@ -317,12 +345,15 @@ export class SearchService {
       .limit(10)
       .getRawMany();
 
-    return results.map((r) => ({
+    const mapped = results.map((r) => ({
       city: r.city,
       country: r.country,
       countryCode: r.countryCode,
       propertyCount: parseInt(r.propertyCount),
       avgRating: parseFloat(r.avgRating) || 0,
     }));
+
+    this.popularCitiesCache = { data: mapped, cachedAt: Date.now() };
+    return mapped;
   }
 }

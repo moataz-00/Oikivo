@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FadeIn } from '@/components/ui/Motion';
 import {
@@ -31,7 +31,7 @@ export default function TermsPage() {
               <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Legal</span>
               <h1 className="font-display font-bold text-4xl text-white mb-3">Terms of Service</h1>
               <p className="text-indigo-100 text-sm max-w-xl leading-relaxed">
-                These terms form a binding agreement between you and Journey Stay. Please read them carefully before using our platform.
+                These terms form a binding agreement between you and Oikivo. Please read them carefully before using our platform.
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
                 {['8 sections', 'Last updated Mar 2026', 'Governing law: Egypt'].map((chip) => (
@@ -79,7 +79,7 @@ export default function TermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">1. Acceptance of Terms</h2>
                 </div>
                 <p>
-                  By accessing or using Journey Stay's website, mobile application, or any of our services, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, you may not use our services. These terms constitute a legally binding agreement between you and Journey Stay.
+                  By accessing or using Oikivo's website, mobile application, or any of our services, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, you may not use our services. These terms constitute a legally binding agreement between you and Oikivo.
                 </p>
               </section>
 
@@ -91,7 +91,7 @@ export default function TermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">2. Using Our Platform</h2>
                 </div>
                 <p className="mb-3">
-                  Journey Stay is an online marketplace connecting travelers with hosts offering accommodations and experiences across Egypt and the MENA region. We facilitate transactions but are not a party to any rental or service agreement between hosts and guests.
+                  Oikivo is an online marketplace connecting travelers with hosts offering accommodations and experiences across Egypt and the MENA region. We facilitate transactions but are not a party to any rental or service agreement between hosts and guests.
                 </p>
                 <p>
                   You must be at least 18 years old to use our platform. You agree to provide accurate, current, and complete information during registration and to keep your account updated at all times.
@@ -130,10 +130,10 @@ export default function TermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">4. Bookings & Payments</h2>
                 </div>
                 <p className="mb-3">
-                  When you book through Journey Stay, you agree to pay all fees associated with your booking — including accommodation fees, cleaning fees, service fees, and applicable taxes. Payment is processed securely at the time of booking.
+                  When you book through Oikivo, you agree to pay all fees associated with your booking — including accommodation fees, cleaning fees, service fees, and applicable taxes. Payment is processed securely at the time of booking.
                 </p>
                 <p>
-                  Hosts set their own pricing. Journey Stay charges a service fee on each booking to cover platform costs, customer support, and payment processing. All fees are displayed before you confirm.
+                  Hosts set their own pricing. Oikivo charges a service fee on each booking to cover platform costs, customer support, and payment processing. All fees are displayed before you confirm.
                 </p>
               </section>
 
@@ -148,7 +148,7 @@ export default function TermsPage() {
                   Cancellation policies vary by listing and are set by individual hosts. The applicable policy is displayed on each listing page and during checkout.
                 </p>
                 <p>
-                  If you cancel a booking, any refund will be processed according to the cancellation policy in effect at the time of booking. Journey Stay may offer resolution support in cases of disputes.
+                  If you cancel a booking, any refund will be processed according to the cancellation policy in effect at the time of booking. Oikivo may offer resolution support in cases of disputes.
                 </p>
               </section>
 
@@ -164,7 +164,7 @@ export default function TermsPage() {
                   <ul className="space-y-2">
                     {[
                       'Use our platform for any illegal purpose',
-                      'Circumvent our payment system or pay outside Journey Stay',
+                      'Circumvent our payment system or pay outside Oikivo',
                       'Post false, misleading, or fraudulent listings or reviews',
                       'Harass, threaten, or harm other users',
                       'Use automated tools to scrape or abuse our platform',
@@ -188,10 +188,10 @@ export default function TermsPage() {
                   <h2 className="font-display font-bold text-xl text-neutral-900">7. Limitation of Liability</h2>
                 </div>
                 <p className="mb-3">
-                  To the maximum extent permitted by law, Journey Stay is not liable for indirect, incidental, special, consequential, or punitive damages — including loss of profits, data, or goodwill.
+                  To the maximum extent permitted by law, Oikivo is not liable for indirect, incidental, special, consequential, or punitive damages — including loss of profits, data, or goodwill.
                 </p>
                 <p>
-                  Our liability to you for any cause shall be limited to the amount you paid Journey Stay in the 12 months preceding the incident.
+                  Our liability to you for any cause shall be limited to the amount you paid Oikivo in the 12 months preceding the incident.
                 </p>
               </section>
 

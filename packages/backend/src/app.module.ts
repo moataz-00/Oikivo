@@ -81,6 +81,9 @@ import { PriceAlertEntity } from './entities/price-alert.entity';
 import { PropertyPriceHistoryEntity } from './entities/property-price-history.entity';
 import { UserReportEntity } from './entities/user-report.entity';
 import { BlockedUserEntity } from './entities/blocked-user.entity';
+import { PaymentTransactionEntity } from './entities/payment-transaction.entity';
+import { PayoutItemEntity } from './entities/payout-item.entity';
+import { BookingStatusHistoryEntity } from './entities/booking-status-history.entity';
 
 @Module({
   imports: [
@@ -161,11 +164,15 @@ import { BlockedUserEntity } from './entities/blocked-user.entity';
           PropertyPriceHistoryEntity,
           UserReportEntity,
           BlockedUserEntity,
+          PaymentTransactionEntity,
+          PayoutItemEntity,
+          BookingStatusHistoryEntity,
         ],
         synchronize: false,  // schema managed via schema.sql
         charset: 'utf8mb4',
         timezone: '+00:00',
         logging: config.get('NODE_ENV') === 'development',
+        extra: { connectionLimit: 25 },
       }),
       inject: [ConfigService],
     }),

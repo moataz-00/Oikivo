@@ -227,7 +227,7 @@ export class BookingsService {
     const cleaningFee = Number(property.cleaningFee ?? 0);
     const depositAmount = Number(property.securityDeposit ?? 0);
     const serviceFee = parseFloat(
-      ((baseAmount * Number(property.serviceFeePercent ?? 14)) / 100).toFixed(2),
+      (((baseAmount + cleaningFee) * Number(property.serviceFeePercent ?? 5)) / 100).toFixed(2),
     );
     const taxes = 0;
     const totalAmount = parseFloat((baseAmount + cleaningFee + serviceFee + taxes).toFixed(2));
@@ -240,70 +240,72 @@ export class BookingsService {
       ? new Date(new Date(dto.checkOut).getTime() + 48 * 60 * 60 * 1000)
       : null;
 
-    const booking = this.bookingsRepo.create({
-      propertyId: dto.propertyId,
-      guestId,
-      hostId: property.hostId,
-      checkIn: dto.checkIn,
-      checkOut: dto.checkOut,
-      guestsCount: dto.guestsCount,
-      nights,
-      baseAmount,
-      cleaningFee,
-      serviceFee,
-      taxes,
-      totalAmount,
-      depositAmount,
-      depositStatus,
-      depositClaimDeadline,
-      currency: property.currency,
-      displayCurrency: dto.displayCurrency || null,
-      status,
-      confirmedAt: effectiveInstantBook ? new Date() : null,
-      cancellationPolicy: property.cancellationPolicy ?? 'flexible',
-      guestNote: dto.guestNote,
-      specialRequests: dto.specialRequests,
-    });
+    // FIX B1: Wrap booking creation in a transaction with pessimistic lock to prevent race conditions
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const txBookingsRepo = manager.getRepository(BookingEntity);
+      const txAvailabilityRepo = manager.getRepository(AvailabilityEntity);
 
-    const saved = await this.bookingsRepo.save(booking);
+      // Acquire pessimistic lock on overlapping bookings to prevent concurrent inserts
+      const conflictCount = await txBookingsRepo
+        .createQueryBuilder('b')
+        .where('b.property_id = :pid', { pid: dto.propertyId })
+        .andWhere('b.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'in_progress'] })
+        .andWhere('b.check_in < :checkOut', { checkOut: dto.checkOut })
+        .andWhere('b.check_out > :checkIn', { checkIn: dto.checkIn })
+        .setLock('pessimistic_write')
+        .getCount();
 
-    // G18: Race-condition guard — re-verify no concurrent booking for the same dates was just saved
-    const concurrentConflict = await this.bookingsRepo
-      .createQueryBuilder('b')
-      .where('b.property_id = :pid', { pid: dto.propertyId })
-      .andWhere('b.id != :myId', { myId: saved.id })
-      .andWhere('b.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'in_progress'] })
-      .andWhere('b.check_in < :checkOut', { checkOut: dto.checkOut })
-      .andWhere('b.check_out > :checkIn', { checkIn: dto.checkIn })
-      .getCount();
-
-    if (concurrentConflict > 0) {
-      await this.bookingsRepo.delete(saved.id);
-      throw new ConflictException(
-        'These dates were just booked by another guest. Please select different dates and try again.',
-      );
-    }
-
-    // Block the dates in availability
-    const datesToBlock: string[] = [];
-    for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
-      datesToBlock.push(d.toISOString().split('T')[0]);
-    }
-    for (const date of datesToBlock) {
-      let av = await this.availabilityRepo.findOne({
-        where: { propertyId: dto.propertyId, date },
-      });
-      if (av) {
-        av.isBlocked = true;
-      } else {
-        av = this.availabilityRepo.create({
-          propertyId: dto.propertyId,
-          date,
-          isBlocked: true,
-        });
+      if (conflictCount > 0) {
+        throw new ConflictException(
+          'These dates were just booked by another guest. Please select different dates and try again.',
+        );
       }
-      await this.availabilityRepo.save(av);
-    }
+
+      const booking = txBookingsRepo.create({
+        propertyId: dto.propertyId,
+        guestId,
+        hostId: property.hostId,
+        checkIn: dto.checkIn,
+        checkOut: dto.checkOut,
+        guestsCount: dto.guestsCount,
+        nights,
+        baseAmount,
+        cleaningFee,
+        serviceFee,
+        taxes,
+        totalAmount,
+        depositAmount,
+        depositStatus,
+        depositClaimDeadline,
+        currency: property.currency,
+        displayCurrency: dto.displayCurrency || null,
+        status,
+        confirmedAt: effectiveInstantBook ? new Date() : null,
+        cancellationPolicy: property.cancellationPolicy ?? 'flexible',
+        guestNote: dto.guestNote,
+        specialRequests: dto.specialRequests,
+      });
+
+      const savedBooking = await txBookingsRepo.save(booking);
+
+      // Block the dates in availability within the same transaction (batch upsert)
+      const datesToBlock: string[] = [];
+      for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
+        datesToBlock.push(d.toISOString().split('T')[0]);
+      }
+      if (datesToBlock.length > 0) {
+        const values = datesToBlock
+          .map((date) => `(${dto.propertyId}, '${date}', 1)`)
+          .join(', ');
+        await txAvailabilityRepo.query(
+          `INSERT INTO availability (property_id, date, is_blocked)
+           VALUES ${values}
+           ON DUPLICATE KEY UPDATE is_blocked = 1`,
+        );
+      }
+
+      return savedBooking;
+    });
 
     // Notify host
     await this.notificationsService.create(
@@ -469,21 +471,19 @@ export class BookingsService {
 
       const checkInDate = new Date(bookingForUpdate.checkIn);
       const checkOutDate = new Date(bookingForUpdate.checkOut);
+      const datesToBlock: string[] = [];
       for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
-        const date = d.toISOString().split('T')[0];
-        let av = await txAvailabilityRepo.findOne({ where: { propertyId: bookingForUpdate.propertyId, date } });
-        if (av) {
-          av.isBlocked = true;
-          av.source = 'booking';
-        } else {
-          av = txAvailabilityRepo.create({
-            propertyId: bookingForUpdate.propertyId,
-            date,
-            isBlocked: true,
-            source: 'booking',
-          });
-        }
-        await txAvailabilityRepo.save(av);
+        datesToBlock.push(d.toISOString().split('T')[0]);
+      }
+      if (datesToBlock.length > 0) {
+        const values = datesToBlock
+          .map((date) => `(${bookingForUpdate.propertyId}, '${date}', 1, 'booking')`)
+          .join(', ');
+        await txAvailabilityRepo.query(
+          `INSERT INTO availability (property_id, date, is_blocked, source)
+           VALUES ${values}
+           ON DUPLICATE KEY UPDATE is_blocked = 1, source = 'booking'`,
+        );
       }
     });
 
@@ -1012,13 +1012,12 @@ export class BookingsService {
 
     const cancelledBy = booking.guestId === userId ? 'guest' : 'host';
 
-    // Guests cannot cancel after check-in has started
+    // FIX B4: Use timezone-aware check consistent with cancel() method
     if (cancelledBy === 'guest') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const propertyTimezone = booking.property?.timezone || null;
       const checkInDate = new Date(booking.checkIn);
-      checkInDate.setHours(0, 0, 0, 0);
-      if (today >= checkInDate) {
+      const daysUntilCheckIn = this.calculateDaysUntilCheckIn(checkInDate, propertyTimezone);
+      if (daysUntilCheckIn <= 0) {
         throw new BadRequestException('Cancellations are not allowed on or after the check-in date');
       }
     }
@@ -1246,13 +1245,24 @@ export class BookingsService {
     };
   }
 
-  async complete(bookingId: number): Promise<BookingEntity> {
+  // FIX B5: Add optional userId for authorization; scheduler passes null (system context)
+  async complete(bookingId: number, userId?: number): Promise<BookingEntity> {
     const booking = await this.findOne(bookingId);
 
-    await this.bookingsRepo.update(bookingId, {
-      status: 'completed',
-      paymentStatus: 'paid',
-    });
+    // If called by a user (not scheduler), verify they are the host or an admin
+    if (userId != null) {
+      const hostId = booking.property?.hostId ?? (booking as any).hostId;
+      if (booking.guestId !== userId && hostId !== userId) {
+        throw new ForbiddenException('Only the host can manually complete a booking');
+      }
+    }
+
+    // FIX B2/B5: Only mark paymentStatus as 'paid' if it was already paid; otherwise preserve it
+    const update: Partial<BookingEntity> = { status: 'completed' as any };
+    if (booking.paymentStatus === 'paid') {
+      update.paymentStatus = 'paid' as any;
+    }
+    await this.bookingsRepo.update(bookingId, update);
 
     // Notify guest to leave a review
     await this.notificationsService.create(
@@ -1286,11 +1296,15 @@ export class BookingsService {
   ): Promise<BookingEntity> {
     const booking = await this.findOne(bookingId);
     if (booking.guestId !== guestId) throw new ForbiddenException('Not your booking');
-    if (!['confirmed', 'pending'].includes(booking.status) && booking.paymentStatus !== 'submitted' && booking.paymentStatus !== 'declined') {
-      throw new BadRequestException('Booking is not in a payable state');
+    // FIX B7: Explicit guard against re-submission when payment is already submitted
+    if (booking.paymentStatus === 'submitted') {
+      throw new BadRequestException('Payment has already been submitted and is awaiting verification');
     }
     if (booking.paymentStatus === 'paid') {
       throw new BadRequestException('Payment has already been confirmed');
+    }
+    if (!['confirmed', 'pending'].includes(booking.status) && booking.paymentStatus !== 'declined') {
+      throw new BadRequestException('Booking is not in a payable state');
     }
 
     // FIX BUG-GH5: Validate InstaPay reference format
@@ -1350,8 +1364,10 @@ export class BookingsService {
     try {
       const existingEarning = await this.earningsRepo.findOne({ where: { bookingId } });
       if (!existingEarning) {
-        const totalAmount = Number(booking.totalAmount);
         const serviceFee = Number(booking.serviceFee);
+        const baseAmt = Number(booking.baseAmount);
+        const cleaningFee = Number(booking.cleaningFee ?? 0);
+        const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
         const checkOutDate = new Date(booking.checkOut);
         const availableAt = new Date(checkOutDate);
         availableAt.setDate(availableAt.getDate() + 1);
@@ -1359,8 +1375,8 @@ export class BookingsService {
           this.earningsRepo.create({
             hostId: booking.hostId,
             bookingId,
-            amount: parseFloat((totalAmount - serviceFee).toFixed(2)),
-            platformFee: serviceFee,
+            amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
+            platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
             currency: booking.currency ?? 'EGP',
             status: new Date() >= availableAt ? 'available' : 'pending',
             availableAt,
@@ -1601,7 +1617,6 @@ export class BookingsService {
     const bookings = await this.bookingsRepo
       .createQueryBuilder('b')
       .leftJoinAndSelect('b.property', 'p')
-      .leftJoinAndSelect('p.photos', 'ph')
       .leftJoinAndSelect('b.guest', 'g')
       .where('b.hostId = :hostId', { hostId })
       .andWhere('b.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'completed'] })
@@ -1613,23 +1628,32 @@ export class BookingsService {
     return bookings;
   }
 
-  async getHostBookings(hostId: number, status?: string) {
+  async getHostBookings(hostId: number, status?: string, page = 1, limit = 20) {
+    const take = Math.min(limit, 50);
+    const skip = (page - 1) * take;
+
     if (status === 'upcoming') {
       const today = new Date().toISOString().split('T')[0];
-      return this.bookingsRepo.find({
+      const [data, total] = await this.bookingsRepo.findAndCount({
         where: { hostId, status: 'confirmed', checkIn: MoreThanOrEqual(today) },
         relations: ['property', 'property.photos', 'guest'],
         order: { checkIn: 'ASC' },
+        skip,
+        take,
       });
+      return { data, total, page, totalPages: Math.ceil(total / take) };
     }
     const where: any = { hostId };
     if (status) where.status = status;
 
-    return this.bookingsRepo.find({
+    const [data, total] = await this.bookingsRepo.findAndCount({
       where,
       relations: ['property', 'property.photos', 'guest'],
       order: { createdAt: 'DESC' },
+      skip,
+      take,
     });
+    return { data, total, page, totalPages: Math.ceil(total / take) };
   }
 
   /** 2.2 — Bookings where the host has received InstaPay transfer proof (paymentStatus = 'submitted') */
@@ -1643,110 +1667,122 @@ export class BookingsService {
 
   async getHostAnalytics(hostId: number) {
     const host = await this.usersRepo.findOne({ where: { id: hostId } });
-    const allBookings = await this.bookingsRepo.find({
-      where: { hostId },
-      relations: ['property', 'property.photos'],
-      order: { createdAt: 'DESC' },
-    });
 
+    // SQL aggregation instead of loading all bookings into memory
+    const [statusCounts] = await this.dataSource.query(
+      `SELECT
+         COUNT(*) AS total,
+         SUM(status = 'pending') AS pending,
+         SUM(status = 'confirmed') AS confirmed,
+         SUM(status = 'completed') AS completed,
+         SUM(status = 'cancelled') AS cancelled,
+         SUM(status = 'declined') AS declined,
+         COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN total_amount - service_fee ELSE 0 END), 0) AS totalRevenue,
+         COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN base_amount ELSE 0 END), 0) AS totalBaseRevenue,
+         COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN cleaning_fee ELSE 0 END), 0) AS totalCleaningFees,
+         COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN service_fee ELSE 0 END), 0) AS totalServiceFees,
+         SUM(CASE WHEN status IN ('completed','confirmed') THEN 1 ELSE 0 END) AS confirmedOrCompleted,
+         COALESCE(SUM(nights), 0) AS totalNights,
+         AVG(CASE WHEN status IN ('confirmed','declined') AND TIMESTAMPDIFF(SECOND, created_at, updated_at) >= 0
+           THEN TIMESTAMPDIFF(MINUTE, created_at, updated_at) END) AS avgResponseMinutes
+       FROM bookings WHERE host_id = ?`,
+      [hostId],
+    );
+
+    const total = Number(statusCounts.total) || 0;
     const byStatus: Record<string, number> = {
-      pending: 0, confirmed: 0, completed: 0, cancelled: 0, declined: 0,
+      pending: Number(statusCounts.pending) || 0,
+      confirmed: Number(statusCounts.confirmed) || 0,
+      completed: Number(statusCounts.completed) || 0,
+      cancelled: Number(statusCounts.cancelled) || 0,
+      declined: Number(statusCounts.declined) || 0,
     };
-    let totalRevenue = 0;
-    let totalBaseRevenue = 0;
-    let totalCleaningFees = 0;
-    let totalServiceFees = 0;
-    let totalNights = 0;
-    let confirmedOrCompleted = 0;
-    let responseTimeCount = 0;
-    let responseTimeTotalMinutes = 0;
+    const totalRevenue = Number(statusCounts.totalRevenue) || 0;
+    const totalBaseRevenue = Number(statusCounts.totalBaseRevenue) || 0;
+    const totalCleaningFees = Number(statusCounts.totalCleaningFees) || 0;
+    const totalServiceFees = Number(statusCounts.totalServiceFees) || 0;
+    const confirmedOrCompleted = Number(statusCounts.confirmedOrCompleted) || 0;
+    const totalNights = Number(statusCounts.totalNights) || 0;
+    const avgResponseMinutes = Math.round((Number(statusCounts.avgResponseMinutes) || 0) * 10) / 10;
 
-    for (const b of allBookings) {
-      byStatus[b.status] = (byStatus[b.status] ?? 0) + 1;
-      if (b.status === 'confirmed' || b.status === 'declined') {
-        const diffMs = new Date(b.updatedAt).getTime() - new Date(b.createdAt).getTime();
-        if (diffMs >= 0) {
-          responseTimeCount += 1;
-          responseTimeTotalMinutes += diffMs / (1000 * 60);
-        }
-      }
-      if (b.status === 'completed' || b.status === 'confirmed') {
-        totalRevenue += Number(b.totalAmount) - Number(b.serviceFee);
-        totalBaseRevenue += Number(b.baseAmount);
-        totalCleaningFees += Number(b.cleaningFee);
-        totalServiceFees += Number(b.serviceFee);
-        confirmedOrCompleted += 1;
-      }
-      totalNights += Number(b.nights) || 0;
-    }
-
-    // Monthly breakdown — last 12 months
-    const monthly: Record<string, { bookings: number; revenue: number }> = {};
+    // Monthly breakdown — last 12 months via SQL
     const now = new Date();
+    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const monthlyRows: Array<{ month: string; bookings: number; revenue: number }> = await this.dataSource.query(
+      `SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
+              COUNT(*) AS bookings,
+              COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN total_amount - service_fee ELSE 0 END), 0) AS revenue
+       FROM bookings
+       WHERE host_id = ? AND created_at >= ?
+       GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+       ORDER BY month ASC`,
+      [hostId, twelveMonthsAgo],
+    );
+
+    const monthly: Record<string, { bookings: number; revenue: number }> = {};
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       monthly[key] = { bookings: 0, revenue: 0 };
     }
-    for (const b of allBookings) {
-      const d = new Date(b.createdAt);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (key in monthly) {
-        monthly[key].bookings += 1;
-        if (b.status === 'completed' || b.status === 'confirmed') {
-          monthly[key].revenue += Number(b.totalAmount) - Number(b.serviceFee);
-        }
+    for (const row of monthlyRows) {
+      if (row.month in monthly) {
+        monthly[row.month] = { bookings: Number(row.bookings), revenue: Number(row.revenue) };
       }
     }
 
-    // Per-property breakdown (with view counts and impression counts)
+    // Per-property breakdown via SQL aggregation
     const hostProperties = await this.propertiesRepo.find({
       where: { hostId },
-      select: ['id', 'city', 'viewCount', 'impressionCount', 'avgRating', 'reviewCount'],
+      select: ['id', 'title', 'city', 'viewCount', 'impressionCount', 'avgRating', 'reviewCount'],
     });
-    const viewCountByPropertyId = Object.fromEntries(
-      hostProperties.map((p) => [p.id, p.viewCount ?? 0]),
-    );
-    const impressionCountByPropertyId = Object.fromEntries(
-      hostProperties.map((p) => [p.id, p.impressionCount ?? 0]),
-    );
 
-    const byPropertyMap: Record<number, {
-      id: number; title: string; image: string | null;
-      bookings: number; revenue: number; nights: number; views: number; impressions: number;
-      avgRating?: number; reviewCount?: number;
-    }> = {};
-    for (const b of allBookings) {
-      if (!b.property) continue;
-      if (!byPropertyMap[b.property.id]) {
-        const photos: any[] = (b.property as any).photos ?? [];
-        const cover = photos.find((p) => p.isCover) ?? photos[0];
-        byPropertyMap[b.property.id] = {
-          id: b.property.id,
-          title: b.property.title,
-          image: cover ? cover.url : null,
-          bookings: 0, revenue: 0, nights: 0,
-          views: viewCountByPropertyId[b.property.id] ?? 0,
-          impressions: impressionCountByPropertyId[b.property.id] ?? 0,
-          avgRating: Number((b.property as any).avgRating ?? 0),
-          reviewCount: Number((b.property as any).reviewCount ?? 0),
-        };
-      }
-      byPropertyMap[b.property.id].bookings += 1;
-      if (b.status === 'completed' || b.status === 'confirmed') {
-        byPropertyMap[b.property.id].revenue += Number(b.totalAmount) - Number(b.serviceFee);
-      }
-      byPropertyMap[b.property.id].nights += Number(b.nights) || 0;
+    const propertyBookingStats: Array<{ property_id: number; bookings: number; revenue: number; nights: number }> =
+      await this.dataSource.query(
+        `SELECT property_id,
+                COUNT(*) AS bookings,
+                COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN total_amount - service_fee ELSE 0 END), 0) AS revenue,
+                COALESCE(SUM(nights), 0) AS nights
+         FROM bookings WHERE host_id = ?
+         GROUP BY property_id`,
+        [hostId],
+      );
+    const propStatsMap = new Map(propertyBookingStats.map((r) => [Number(r.property_id), r]));
+
+    // Get cover photos for host properties
+    const propertyIds = hostProperties.map((p) => p.id);
+    let coverPhotos: Array<{ property_id: number; url: string }> = [];
+    if (propertyIds.length > 0) {
+      const placeholders = propertyIds.map(() => '?').join(',');
+      coverPhotos = await this.dataSource.query(
+        `SELECT property_id, url FROM property_photos
+         WHERE property_id IN (${placeholders}) AND is_cover = 1`,
+        propertyIds,
+      );
     }
+    const coverMap = new Map(coverPhotos.map((c) => [Number(c.property_id), c.url]));
 
-    const completionRate = allBookings.length
-      ? Math.round((byStatus.completed / allBookings.length) * 100)
+    const byProperty = hostProperties.map((p) => {
+      const stats = propStatsMap.get(p.id);
+      return {
+        id: p.id,
+        title: p.title,
+        image: coverMap.get(p.id) ?? null,
+        bookings: Number(stats?.bookings ?? 0),
+        revenue: Number(stats?.revenue ?? 0),
+        nights: Number(stats?.nights ?? 0),
+        views: p.viewCount ?? 0,
+        impressions: p.impressionCount ?? 0,
+        avgRating: Number(p.avgRating ?? 0),
+        reviewCount: Number(p.reviewCount ?? 0),
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+
+    const completionRate = total
+      ? Math.round((byStatus.completed / total) * 100)
       : 0;
     const avgBookingValue = confirmedOrCompleted > 0
       ? totalRevenue / confirmedOrCompleted
-      : 0;
-    const avgResponseMinutes = responseTimeCount > 0
-      ? Math.round((responseTimeTotalMinutes / responseTimeCount) * 10) / 10
       : 0;
 
     const satisfactionRows: Array<{ month: string; avgRating: number; reviewCount: number }> =
@@ -1797,7 +1833,7 @@ export class BookingsService {
 
     return {
       totals: {
-        bookings: allBookings.length,
+        bookings: total,
         byStatus,
         revenue: totalRevenue,
         baseRevenue: totalBaseRevenue,
@@ -1822,7 +1858,7 @@ export class BookingsService {
       })),
       areaBenchmarks: areaAverages,
       monthly: Object.entries(monthly).map(([month, data]) => ({ month, ...data })),
-      byProperty: Object.values(byPropertyMap).sort((a, b) => b.revenue - a.revenue),
+      byProperty,
     };
   }
 

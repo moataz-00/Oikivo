@@ -16,7 +16,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 const INSTAPAY_PHONE =
   process.env.NEXT_PUBLIC_INSTAPAY_PHONE ?? '';
 const INSTAPAY_NAME =
-  process.env.NEXT_PUBLIC_INSTAPAY_NAME ?? 'Journey Stay Platform';
+  process.env.NEXT_PUBLIC_INSTAPAY_NAME ?? 'Oikivo Platform';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
 interface InstapayModalProps {

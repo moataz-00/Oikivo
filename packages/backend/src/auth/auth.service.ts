@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThan, MoreThanOrEqual, DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
@@ -41,6 +41,7 @@ export class AuthService {
     private config: ConfigService,
     private mail: MailService,
     private sms: SmsService,
+    private dataSource: DataSource,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -59,15 +60,15 @@ export class AuthService {
     });
 
     const saved = await this.usersRepo.save(user);
-    const tokens = await this.generateTokens(saved);
-    await this.saveRefreshToken(saved.id, tokens.refreshToken);
 
+    // AU2: Do NOT issue tokens before email verification.
+    // The user must verify their email first, then log in to get tokens.
     // Auto-send verification email (non-blocking — failure must not block registration)
     this.sendEmailVerification(saved.id).catch(() => {/* best-effort */});
 
     return {
       user: this.sanitizeUser(saved),
-      ...tokens,
+      message: 'Registration successful. Please check your email to verify your account before logging in.',
     };
   }
 
@@ -82,17 +83,42 @@ export class AuthService {
           'preferredLanguage', 'phone', 'bio', 'dateOfBirth',
           'isEmailVerified', 'isPhoneVerified', 'isIdVerified',
           'createdAt', 'updatedAt', 'isConsultant', 'isTotpEnabled', 'totpSecret',
+          'failedLoginAttempts', 'lockedUntil',
         ],
       });
 
       if (!user) throw new UnauthorizedException('Invalid credentials');
       loginUser = user;
+
+      // AU1: Check account lockout
+      if (user.lockedUntil && new Date() < new Date(user.lockedUntil)) {
+        const minutesLeft = Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000);
+        throw new UnauthorizedException(
+          `Account is temporarily locked. Try again in ${minutesLeft} minute(s).`,
+        );
+      }
+
       if (!user.isActive) throw new UnauthorizedException('Account is disabled');
       if (!user.isEmailVerified) throw new UnauthorizedException('Please verify your email before logging in');
       if (!user.passwordHash) throw new UnauthorizedException('Please use social login');
 
       const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
-      if (!isMatch) throw new UnauthorizedException('Invalid credentials');
+      if (!isMatch) {
+        // AU1: Increment failed attempts and lock after 5 consecutive failures
+        const attempts = (user.failedLoginAttempts ?? 0) + 1;
+        const lockUpdate: any = { failedLoginAttempts: attempts };
+        if (attempts >= 5) {
+          lockUpdate.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute lockout
+          lockUpdate.failedLoginAttempts = 0; // reset counter; lockedUntil now enforces the lock
+        }
+        await this.usersRepo.update(user.id, lockUpdate);
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      // AU1: Reset failed attempts on successful login
+      if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+        await this.usersRepo.update(user.id, { failedLoginAttempts: 0, lockedUntil: null });
+      }
 
       // 2FA TOTP check
       if (user.isTotpEnabled) {
@@ -148,26 +174,29 @@ export class AuthService {
   }
 
   async refreshToken(userId: number, refreshToken: string) {
-    const user = await this.usersRepo.findOne({
-      where: { id: userId },
-      select: [
-        'id', 'email', 'firstName', 'lastName', 'avatarUrl',
-        'isHost', 'isSuperhost', 'isAdmin', 'isActive',
-        'preferredLanguage', 'refreshToken', 'isConsultant',
-      ],
+    // AU3: Use a transaction with pessimistic lock to prevent concurrent refresh token reuse
+    return this.dataSource.transaction(async (manager) => {
+      const user = await manager
+        .getRepository(UserEntity)
+        .createQueryBuilder('user')
+        .setLock('pessimistic_write')
+        .addSelect('user.refreshToken')
+        .where('user.id = :id', { id: userId })
+        .getOne();
+
+      if (!user || !user.refreshToken) {
+        throw new UnauthorizedException('Access denied');
+      }
+
+      const rtMatch = await bcrypt.compare(refreshToken, user.refreshToken);
+      if (!rtMatch) throw new UnauthorizedException('Invalid refresh token');
+
+      const tokens = await this.generateTokens(user);
+      const hashed = await bcrypt.hash(tokens.refreshToken, 10);
+      await manager.getRepository(UserEntity).update(userId, { refreshToken: hashed });
+
+      return tokens;
     });
-
-    if (!user || !user.refreshToken) {
-      throw new UnauthorizedException('Access denied');
-    }
-
-    const rtMatch = await bcrypt.compare(refreshToken, user.refreshToken);
-    if (!rtMatch) throw new UnauthorizedException('Invalid refresh token');
-
-    const tokens = await this.generateTokens(user);
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
-
-    return tokens;
   }
 
   async logout(userId: number) {
@@ -224,8 +253,9 @@ export class AuthService {
 
   async generateTokens(user: UserEntity) {
     const payload = { sub: user.id, email: user.email };
-    const jwtSecret = this.config.get('JWT_SECRET', 'sakan-secret');
-    const jwtRefreshSecret = this.config.get('JWT_REFRESH_SECRET', 'sakan-refresh-secret');
+    const jwtSecret = this.config.get<string>('JWT_SECRET');
+    const jwtRefreshSecret = this.config.get<string>('JWT_REFRESH_SECRET');
+    if (!jwtSecret || !jwtRefreshSecret) throw new Error('JWT_SECRET and JWT_REFRESH_SECRET environment variables are required');
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

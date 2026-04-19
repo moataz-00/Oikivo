@@ -31,21 +31,21 @@ export class BookingEntity {
   @Column({ name: 'property_id', type: 'bigint', unsigned: true })
   propertyId: number;
 
-  @ManyToOne(() => PropertyEntity, (p) => p.bookings, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PropertyEntity, (p) => p.bookings, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'property_id' })
   property: PropertyEntity;
 
   @Column({ name: 'guest_id', type: 'bigint', unsigned: true })
   guestId: number;
 
-  @ManyToOne(() => UserEntity, (u) => u.bookings, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, (u) => u.bookings, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'guest_id' })
   guest: UserEntity;
 
   @Column({ name: 'host_id', type: 'bigint', unsigned: true })
   hostId: number;
 
-  @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'host_id' })
   host: UserEntity;
 
@@ -112,7 +112,7 @@ export class BookingEntity {
   @Column({
     name: 'payment_status',
     type: 'enum',
-    enum: ['pending', 'submitted', 'paid', 'refund_pending', 'refunded', 'declined'],
+    enum: ['pending', 'submitted', 'paid', 'refund_pending', 'refunded', 'refund_failed', 'declined'],
     default: 'pending',
   })
   paymentStatus: string;

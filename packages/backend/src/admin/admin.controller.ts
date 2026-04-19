@@ -17,13 +17,14 @@ import { AdminService } from './admin.service';
 import { AdminActivityLogService } from './admin-activity-log.service';
 import { AdminLogInterceptor } from './admin-log.interceptor';
 import { AdminGuard } from './admin.guard';
+import { AdminIpAllowlistGuard } from './admin-ip-allowlist.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { DisputesService } from '../disputes/disputes.service';
 import { ICalSyncService } from '../availability/ical-sync.service';
 
 @ApiTags('admin')
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, AdminGuard, AdminIpAllowlistGuard)
 @UseInterceptors(AdminLogInterceptor)
 @ApiBearerAuth()
 export class AdminController {
@@ -50,13 +51,25 @@ export class AdminController {
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 20 })
   @ApiQuery({ name: 'search', required: false, example: 'ahmed' })
+  @ApiQuery({ name: 'idVerificationStatus', required: false, enum: ['pending', 'approved', 'rejected'] })
   getUsers(
     @Query('page') page: string,
     @Query('limit') limit: string,
     @Query('search') search?: string,
     @Query('role') role?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+    @Query('idVerificationStatus') idVerificationStatus?: string,
   ) {
-    return this.adminService.getUsers(parseInt(page) || 1, parseInt(limit) || 20, search, role);
+    return this.adminService.getUsers(
+      parseInt(page) || 1,
+      parseInt(limit) || 20,
+      search,
+      role,
+      (sortBy as any) || 'createdAt',
+      (sortOrder as any) || 'DESC',
+      idVerificationStatus,
+    );
   }
 
   @Patch('users/:id/toggle-active')
@@ -75,9 +88,9 @@ export class AdminController {
   @ApiOperation({ summary: 'Approve or reject a user ID document (admin only)' })
   reviewIdDocument(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { approved: boolean },
+    @Body() body: { approved: boolean; rejectionReason?: string },
   ) {
-    return this.adminService.reviewIdDocument(id, body.approved);
+    return this.adminService.reviewIdDocument(id, body.approved, body.rejectionReason);
   }
 
   @Post('users/bulk')
@@ -185,8 +198,10 @@ export class AdminController {
 
   @Get('revenue-chart')
   @ApiOperation({ summary: 'Get monthly revenue chart data (admin only)' })
-  getRevenueChart() {
-    return this.adminService.getRevenueChart();
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  getRevenueChart(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.adminService.getRevenueChart(from, to);
   }
 
   @Get('payouts')
@@ -216,8 +231,21 @@ export class AdminController {
   @Get('disputes')
   @ApiOperation({ summary: 'Get all disputes, optionally filtered by status' })
   @ApiQuery({ name: 'status', required: false })
-  getDisputes(@Query('status') status?: string) {
-    return this.disputesService.getAllDisputes(status);
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  getDisputes(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.disputesService.getAllDisputes(
+      status,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+      search,
+    );
   }
 
   @Patch('disputes/:id/resolve')
@@ -239,6 +267,36 @@ export class AdminController {
     @Body() body: { status: 'open' | 'under_review' | 'resolved' | 'closed' },
   ) {
     return this.disputesService.updateStatus(id, body.status);
+  }
+
+  // FIX AD2: Dispute assignment
+  @Patch('disputes/:id/assign')
+  @ApiOperation({ summary: 'Assign a dispute to an admin team member' })
+  assignDispute(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { assignedToId: number | null },
+  ) {
+    return this.disputesService.assignDispute(id, body.assignedToId);
+  }
+
+  // FIX AD2: Dispute priority
+  @Patch('disputes/:id/priority')
+  @ApiOperation({ summary: 'Set dispute priority level' })
+  setDisputePriority(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { priority: 'low' | 'medium' | 'high' | 'critical' },
+  ) {
+    return this.disputesService.setDisputePriority(id, body.priority);
+  }
+
+  // FIX AD2: Dispute SLA deadline
+  @Patch('disputes/:id/sla')
+  @ApiOperation({ summary: 'Set dispute SLA deadline' })
+  setDisputeSla(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { slaDeadline: string | null },
+  ) {
+    return this.disputesService.setDisputeSla(id, body.slaDeadline);
   }
 
   // ─── Experience Bookings ───────────────────────────────────────────────────
@@ -372,6 +430,15 @@ export class AdminController {
     @Body() body: { subject: string; body: string; audience: 'all' | 'hosts' | 'guests' },
   ) {
     return this.adminService.sendEmailBlast(body.subject, body.body, body.audience ?? 'all');
+  }
+
+  @Post('send-test-email')
+  @ApiOperation({ summary: 'Send a test email to a specific address (admin only)' })
+  sendTestEmail(
+    @Body() body: { subject: string; body: string; recipientEmail: string },
+    @Req() req: any,
+  ) {
+    return this.adminService.sendTestEmail(body.subject, body.body, body.recipientEmail ?? req.user?.email);
   }
 
   // ─── iCal Monitoring ──────────────────────────────────────────────────────
@@ -656,9 +723,15 @@ export class AdminController {
   // ─── Data Export ───────────────────────────────────────────────────────────
 
   @Get('export/:type')
-  @ApiOperation({ summary: 'Export full dataset by type (admin only)' })
-  getExportData(@Param('type') type: 'bookings' | 'users' | 'properties' | 'payouts' | 'reviews' | 'disputes') {
-    return this.adminService.getExportData(type);
+  @ApiOperation({ summary: 'Export dataset by type with pagination (admin only)' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getExportData(
+    @Param('type') type: 'bookings' | 'users' | 'properties' | 'payouts' | 'reviews' | 'disputes',
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.getExportData(type, page || 1, limit || 5000);
   }
 
   // ─── Experience Booking Detail ─────────────────────────────────────────────
@@ -735,5 +808,72 @@ export class AdminController {
   @ApiOperation({ summary: 'Delete an expense entry (admin only)' })
   deleteExpense(@Param('id') id: string) {
     return this.adminService.deleteExpense(parseInt(id));
+  }
+
+  // ─── FIX AD1: Payment Transactions ────────────────────────────────────────
+
+  @Get('payments/transactions')
+  @ApiOperation({ summary: 'List all payment transactions across gateways (admin only)' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'method', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  getPaymentTransactions(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('method') method?: string,
+    @Query('status') status?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getPaymentTransactions(
+      parseInt(page) || 1,
+      parseInt(limit) || 20,
+      { method, status, from, to, search },
+    );
+  }
+
+  // ─── FIX AD7: User Merge ──────────────────────────────────────────────────
+
+  @Get('users/duplicates')
+  @ApiOperation({ summary: 'Find potential duplicate users (admin only)' })
+  @ApiQuery({ name: 'search', required: true })
+  findDuplicateUsers(@Query('search') search: string) {
+    return this.adminService.findDuplicateUsers(search);
+  }
+
+  @Post('users/merge')
+  @ApiOperation({ summary: 'Merge two user accounts (admin only)' })
+  mergeUsers(@Body() body: { keepId: number; mergeId: number }, @Req() req: any) {
+    return this.adminService.mergeUsers(body.keepId, body.mergeId, req.user?.id);
+  }
+
+  // ─── FIX AD9: Notification Templates ──────────────────────────────────────
+
+  @Get('notification-templates')
+  @ApiOperation({ summary: 'List all push/SMS notification templates (admin only)' })
+  getNotificationTemplates() {
+    return this.adminService.getNotificationTemplates();
+  }
+
+  @Patch('notification-templates/:slug')
+  @ApiOperation({ summary: 'Update a notification template (admin only)' })
+  updateNotificationTemplate(
+    @Param('slug') slug: string,
+    @Body() body: { title?: string; body?: string; enabled?: boolean },
+  ) {
+    return this.adminService.updateNotificationTemplate(slug, body);
+  }
+
+  // ─── FIX AD11: Host Onboarding Funnel ─────────────────────────────────────
+
+  @Get('host-onboarding')
+  @ApiOperation({ summary: 'Get host onboarding funnel stats (admin only)' })
+  getHostOnboardingFunnel() {
+    return this.adminService.getHostOnboardingFunnel();
   }
 }

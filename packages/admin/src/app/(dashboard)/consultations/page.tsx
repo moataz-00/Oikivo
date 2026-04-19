@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,7 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-amber-900/50 text-amber-400',
   approved: 'bg-emerald-900/50 text-emerald-400',
   rejected: 'bg-red-900/50 text-red-400',
-  suspended: 'bg-gray-700 text-gray-400',
+  suspended: 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
 };
 
 const BOOKING_STATUS_COLORS: Record<string, string> = {
@@ -33,7 +33,7 @@ const BOOKING_STATUS_COLORS: Record<string, string> = {
   in_progress: 'bg-indigo-900/50 text-indigo-400',
   completed: 'bg-emerald-900/50 text-emerald-400',
   cancelled: 'bg-red-900/50 text-red-400',
-  no_show: 'bg-gray-700 text-gray-400',
+  no_show: 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
   disputed: 'bg-orange-900/50 text-orange-400',
 };
 
@@ -42,7 +42,7 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
   submitted: 'bg-blue-900/50 text-blue-400',
   paid: 'bg-emerald-900/50 text-emerald-400',
   refunded: 'bg-red-900/50 text-red-400',
-  hold: 'bg-gray-700 text-gray-400',
+  hold: 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
   refund_pending: 'bg-orange-900/50 text-orange-400',
 };
 
@@ -70,9 +70,9 @@ function SectionLabel({ children, className }: { children: React.ReactNode; clas
 
 function InfoRow({ label, value, valueClass }: { label: string; value: React.ReactNode; valueClass?: string }) {
   return (
-    <div className="flex justify-between gap-2 py-1.5 border-b border-gray-800 last:border-0">
-      <span className="text-gray-400 text-sm">{label}</span>
-      <span className={cn('text-sm font-medium text-right', valueClass ?? 'text-white')}>{value}</span>
+    <div className="flex justify-between gap-2 py-1.5 border-b border-gray-200 dark:border-gray-800 last:border-0">
+      <span className="text-gray-500 dark:text-gray-400 text-sm">{label}</span>
+      <span className={cn('text-sm font-medium text-right', valueClass ?? 'text-gray-900 dark:text-white')}>{value}</span>
     </div>
   );
 }
@@ -81,14 +81,14 @@ function InfoRow({ label, value, valueClass }: { label: string; value: React.Rea
 
 function MetricCard({ label, value, icon: Icon, gradient }: { label: string; value: string | number; icon: React.ElementType; gradient: string }) {
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-          <p className="mt-2 text-2xl font-bold text-white">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{typeof value === 'number' ? value.toLocaleString() : value}</p>
         </div>
         <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', gradient)}>
-          <Icon className="h-5 w-5 text-white" />
+          <Icon className="h-5 w-5 text-gray-900 dark:text-white" />
         </div>
       </div>
     </div>
@@ -184,17 +184,17 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute right-4 top-4 z-10 rounded-full bg-gray-800/80 p-2 text-gray-400 hover:text-white transition-colors">
+      <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute right-4 top-4 z-10 rounded-full bg-gray-800/80 p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
           <X className="h-5 w-5" />
         </button>
 
         {isLoading ? (
           <div className="space-y-4 p-6 animate-pulse">
-            <div className="h-8 w-1/3 bg-gray-800 rounded" />
-            <div className="h-4 w-1/4 bg-gray-800 rounded" />
+            <div className="h-8 w-1/3 bg-gray-100 dark:bg-gray-800 rounded" />
+            <div className="h-4 w-1/4 bg-gray-100 dark:bg-gray-800 rounded" />
             <div className="grid grid-cols-3 gap-4 mt-6">
-              {[...Array(6)].map((_, i) => <div key={i} className="h-12 bg-gray-800 rounded-lg" />)}
+              {[...Array(6)].map((_, i) => <div key={i} className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg" />)}
             </div>
           </div>
         ) : c ? (
@@ -207,7 +207,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <h2 className="text-xl font-bold text-white">{c.displayName}</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{c.displayName}</h2>
                     <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_COLORS[c.status])}>
                       {c.status}
                     </span>
@@ -217,7 +217,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-400 mt-0.5">{c.user?.email}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{c.user?.email}</p>
                   <p className="text-sm text-gray-500">{c.user?.firstName} {c.user?.lastName} • #{c.id}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -231,26 +231,26 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-                <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-3 text-center">
-                  <p className="text-lg font-bold text-white">{c.stats?.bookingCount ?? 0}</p>
+                <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-3 text-center">
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{c.stats?.bookingCount ?? 0}</p>
                   <p className="text-xs text-gray-500">Bookings</p>
                 </div>
-                <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-3 text-center">
+                <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-3 text-center">
                   <p className="text-lg font-bold text-emerald-400">{egp(c.stats?.totalEarnings ?? 0)}</p>
                   <p className="text-xs text-gray-500">Total Revenue</p>
                 </div>
-                <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-3 text-center">
+                <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-3 text-center">
                   <p className="text-lg font-bold text-amber-400">★ {Number(c.avgRating || 0).toFixed(1)}</p>
                   <p className="text-xs text-gray-500">{c.stats?.reviewCount ?? c.reviewCount ?? 0} Reviews</p>
                 </div>
-                <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-3 text-center">
-                  <p className="text-lg font-bold text-white">{egp(Number(c.hourlyRate || 0))}</p>
+                <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-3 text-center">
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{egp(Number(c.hourlyRate || 0))}</p>
                   <p className="text-xs text-gray-500">Hourly Rate</p>
                 </div>
               </div>
 
               {/* Tabs */}
-              <div className="flex gap-1 mt-5 border-b border-gray-800">
+              <div className="flex gap-1 mt-5 border-b border-gray-200 dark:border-gray-800">
                 {TABS.map((t) => (
                   <button
                     key={t.key}
@@ -277,15 +277,15 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Display Name</label>
-                          <input value={editForm.displayName} onChange={(e) => setEditForm((f: any) => ({ ...f, displayName: e.target.value }))} className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          <input value={editForm.displayName} onChange={(e) => setEditForm((f: any) => ({ ...f, displayName: e.target.value }))} className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Hourly Rate (EGP)</label>
-                          <input type="number" value={editForm.hourlyRate} onChange={(e) => setEditForm((f: any) => ({ ...f, hourlyRate: e.target.value }))} className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          <input type="number" value={editForm.hourlyRate} onChange={(e) => setEditForm((f: any) => ({ ...f, hourlyRate: e.target.value }))} className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Years of Experience</label>
-                          <input type="number" value={editForm.yearsExperience} onChange={(e) => setEditForm((f: any) => ({ ...f, yearsExperience: e.target.value }))} className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          <input type="number" value={editForm.yearsExperience} onChange={(e) => setEditForm((f: any) => ({ ...f, yearsExperience: e.target.value }))} className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1 flex items-center gap-1.5">
@@ -294,29 +294,29 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                           </label>
                           <button
                             onClick={() => setEditForm((f: any) => ({ ...f, isFeatured: !f.isFeatured }))}
-                            className={cn('rounded-lg px-3 py-2 text-sm font-medium transition-colors w-full', editForm.isFeatured ? 'bg-amber-700 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700')}
+                            className={cn('rounded-lg px-3 py-2 text-sm font-medium transition-colors w-full', editForm.isFeatured ? 'bg-amber-700 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-700')}
                           >
                             {editForm.isFeatured ? 'Featured ★' : 'Not Featured'}
                           </button>
                         </div>
                         <div className="sm:col-span-2">
                           <label className="block text-xs text-gray-500 mb-1">Specializations (comma-separated)</label>
-                          <input value={editForm.specializations} onChange={(e) => setEditForm((f: any) => ({ ...f, specializations: e.target.value }))} className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          <input value={editForm.specializations} onChange={(e) => setEditForm((f: any) => ({ ...f, specializations: e.target.value }))} className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div className="sm:col-span-2">
                           <label className="block text-xs text-gray-500 mb-1">Languages (comma-separated)</label>
-                          <input value={editForm.languages} onChange={(e) => setEditForm((f: any) => ({ ...f, languages: e.target.value }))} className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          <input value={editForm.languages} onChange={(e) => setEditForm((f: any) => ({ ...f, languages: e.target.value }))} className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div className="sm:col-span-2">
                           <label className="block text-xs text-gray-500 mb-1">Bio</label>
-                          <textarea rows={3} value={editForm.bio} onChange={(e) => setEditForm((f: any) => ({ ...f, bio: e.target.value }))} className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                          <textarea rows={3} value={editForm.bio} onChange={(e) => setEditForm((f: any) => ({ ...f, bio: e.target.value }))} className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={updateMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors">
                           <Save className="h-3.5 w-3.5" /> Save Changes
                         </button>
-                        <button onClick={() => setEditing(false)} className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-600 transition-colors">
+                        <button onClick={() => setEditing(false)} className="rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                           Cancel
                         </button>
                       </div>
@@ -325,7 +325,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                     <>
                       {/* Profile Info */}
                       <div className="grid lg:grid-cols-2 gap-5">
-                        <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-4">
+                        <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-4">
                           <SectionLabel className="text-violet-400">Profile Details</SectionLabel>
                           <InfoRow label="Display Name" value={c.displayName} />
                           <InfoRow label="Hourly Rate" value={`${c.currency ?? 'EGP'} ${Number(c.hourlyRate).toLocaleString()}/hr`} valueClass="text-emerald-400" />
@@ -337,7 +337,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                           {c.rejectionReason && <InfoRow label="Rejection Reason" value={c.rejectionReason} valueClass="text-red-400" />}
                         </div>
 
-                        <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-4">
+                        <div className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-4">
                           <SectionLabel className="text-sky-400">User Account</SectionLabel>
                           <InfoRow label="Name" value={`${c.user?.firstName ?? ''} ${c.user?.lastName ?? ''}`} />
                           <InfoRow label="Email" value={c.user?.email ?? '—'} />
@@ -347,8 +347,8 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                           <InfoRow label="Is Host" value={c.user?.isHost ? 'Yes' : 'No'} />
 
                           <SectionLabel className="text-amber-400 mt-4">Payout Settings</SectionLabel>
-                          <InfoRow label="Payout Method" value={c.payoutMethod ?? 'Not set'} valueClass={c.payoutMethod ? 'text-white' : 'text-gray-500'} />
-                          <InfoRow label="Account Details" value={c.payoutAccountDetails ?? 'Not set'} valueClass={c.payoutAccountDetails ? 'text-white' : 'text-gray-500'} />
+                          <InfoRow label="Payout Method" value={c.payoutMethod ?? 'Not set'} valueClass={c.payoutMethod ? 'text-gray-900 dark:text-white' : 'text-gray-500'} />
+                          <InfoRow label="Account Details" value={c.payoutAccountDetails ?? 'Not set'} valueClass={c.payoutAccountDetails ? 'text-gray-900 dark:text-white' : 'text-gray-500'} />
                         </div>
                       </div>
 
@@ -380,7 +380,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                       {c.bio && (
                         <div>
                           <SectionLabel className="text-gray-500">Bio</SectionLabel>
-                          <p className="text-sm text-gray-300 whitespace-pre-line leading-relaxed bg-gray-800/60 border border-gray-700 rounded-xl p-4">{c.bio}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-gray-800/60 border border-gray-300 dark:border-gray-700 rounded-xl p-4">{c.bio}</p>
                         </div>
                       )}
                     </>
@@ -388,7 +388,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
 
                   {/* Action Buttons */}
                   {!editing && (
-                    <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-800">
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
                       {c.status === 'pending' && (
                         <>
                           <button onClick={() => reviewMutation.mutate({ decision: 'approved' })} disabled={reviewMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors">
@@ -417,7 +417,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                       <button
                         onClick={() => updateMutation.mutate({ isFeatured: !c.isFeatured })}
                         disabled={updateMutation.isPending}
-                        className={cn('flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50', c.isFeatured ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-amber-700 text-white hover:bg-amber-600')}
+                        className={cn('flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50', c.isFeatured ? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' : 'bg-amber-700 text-white hover:bg-amber-600')}
                       >
                         <Sparkles className="h-4 w-4" /> {c.isFeatured ? 'Remove Featured' : 'Set Featured'}
                       </button>
@@ -436,7 +436,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                         value={rejectionReason}
                         onChange={(e) => setRejectionReason(e.target.value)}
                         placeholder="Reason for rejection..."
-                        className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
                       />
                       <div className="flex gap-2">
                         <button
@@ -446,7 +446,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                         >
                           Confirm Rejection
                         </button>
-                        <button onClick={() => { setRejectMode(false); setRejectionReason(''); }} className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-600 transition-colors">
+                        <button onClick={() => { setRejectMode(false); setRejectionReason(''); }} className="rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                           Cancel
                         </button>
                       </div>
@@ -463,7 +463,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                       <button
                         key={s}
                         onClick={() => { setBookingStatus(s); setBookingPage(1); }}
-                        className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-colors', bookingStatus === s ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}
+                        className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-colors', bookingStatus === s ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white')}
                       >
                         {s || 'All'}
                       </button>
@@ -476,19 +476,19 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                         {(bookings?.items ?? []).map((b: any) => {
                           const DeliveryIcon = DELIVERY_ICONS[b.deliveryMode] ?? Calendar;
                           return (
-                            <div key={b.id} className="rounded-xl bg-gray-800/60 border border-gray-700 p-4">
+                            <div key={b.id} className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-4">
                               <div className="flex items-start justify-between gap-3 flex-wrap">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <DeliveryIcon className="h-5 w-5 text-indigo-400 shrink-0" />
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <p className="text-sm font-medium text-white">
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                                         {b.client?.firstName ?? 'Unknown'} {b.client?.lastName ?? ''}
                                       </p>
-                                      <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', BOOKING_STATUS_COLORS[b.status] ?? 'bg-gray-700 text-gray-400')}>
+                                      <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', BOOKING_STATUS_COLORS[b.status] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400')}>
                                         {b.status?.replace(/_/g, ' ')}
                                       </span>
-                                      <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', PAYMENT_STATUS_COLORS[b.paymentStatus] ?? 'bg-gray-700 text-gray-400')}>
+                                      <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', PAYMENT_STATUS_COLORS[b.paymentStatus] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400')}>
                                         {b.paymentStatus}
                                       </span>
                                     </div>
@@ -498,23 +498,23 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                                   </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <p className="text-sm font-bold text-white">{egp(Number(b.price ?? 0))}</p>
+                                  <p className="text-sm font-bold text-gray-900 dark:text-white">{egp(Number(b.price ?? 0))}</p>
                                   <p className="text-xs text-gray-500">Fee: {egp(Number(b.platformFee ?? 0))}</p>
                                   <p className="text-xs text-gray-500">Payout: {egp(Number(b.consultantPayout ?? 0))}</p>
                                 </div>
                               </div>
                               {(b.clientNote || b.consultantNote) && (
-                                <div className="mt-3 pt-3 border-t border-gray-700 grid sm:grid-cols-2 gap-3 text-xs">
+                                <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-700 grid sm:grid-cols-2 gap-3 text-xs">
                                   {b.clientNote && (
                                     <div>
                                       <p className="text-gray-500">Client Note</p>
-                                      <p className="text-gray-300 mt-0.5">{b.clientNote}</p>
+                                      <p className="text-gray-600 dark:text-gray-300 mt-0.5">{b.clientNote}</p>
                                     </div>
                                   )}
                                   {b.consultantNote && (
                                     <div>
                                       <p className="text-gray-500">Consultant Note</p>
-                                      <p className="text-gray-300 mt-0.5">{b.consultantNote}</p>
+                                      <p className="text-gray-600 dark:text-gray-300 mt-0.5">{b.consultantNote}</p>
                                     </div>
                                   )}
                                 </div>
@@ -522,18 +522,18 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                               {b.cancellationReason && (
                                 <div className="mt-2 text-xs">
                                   <span className="text-red-400">Cancelled by {b.cancelledBy}: </span>
-                                  <span className="text-gray-400">{b.cancellationReason}</span>
+                                  <span className="text-gray-500 dark:text-gray-400">{b.cancellationReason}</span>
                                 </div>
                               )}
                             </div>
                           );
                         })}
                       </div>
-                      {bookings?.totalPages > 1 && (
+                      {(bookings?.totalPages ?? 0) > 1 && (
                         <div className="flex items-center justify-center gap-3 text-sm">
-                          <button disabled={bookingPage === 1} onClick={() => setBookingPage((p) => p - 1)} className="rounded p-1 text-gray-400 hover:bg-gray-800 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-                          <span className="text-gray-400">{bookingPage} / {bookings?.totalPages}</span>
-                          <button disabled={bookingPage === bookings?.totalPages} onClick={() => setBookingPage((p) => p + 1)} className="rounded p-1 text-gray-400 hover:bg-gray-800 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+                          <button disabled={bookingPage === 1} onClick={() => setBookingPage((p) => p - 1)} className="rounded p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                          <span className="text-gray-500 dark:text-gray-400">{bookingPage} / {bookings?.totalPages}</span>
+                          <button disabled={bookingPage === bookings?.totalPages} onClick={() => setBookingPage((p) => p + 1)} className="rounded p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
                         </div>
                       )}
                     </>
@@ -550,7 +550,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(d.fileUrl ?? '');
                     const docUrl = getUploadUrl(d.fileUrl);
                     return (
-                      <div key={d.id} className="rounded-xl bg-gray-800/60 border border-gray-700 overflow-hidden">
+                      <div key={d.id} className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 overflow-hidden">
                         {isImage && (
                           <a href={docUrl} target="_blank" rel="noopener noreferrer">
                             <img src={docUrl} alt={d.originalName ?? d.documentType} className="h-40 w-full object-cover hover:opacity-80 transition-opacity" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -558,19 +558,19 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                         )}
                         <div className="flex items-center justify-between gap-3 p-4">
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{d.originalName ?? d.documentType}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{d.originalName ?? d.documentType}</p>
                             <p className="text-xs text-gray-500 capitalize mt-0.5">{(d.documentType ?? '').replace(/_/g, ' ')}</p>
                             {d.uploadedAt && <p className="text-xs text-gray-600 mt-0.5">Uploaded: {new Date(d.uploadedAt).toLocaleDateString()}</p>}
-                            {d.adminNote && <p className="text-xs text-gray-400 mt-1">Admin note: {d.adminNote}</p>}
+                            {d.adminNote && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Admin note: {d.adminNote}</p>}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className={cn('rounded-full border px-2.5 py-0.5 text-xs font-medium', DOC_STATUS_COLORS[d.status] ?? 'bg-gray-700 text-gray-400 border-gray-600')}>
+                            <span className={cn('rounded-full border px-2.5 py-0.5 text-xs font-medium', DOC_STATUS_COLORS[d.status] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600')}>
                               {d.status}
                             </span>
-                            <a href={docUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="Open">
+                            <a href={docUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="Open">
                               <ExternalLink className="h-4 w-4" />
                             </a>
-                            <a href={docUrl} download className="rounded-lg p-2 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="Download">
+                            <a href={docUrl} download className="rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="Download">
                               <Download className="h-4 w-4" />
                             </a>
                           </div>
@@ -592,12 +592,12 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
                         const slots = (c.availability ?? []).filter((a: any) => Number(a.dayOfWeek) === dayIndex);
                         if (slots.length === 0) return null;
                         return (
-                          <div key={dayIndex} className="rounded-xl bg-gray-800/60 border border-gray-700 p-3">
-                            <p className="text-sm font-medium text-white mb-2">{dayName}</p>
+                          <div key={dayIndex} className="rounded-xl bg-gray-800/60 border border-gray-300 dark:border-gray-700 p-3">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{dayName}</p>
                             <div className="space-y-1">
                               {slots.map((s: any) => (
                                 <div key={s.id} className="flex items-center justify-between text-xs">
-                                  <span className="text-gray-300">{s.startTime} — {s.endTime}</span>
+                                  <span className="text-gray-600 dark:text-gray-300">{s.startTime} — {s.endTime}</span>
                                   <span className={s.isActive ? 'text-emerald-400' : 'text-gray-500'}>{s.isActive ? 'Active' : 'Inactive'}</span>
                                 </div>
                               ))}
@@ -614,7 +614,7 @@ function ConsultantDetailModal({ consultantId, onClose }: { consultantId: number
             </div>
           </div>
         ) : (
-          <div className="p-6 text-center text-gray-400 text-sm">Consultant not found.</div>
+          <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">Consultant not found.</div>
         )}
       </div>
     </div>
@@ -662,8 +662,8 @@ export default function AdminConsultationsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Consultations</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Manage consultants, applications, bookings & payouts</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Consultations</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage consultants, applications, bookings & payouts</p>
       </div>
 
       {/* Stats */}
@@ -681,7 +681,7 @@ export default function AdminConsultationsPage() {
             <button
               key={f}
               onClick={() => { setStatusFilter(f); setPage(1); }}
-              className={cn('rounded-lg px-3 py-2 text-sm font-medium transition-colors', statusFilter === f ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}
+              className={cn('rounded-lg px-3 py-2 text-sm font-medium transition-colors', statusFilter === f ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white')}
             >
               {f || 'All'}
             </button>
@@ -690,24 +690,24 @@ export default function AdminConsultationsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800 bg-gray-950/50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Consultant</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Specializations</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rate</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rating</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Sessions</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/50">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Consultant</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Specializations</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rate</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rating</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sessions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {isLoading
                 ? [...Array(8)].map((_, i) => (
-                    <tr key={i}>{[...Array(7)].map((_, j) => <td key={j} className="px-4 py-3"><div className="h-5 bg-gray-800 rounded animate-pulse" /></td>)}</tr>
+                    <tr key={i}>{[...Array(7)].map((_, j) => <td key={j} className="px-4 py-3"><div className="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td>)}</tr>
                   ))
                 : consultants.map((c: any) => (
                     <tr
@@ -722,7 +722,7 @@ export default function AdminConsultationsPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <p className="font-medium text-white truncate">{c.displayName}</p>
+                              <p className="font-medium text-gray-900 dark:text-white truncate">{c.displayName}</p>
                               {c.isFeatured && <Sparkles className="h-3 w-3 text-amber-400 shrink-0" />}
                             </div>
                             <p className="text-xs text-gray-500 truncate">{c.user?.email}</p>
@@ -732,18 +732,18 @@ export default function AdminConsultationsPage() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {(c.specializations ?? []).slice(0, 2).map((sp: string) => (
-                            <span key={sp} className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-400">{sp.replace(/_/g, ' ')}</span>
+                            <span key={sp} className="rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-gray-500 dark:text-gray-400">{sp.replace(/_/g, ' ')}</span>
                           ))}
                           {(c.specializations ?? []).length > 2 && (
                             <span className="text-xs text-gray-600">+{c.specializations.length - 2}</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-white font-medium">{c.currency ?? 'EGP'} {Number(c.hourlyRate).toLocaleString()}/hr</td>
+                      <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{c.currency ?? 'EGP'} {Number(c.hourlyRate).toLocaleString()}/hr</td>
                       <td className="px-4 py-3">
                         <span className="flex items-center gap-1 text-amber-400">★ {Number(c.avgRating || 0).toFixed(1)} <span className="text-gray-600 text-xs">({c.reviewCount})</span></span>
                       </td>
-                      <td className="px-4 py-3 text-gray-400">{c.totalSessions ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{c.totalSessions ?? 0}</td>
                       <td className="px-4 py-3">
                         <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_COLORS[c.status])}>
                           {c.status}
@@ -753,7 +753,7 @@ export default function AdminConsultationsPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => setDetailId(c.id)}
-                            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
+                            className="rounded-lg p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
                             title="View details"
                           >
                             <Eye className="h-4 w-4" />
@@ -777,12 +777,12 @@ export default function AdminConsultationsPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3 text-sm text-gray-400">
+          <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
             <span>{consultantsData?.total ?? 0} total consultants</span>
             <div className="flex items-center gap-2">
-              <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded p-1 hover:bg-gray-800 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-              <span className="text-white">{page} / {totalPages}</span>
-              <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded p-1 hover:bg-gray-800 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+              <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+              <span className="text-gray-900 dark:text-white">{page} / {totalPages}</span>
+              <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
             </div>
           </div>
         )}

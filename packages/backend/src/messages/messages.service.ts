@@ -64,7 +64,7 @@ export class MessagesService {
     return conversation;
   }
 
-  async sendMessage(senderId: number, dto: SendMessageDto): Promise<MessageEntity> {
+  async sendMessage(senderId: number, dto: SendMessageDto, options?: { isAutoReply?: boolean }): Promise<MessageEntity> {
     let conversationId = dto.conversationId;
     let conversation: ConversationEntity | null = null;
 
@@ -162,10 +162,11 @@ export class MessagesService {
     // H2: Auto-reply — if the receiver has auto-reply enabled, send an automatic response
     void (async () => {
       try {
+        // FIX M3: Use an internal flag instead of message body prefix to prevent loop spoofing
+        if (options?.isAutoReply) return;
+
         const receiver = await this.usersRepo.findOne({ where: { id: receiverId } });
         if (receiver?.autoReplyEnabled && receiver.autoReplyMessage) {
-          // Prevent auto-reply loops: only auto-reply to human messages, not other auto-replies
-          if (dto.body?.startsWith('[Auto-reply]')) return;
 
           const autoMsg = this.messagesRepo.create({
             conversationId,

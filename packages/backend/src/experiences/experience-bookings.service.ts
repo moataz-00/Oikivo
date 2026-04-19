@@ -33,6 +33,10 @@ export class ExperienceBookingsService {
     private mail: MailService,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+    if (!secretKey && nodeEnv === 'production') {
+      throw new Error('STRIPE_SECRET_KEY is required in production mode');
+    }
     this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
       apiVersion: '2024-04-10' as any,
     });

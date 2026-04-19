@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -42,8 +42,8 @@ const FEATURES = [
     icon: '🛡️',
   },
   {
-    title: '0% commission — always',
-    description: 'We charge hosts absolutely zero commission. Every penny of your nightly rate goes directly to you.',
+    title: '5% platform commission',
+    description: 'We charge a simple 5% commission on your nightly earnings. Every penny of the cleaning fee goes directly to you.',
     icon: '💸',
   },
 ];
@@ -51,7 +51,7 @@ const FEATURES = [
 const FAQS = [
   {
     q: 'How much does it cost to list my place?',
-    a: "Listing your place is completely free. And unlike other platforms, Journey Stay charges hosts 0% commission — you keep 100% of your nightly rate. Guests pay a small service fee instead.",
+    a: "Listing your place is completely free. Oikivo charges a 5% commission on your nightly earnings. Your cleaning fee is always passed through in full. Guests also pay a separate 5% service fee on top.",
   },
   {
     q: 'How do I get paid?',
@@ -59,7 +59,7 @@ const FAQS = [
   },
   {
     q: 'What if something gets damaged?',
-    a: 'Our Host Guarantee Program supports you in damage disputes. You can require a security deposit from guests (collected and held securely by Journey Stay), and our support team mediates any claims with photos and documentation.',
+    a: 'Our Host Guarantee Program supports you in damage disputes. You can require a security deposit from guests (collected and held securely by Oikivo), and our support team mediates any claims with photos and documentation.',
   },
   {
     q: 'Can I host if I rent my place?',
@@ -105,7 +105,7 @@ export default function BecomeAHostPage() {
             className="max-w-xl"
           >
             <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 border border-brand/20 px-4 py-1.5 text-sm font-bold text-brand mb-5">
-              🎉 0% Commission for hosts — keep everything you earn
+              🎉 Only 5% commission — keep 95% of every booking
             </div>
 
             {/* Egypt-only notice */}
@@ -120,13 +120,13 @@ export default function BecomeAHostPage() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight">
               It’s easy to get started on{' '}
               <span className="text-brand">
-                Journey Stay
+                Oikivo
               </span>
             </h1>
 
             <p className="mt-6 text-lg text-neutral-600">
-              Open your door to hosting and start earning. We take{' '}
-              <strong className="text-neutral-900">0% commission</strong> — every penny is yours.
+              Open your door to hosting and start earning. We only take a{' '}
+              <strong className="text-neutral-900">5% commission</strong> — keeping your costs low and transparent.
             </p>
 
             <div className="mt-10 space-y-6">
@@ -252,7 +252,7 @@ export default function BecomeAHostPage() {
         </div>
       </section>
 
-      {/* ── 0% Commission Banner ── */}
+      {/* ── 5% Commission Banner ── */}
       <section className="py-16 bg-gradient-to-r from-brand-dark via-brand to-brand-light text-white overflow-hidden relative">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
@@ -267,11 +267,11 @@ export default function BecomeAHostPage() {
           >
             <div className="text-center lg:text-left">
               <p className="text-indigo-200 text-sm font-semibold uppercase tracking-widest mb-3">Our promise to every host</p>
-              <div className="text-7xl sm:text-8xl font-display font-black leading-none mb-3">0%</div>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Commission. Zero. Nothing. Ever.</h2>
+              <div className="text-7xl sm:text-8xl font-display font-black leading-none mb-3">5%</div>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Simple. Transparent. Always.</h2>
               <p className="text-indigo-100 text-lg max-w-lg leading-relaxed">
-                Most platforms take a cut of your earnings. Journey Stay charges hosts{' '}
-                <strong className="text-white">absolutely nothing</strong>. Your full nightly rate lands in your pocket.
+                Most platforms take 15–25% from hosts. Oikivo charges only{' '}
+                <strong className="text-white">5% commission</strong> on your nightly earnings — your cleaning fee always passes through in full.
               </p>
             </div>
             <div className="shrink-0 rounded-3xl bg-white/10 border border-white/20 p-8 backdrop-blur-sm w-full max-w-xs">
@@ -279,18 +279,18 @@ export default function BecomeAHostPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3">
                   <span className="text-sm text-indigo-100">Other platforms</span>
-                  <span className="font-bold text-red-300">− 3% to 15%</span>
+                  <span className="font-bold text-red-300">− 15% to 25%</span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3">
-                  <span className="text-sm font-semibold text-neutral-900">Journey Stay</span>
-                  <span className="font-black text-brand text-lg">0%</span>
+                  <span className="text-sm font-semibold text-neutral-900">Oikivo</span>
+                  <span className="font-black text-brand text-lg">5%</span>
                 </div>
               </div>
               <button
                 onClick={handleGetStarted}
                 className="mt-5 w-full rounded-xl bg-white px-6 py-3 text-sm font-bold text-brand hover:bg-neutral-50 transition shadow-lg"
               >
-                Start earning for free →
+                Start earning →
               </button>
             </div>
           </motion.div>

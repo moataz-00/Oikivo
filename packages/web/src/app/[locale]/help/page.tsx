@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,7 +26,7 @@ const categories = [
     color: 'bg-emerald-50 text-emerald-600',
     faqs: [
       { q: 'When do I receive my payout?', a: 'Payouts are processed after a guest checks in. Funds are typically available within 1–3 business days depending on your bank.' },
-      { q: 'What is the service fee?', a: 'Journey Stay charges a small service fee to cover platform costs. This is displayed transparently on each booking before confirmation.' },
+      { q: 'What is the service fee?', a: 'Oikivo charges a small service fee to cover platform costs. This is displayed transparently on each booking before confirmation.' },
       { q: 'How do I request a manual payout?', a: 'From Hosting → Earnings, click "Request Payout". The minimum payout amount is EGP 100.' },
     ],
   },
@@ -54,7 +54,7 @@ const categories = [
     title: 'Safety & Trust',
     color: 'bg-indigo-50 text-indigo-700',
     faqs: [
-      { q: 'How does Journey Stay verify guests?', a: 'All users must verify their email. We also encourage hosts to require ID verification before accepting bookings.' },
+      { q: 'How does Oikivo verify guests?', a: 'All users must verify their email. We also encourage hosts to require ID verification before accepting bookings.' },
       { q: 'What if a guest damages my property?', a: 'Contact our support team within 48 hours of checkout with photos and a description. We will guide you through the resolution process.' },
     ],
   },
@@ -135,7 +135,7 @@ export default function HelpPage() {
             <HelpCircle className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">How can we help?</h1>
-          <p className="text-indigo-100 max-w-lg mx-auto">Find answers to common questions about Journey Stay.</p>
+          <p className="text-indigo-100 max-w-lg mx-auto">Find answers to common questions about Oikivo.</p>
 
           {/* Search */}
           <div className="relative mt-7 max-w-lg mx-auto">

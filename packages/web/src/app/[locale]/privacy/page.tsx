@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FadeIn } from '@/components/ui/Motion';
 import {
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
               <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Legal</span>
               <h1 className="font-display font-bold text-4xl text-white mb-3">Privacy Policy</h1>
               <p className="text-indigo-100 text-sm max-w-xl leading-relaxed">
-                How Journey Stay collects, uses, and protects your personal information.
+                How Oikivo collects, uses, and protects your personal information.
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
                 {['We never sell your data', 'Encrypted storage', 'Last updated Mar 2026'].map((chip) => (
@@ -72,14 +72,14 @@ export default function PrivacyPage() {
             <div className="mb-10 rounded-xl bg-indigo-50 border border-indigo-100 px-5 py-4 flex items-start gap-3">
               <Shield className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-indigo-900">Your data stays with Journey Stay</p>
+                <p className="text-sm font-semibold text-indigo-900">Your data stays with Oikivo</p>
                 <p className="text-sm text-indigo-700 mt-0.5">We do not and will never sell your personal data to third parties.</p>
               </div>
             </div>
 
             <div className="space-y-10 text-neutral-600 text-sm leading-relaxed">
               <p>
-                At Journey Stay, privacy is foundational. This policy explains how we collect, use, share, and protect your information when you use our platform.
+                At Oikivo, privacy is foundational. This policy explains how we collect, use, share, and protect your information when you use our platform.
               </p>
 
               <section id="collect" className="scroll-mt-28">

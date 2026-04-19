@@ -10,6 +10,34 @@ export function getUploadUrl(path: string | null | undefined): string {
   return `${BACKEND_BASE}${path}`;
 }
 
+// ─── Shared response types ────────────────────────────────────────────────────
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  totalPages: number;
+  page: number;
+}
+
+export interface DashboardStats {
+  users: { total: number; hosts: number; guests: number; newThisMonth: number; newThisWeek: number };
+  properties: { total: number; published: number; draft: number; archived: number };
+  bookings: {
+    total: number; pending: number; confirmed: number; completed: number;
+    cancelled: number; todayCheckIns: number; todayCheckOuts: number;
+  };
+  revenue: { total: number; thisMonth: number; thisWeek: number };
+  pendingActions: {
+    openDisputes: number; pendingPayouts: number;
+    pendingIdVerifications: number; pendingInstapayRefunds: number;
+  };
+  period?: { newUsers: number; bookings: number; confirmedBookings: number; revenue: number };
+  recentBookings: Array<{
+    id: number; status: string; totalAmount: number;
+    guest?: { firstName: string; lastName: string };
+    property?: { title: string };
+  }>;
+}
+
 export const apiClient = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -54,14 +82,14 @@ export interface ICalSourceAdmin {
 }
 
 export const adminApi = {
-  getDashboard: (params?: { from?: string; to?: string }) =>
-    apiClient.get('/admin/dashboard', { params }).then((r) => r.data),
+  getDashboard: (params?: { from?: string; to?: string }): Promise<DashboardStats> =>
+    apiClient.get<DashboardStats>('/admin/dashboard', { params }).then((r) => r.data),
 
-  getRevenueChart: () =>
-    apiClient.get('/admin/revenue-chart').then((r) => r.data),
+  getRevenueChart: (params?: { from?: string; to?: string }) =>
+    apiClient.get('/admin/revenue-chart', { params }).then((r) => r.data),
 
   // Users
-  getUsers: (params?: { page?: number; limit?: number; search?: string; role?: string }) =>
+  getUsers: (params?: { page?: number; limit?: number; search?: string; role?: string; sortBy?: string; sortOrder?: string; idVerificationStatus?: string }) =>
     apiClient.get('/admin/users', { params }).then((r) => r.data),
 
   getUserDetail: (id: number) =>
@@ -99,8 +127,8 @@ export const adminApi = {
     apiClient.patch(`/admin/properties/${id}/status`, { status }).then((r) => r.data),
 
   // Bookings
-  getBookings: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
-    apiClient.get('/admin/bookings', { params }).then((r) => r.data),
+  getBookings: (params?: { page?: number; limit?: number; status?: string; search?: string; from?: string; to?: string }): Promise<PaginatedResponse<any>> =>
+    apiClient.get<PaginatedResponse<any>>('/admin/bookings', { params }).then((r) => r.data),
 
   getBookingDetail: (id: number) =>
     apiClient.get(`/admin/bookings/${id}`).then((r) => r.data),
@@ -121,15 +149,15 @@ export const adminApi = {
     apiClient.post(`/admin/bookings/${id}/decline-payment`, { reason }).then((r) => r.data),
 
   // Reviews
-  getReviews: (params?: { page?: number; limit?: number; search?: string }) =>
+  getReviews: (params?: { page?: number; limit?: number; search?: string; rating?: number }) =>
     apiClient.get('/admin/reviews', { params }).then((r) => r.data),
 
   deleteReview: (id: number) =>
     apiClient.delete(`/admin/reviews/${id}`).then((r) => r.data),
 
   // ID Verification
-  reviewIdDocument: (id: number, approved: boolean) =>
-    apiClient.patch(`/admin/users/${id}/review-id`, { approved }).then((r) => r.data),
+  reviewIdDocument: (id: number, approved: boolean, rejectionReason?: string) =>
+    apiClient.patch(`/admin/users/${id}/review-id`, { approved, rejectionReason }).then((r) => r.data),
 
   // Bulk actions
   bulkUserAction: (ids: number[], action: 'activate' | 'deactivate' | 'grant_admin' | 'revoke_admin') =>
@@ -139,19 +167,19 @@ export const adminApi = {
     apiClient.post('/admin/properties/bulk', { ids, status }).then((r) => r.data),
 
   // Activity Log
-  getActivityLog: (params?: { page?: number; limit?: number; adminId?: number }) =>
+  getActivityLog: (params?: { page?: number; limit?: number; adminId?: number; method?: string; from?: string; to?: string }) =>
     apiClient.get('/admin/activity-log', { params }).then((r) => r.data),
 
   // Payouts
-  getPayouts: (params?: { page?: number; limit?: number; status?: string }) =>
-    apiClient.get('/admin/payouts', { params }).then((r) => r.data),
+  getPayouts: (params?: { page?: number; limit?: number; status?: string; search?: string }): Promise<PaginatedResponse<any>> =>
+    apiClient.get<PaginatedResponse<any>>('/admin/payouts', { params }).then((r) => r.data),
 
   processPayout: (id: number, status: 'processing' | 'completed' | 'failed', note?: string) =>
     apiClient.patch(`/admin/payouts/${id}/process`, { status, note }).then((r) => r.data),
 
   // Disputes
-  getDisputes: (status?: string) =>
-    apiClient.get('/admin/disputes', { params: status ? { status } : undefined }).then((r) => r.data),
+  getDisputes: (params?: { status?: string; page?: number; limit?: number; search?: string }): Promise<PaginatedResponse<any>> =>
+    apiClient.get<PaginatedResponse<any>>('/admin/disputes', { params }).then((r) => r.data),
 
   resolveDispute: (id: number, resolution: string, adminNote: string) =>
     apiClient.patch(`/admin/disputes/${id}/resolve`, { resolution, adminNote }).then((r) => r.data),
@@ -207,6 +235,9 @@ export const adminApi = {
   // Email blast
   sendEmailBlast: (payload: { subject: string; body: string; audience: 'all' | 'hosts' | 'guests' }) =>
     apiClient.post('/admin/send-email-blast', payload).then((r) => r.data),
+
+  sendTestEmail: (payload: { subject: string; body: string; recipientEmail: string }) =>
+    apiClient.post('/admin/send-test-email', payload).then((r) => r.data),
 
   // Consultations
   getConsultationStats: () =>
@@ -339,4 +370,36 @@ export const adminApi = {
 
   deleteExpense: (id: number) =>
     apiClient.delete(`/admin/expenses/${id}`).then((r) => r.data),
+
+  // FIX AD1: Payment Transactions
+  getPaymentTransactions: (params?: { page?: number; limit?: number; method?: string; status?: string; from?: string; to?: string; search?: string }) =>
+    apiClient.get('/admin/payments/transactions', { params }).then((r) => r.data),
+
+  // FIX AD2: Dispute assignment & workflow
+  assignDispute: (id: number, assignedToId: number | null) =>
+    apiClient.patch(`/admin/disputes/${id}/assign`, { assignedToId }).then((r) => r.data),
+
+  setDisputePriority: (id: number, priority: string) =>
+    apiClient.patch(`/admin/disputes/${id}/priority`, { priority }).then((r) => r.data),
+
+  setDisputeSla: (id: number, slaDeadline: string | null) =>
+    apiClient.patch(`/admin/disputes/${id}/sla`, { slaDeadline }).then((r) => r.data),
+
+  // FIX AD7: User merge / dedup
+  findDuplicateUsers: (search: string) =>
+    apiClient.get('/admin/users/duplicates', { params: { search } }).then((r) => r.data),
+
+  mergeUsers: (keepId: number, mergeId: number) =>
+    apiClient.post('/admin/users/merge', { keepId, mergeId }).then((r) => r.data),
+
+  // FIX AD9: Notification templates
+  getNotificationTemplates: () =>
+    apiClient.get('/admin/notification-templates').then((r) => r.data),
+
+  updateNotificationTemplate: (slug: string, data: { title?: string; body?: string; enabled?: boolean }) =>
+    apiClient.patch(`/admin/notification-templates/${slug}`, data).then((r) => r.data),
+
+  // FIX AD11: Host onboarding funnel
+  getHostOnboardingFunnel: () =>
+    apiClient.get('/admin/host-onboarding').then((r) => r.data),
 };

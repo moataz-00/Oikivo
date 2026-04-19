@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CreditCard, Smartphone } from 'lucide-react';
+import { X, CreditCard, Smartphone, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCurrency } from '@/hooks/useCurrency';
 import { InstapayModal } from './InstapayModal';
 import { StripeCheckoutModal } from './StripeCheckoutModal';
 import { OPayCardModal } from './OPayCardModal';
+import { OPayWalletModal } from './OPayWalletModal';
 
 // Detect if the user's timezone is Egyptian — used for OPay Card (Egypt-only processor)
 function detectEgyptTimezone(): boolean {
@@ -21,11 +22,11 @@ interface PaymentMethodModalProps {
   bookingType?: 'stay' | 'experience';
   totalAmount: number;
   currency?: string;
-  onSuccess: (method: 'stripe' | 'instapay' | 'opay-card') => void;
+  onSuccess: (method: 'stripe' | 'instapay' | 'opay-card' | 'opay-wallet') => void;
   onClose: () => void;
 }
 
-type Method = 'select' | 'instapay' | 'stripe' | 'opay-card';
+type Method = 'select' | 'instapay' | 'stripe' | 'opay-card' | 'opay-wallet';
 
 export function PaymentMethodModal({
   bookingId,
@@ -72,6 +73,20 @@ export function PaymentMethodModal({
   if (method === 'opay-card') {
     return (
       <OPayCardModal
+        bookingId={bookingId}
+        bookingType={bookingType}
+        totalAmount={totalAmount}
+        currency={currency}
+        onSuccess={onSuccess}
+        onClose={onClose}
+        onBack={() => setMethod('select')}
+      />
+    );
+  }
+
+  if (method === 'opay-wallet') {
+    return (
+      <OPayWalletModal
         bookingId={bookingId}
         bookingType={bookingType}
         totalAmount={totalAmount}
@@ -155,6 +170,24 @@ export function PaymentMethodModal({
                   <p className="text-sm font-semibold text-neutral-900">{t('opayCard')}</p>
                   <p className="text-xs text-neutral-500">
                     {t('opayCardDesc')}
+                  </p>
+                </div>
+              </button>
+              )}
+
+              {/* OPay Wallet — Egypt only (mobile wallet payment) */}
+              {isEgypt && (
+              <button
+                onClick={() => setMethod('opay-wallet')}
+                className="w-full flex items-center gap-4 rounded-2xl border border-neutral-200 p-4 hover:border-neutral-900 hover:bg-neutral-50 transition-all text-left"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50">
+                  <Wallet className="h-5 w-5 text-green-600" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">{t('opayWallet') ?? 'OPay Wallet'}</p>
+                  <p className="text-xs text-neutral-500">
+                    {t('opayWalletDesc') ?? 'Pay with your OPay mobile wallet'}
                   </p>
                 </div>
               </button>

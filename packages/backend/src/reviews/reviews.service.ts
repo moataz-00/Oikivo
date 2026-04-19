@@ -147,13 +147,15 @@ export class ReviewsService {
   }
 
   async getPropertyReviews(propertyId: number, page = 1, limit = 10) {
-    const [items, total] = await this.reviewsRepo.findAndCount({
-      where: { propertyId },
-      relations: ['reviewer'],
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [items, total] = await this.reviewsRepo
+      .createQueryBuilder('review')
+      .leftJoinAndSelect('review.reviewer', 'reviewer')
+      .where('review.propertyId = :propertyId', { propertyId })
+      .andWhere('review.isDeleted = :isDeleted', { isDeleted: false })
+      .orderBy('review.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       items,
@@ -176,6 +178,7 @@ export class ReviewsService {
       .addSelect('AVG(review.checkinRating)', 'avgCheckin')
       .addSelect('COUNT(review.id)', 'totalReviews')
       .where('review.propertyId = :propertyId', { propertyId })
+      .andWhere('review.isDeleted = :isDeleted', { isDeleted: false })
       .getRawOne();
 
     return {
@@ -190,14 +193,20 @@ export class ReviewsService {
     };
   }
 
-  async getUserReviews(userId: number) {
-    return this.reviewsRepo
+  async getUserReviews(userId: number, page = 1, limit = 20) {
+    const take = Math.min(limit, 50);
+    const skip = (page - 1) * take;
+    const [reviews, total] = await this.reviewsRepo
       .createQueryBuilder('review')
       .innerJoin('review.property', 'property', 'property.hostId = :userId', { userId })
       .leftJoinAndSelect('review.reviewer', 'reviewer')
       .leftJoinAndSelect('review.property', 'reviewProperty')
       .orderBy('review.createdAt', 'DESC')
-      .getMany();
+      .skip(skip)
+      .take(take)
+      .getManyAndCount();
+
+    return { data: reviews, total, page, totalPages: Math.ceil(total / take) };
   }
   // REV-G2: Add photos to a review (reviewer only, max 5 photos)
   async addPhotos(reviewId: number, reviewerId: number, photoPaths: string[]): Promise<ReviewEntity> {

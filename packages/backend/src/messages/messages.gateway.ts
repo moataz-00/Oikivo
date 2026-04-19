@@ -10,7 +10,10 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as jwt from 'jsonwebtoken';
+import { ConversationEntity } from '../entities/conversation.entity';
 
 /**
  * Real-time WebSocket gateway for the messaging feature.
@@ -35,7 +38,11 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   // socket.id → userId
   private readonly connectedUsers = new Map<string, number>();
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    @InjectRepository(ConversationEntity)
+    private readonly conversationsRepo: Repository<ConversationEntity>,
+  ) {}
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -74,12 +81,25 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   // ─── Subscribe to a conversation room ────────────────────────────────────
 
   @SubscribeMessage('join')
-  handleJoin(
+  async handleJoin(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { conversationId: number },
   ) {
     const userId = this.connectedUsers.get(client.id);
     if (!userId || !data?.conversationId) return;
+
+    // FIX M1: Verify the user is a participant before allowing room join
+    const conversation = await this.conversationsRepo.findOne({
+      where: { id: data.conversationId },
+    });
+    if (
+      !conversation ||
+      (conversation.guestId !== userId && conversation.hostId !== userId)
+    ) {
+      client.emit('error', { message: 'Not authorized to join this conversation' });
+      return;
+    }
+
     const room = `conversation:${data.conversationId}`;
     client.join(room);
     this.logger.debug(`userId=${userId} joined room ${room}`);

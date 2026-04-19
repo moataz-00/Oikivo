@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsBoolean, IsOptional, IsNumber, IsDateString } from 'class-validator';
+import { IsArray, IsString, IsBoolean, IsOptional, IsNumber, IsDateString, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -16,6 +16,8 @@ export class BlockDatesDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(0)
+  @Max(100000, { message: 'Price override cannot exceed 100,000' })
   priceOverride?: number;
 }
 
@@ -28,9 +30,11 @@ export class SeasonalPricingDto {
   @IsDateString()
   endDate: string;
 
-  @ApiProperty({ example: 650, description: 'Price per night for this period' })
+  @ApiProperty({ example: 650, description: 'Price per night for this period (max 100,000)' })
   @Type(() => Number)
   @IsNumber()
+  @Min(1, { message: 'Seasonal price must be at least 1' })
+  @Max(100000, { message: 'Seasonal price cannot exceed 100,000' })
   pricePerNight: number;
 
   @ApiProperty({ required: false, example: 'Summer season', description: 'Optional label for this rule' })

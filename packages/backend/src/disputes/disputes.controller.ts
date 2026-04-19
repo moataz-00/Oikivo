@@ -7,6 +7,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { DisputesService } from './disputes.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -27,8 +28,8 @@ const disputeEvidenceStorage = diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `evidence-${uniqueSuffix}${extname(file.originalname)}`);
+    // FIX O8: Use crypto.randomUUID instead of Math.random to eliminate collision risk
+    cb(null, `evidence-${Date.now()}-${randomUUID()}${extname(file.originalname)}`);
   },
 });
 
@@ -88,7 +89,7 @@ export class DisputesController {
     FilesInterceptor('files', 10, {
       storage: disputeEvidenceStorage,
       fileFilter: evidenceFilter,
-      limits: { fileSize: 20 * 1024 * 1024 }, // 20MB per file
+      limits: { fileSize: 10 * 1024 * 1024 }, // FIX O7: 10MB per file — consistent with property photo limits
     }),
   )
   async uploadEvidence(

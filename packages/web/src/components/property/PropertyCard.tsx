@@ -213,7 +213,7 @@ export function PropertyCard({ property, priority = false }: PropertyCardProps) 
           </div>
           <p className="mt-2 text-[15px]">
             <>
-              <span className="font-semibold text-neutral-900">{formatPrice(property.price)}</span>
+              <span className="font-semibold text-neutral-900">{formatPrice(property.price, property.currency ?? 'EGP')}</span>
               <span className="text-neutral-500 font-normal"> / {t('perNight')}</span>
             </>
           </p>

@@ -5,6 +5,8 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,8 +18,13 @@ import {
   ArrowLeft,
   Clock,
   CheckCircle,
+  AlertCircle,
+  TrendingUp,
+  DollarSign,
+  Star,
+  BarChart2,
 } from 'lucide-react-native';
-import { bookingsApi } from '@/lib/api';
+import { bookingsApi, payoutsApi, hostMetricsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { getImageUrl, formatDate, formatPrice } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
@@ -54,11 +61,66 @@ export default function HostingDashboardScreen() {
   });
 
   // ---------------------------------------------------------------------------
-  // Switch back to guest mode
+  // Fetch earnings summary
+  // ---------------------------------------------------------------------------
+  const { data: earningsData } = useQuery({
+    queryKey: ['hostEarnings'],
+    queryFn: payoutsApi.getEarnings,
+    enabled: isReady,
+  });
+
+  const currency = earningsData?.summary?.currency ?? 'EGP';
+  const availableBalance = earningsData?.summary?.available ?? 0;
+  const pendingBalance = earningsData?.summary?.pending ?? 0;
+
+  // ---------------------------------------------------------------------------
+  // Performance metrics
+  // ---------------------------------------------------------------------------
+  const { data: metricsData = [] } = useQuery({
+    queryKey: ['hostMetrics'],
+    queryFn: () => hostMetricsApi.getPerformance(),
+    enabled: isReady,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const totalRevenue = metricsData.reduce((s: number, p: any) => s + (p.revenue ?? 0), 0);
+  const totalBookings = metricsData.reduce((s: number, p: any) => s + (p.bookings ?? 0), 0);
+  const avgRating =
+    metricsData.length > 0
+      ? metricsData.reduce((s: number, p: any) => s + (p.avgRating ?? 0), 0) / metricsData.length
+      : 0;
+  const avgCompletionRate =
+    metricsData.length > 0
+      ? Math.round(
+          metricsData.reduce((s: number, p: any) => s + (p.completionRate ?? 0), 0) / metricsData.length,
+        )
+      : 0;
+
+  // ---------------------------------------------------------------------------
+  // ID verification status
+  // ---------------------------------------------------------------------------
+  const idStatus = (user as any)?.idVerificationStatus ?? null;
+  const needsIdVerification = idStatus !== 'approved';
+
+  // ---------------------------------------------------------------------------
+  // Switch back to guest mode (with confirmation)
   // ---------------------------------------------------------------------------
   const handleBackToGuest = () => {
-    toggleHostMode();
-    router.replace('/(tabs)');
+    Alert.alert(
+      'Switch to guest mode?',
+      'You will leave the hosting dashboard.',
+      [
+        { text: 'Stay', style: 'cancel' },
+        {
+          text: 'Switch',
+          style: 'destructive',
+          onPress: () => {
+            toggleHostMode();
+            router.replace('/(tabs)');
+          },
+        },
+      ],
+    );
   };
 
   // ---------------------------------------------------------------------------
@@ -104,160 +166,291 @@ export default function HostingDashboardScreen() {
   // ---------------------------------------------------------------------------
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-6 pt-4 pb-4">
-        <TouchableOpacity onPress={handleBackToGuest}>
-          <ArrowLeft size={22} color="#222" />
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-gray-900">
-          Hosting Dashboard
-        </Text>
-        <View className="w-6" />
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-6 pt-4 pb-4">
+          <TouchableOpacity onPress={handleBackToGuest}>
+            <ArrowLeft size={22} color="#222" />
+          </TouchableOpacity>
+          <Text className="text-xl font-bold text-gray-900">
+            Hosting Dashboard
+          </Text>
+          <View className="w-6" />
+        </View>
 
-      {/* Welcome */}
-      <View className="px-6 pb-4">
-        <Text className="text-base text-gray-600">
-          Welcome back, {user?.firstName}!
-        </Text>
-      </View>
+        {/* Welcome */}
+        <View className="px-6 pb-4">
+          <Text className="text-base text-gray-600">
+            Welcome back, {user?.firstName}!
+          </Text>
+        </View>
 
-      {/* Stats */}
-      <View className="flex-row px-6 mb-6 gap-3">
-        <TouchableOpacity
-          onPress={() => router.push('/hosting/reservations')}
-          activeOpacity={0.8}
-          className="flex-1 bg-yellow-50 border border-yellow-200 rounded-xl p-4 items-center"
-        >
-          <Clock size={24} color="#CA8A04" />
-          <Text className="text-2xl font-bold text-yellow-700 mt-2">
-            {pendingReservations.length}
-          </Text>
-          <Text className="text-xs text-yellow-600 mt-1 text-center">
-            Pending Requests
-          </Text>
-        </TouchableOpacity>
+        {/* ID Verification Banner */}
+        {needsIdVerification && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push('/profile/verify-id')}
+            className="mx-6 mb-4 p-4 rounded-xl border border-orange-300 bg-orange-50 flex-row items-start gap-3"
+          >
+            <AlertCircle size={20} color="#EA580C" className="mt-0.5" />
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-orange-800">
+                ID verification required
+              </Text>
+              <Text className="text-xs text-orange-700 mt-0.5">
+                {idStatus === 'pending'
+                  ? 'Your ID is under review. We\'ll notify you when approved.'
+                  : idStatus === 'rejected'
+                  ? 'Your ID was rejected. Tap to resubmit.'
+                  : 'Verify your government ID to publish your first listing.'}
+              </Text>
+            </View>
+            {idStatus !== 'pending' && (
+              <Text className="text-xs font-semibold text-orange-600 mt-0.5">Verify →</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          onPress={() => router.push('/hosting/reservations')}
-          activeOpacity={0.8}
-          className="flex-1 bg-green-50 border border-green-200 rounded-xl p-4 items-center"
-        >
-          <CheckCircle size={24} color="#16A34A" />
-          <Text className="text-2xl font-bold text-green-700 mt-2">
-            {confirmedReservations.length}
-          </Text>
-          <Text className="text-xs text-green-600 mt-1 text-center">
-            Upcoming Check-ins
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Upcoming reservations */}
-      <View className="mb-6">
-        <View className="flex-row items-center justify-between px-6 mb-3">
-          <Text className="text-lg font-semibold text-gray-900">
-            Upcoming Reservations
-          </Text>
+        {/* Stats */}
+        <View className="flex-row px-6 mb-6 gap-3">
           <TouchableOpacity
             onPress={() => router.push('/hosting/reservations')}
+            activeOpacity={0.8}
+            className="flex-1 bg-yellow-50 border border-yellow-200 rounded-xl p-4 items-center"
           >
-            <Text className="text-sm font-medium text-brand">See all</Text>
+            <Clock size={24} color="#CA8A04" />
+            <Text className="text-2xl font-bold text-yellow-700 mt-2">
+              {pendingReservations.length}
+            </Text>
+            <Text className="text-xs text-yellow-600 mt-1 text-center">
+              Pending Requests
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/hosting/reservations')}
+            activeOpacity={0.8}
+            className="flex-1 bg-green-50 border border-green-200 rounded-xl p-4 items-center"
+          >
+            <CheckCircle size={24} color="#16A34A" />
+            <Text className="text-2xl font-bold text-green-700 mt-2">
+              {confirmedReservations.length}
+            </Text>
+            <Text className="text-xs text-green-600 mt-1 text-center">
+              Upcoming Check-ins
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {loadingConfirmed ? (
-          <View className="py-8">
-            <Spinner size="small" />
+        {/* Earnings panel */}
+        <View className="px-6 mb-6">
+          <Text className="text-lg font-semibold text-gray-900 mb-3">
+            Earnings
+          </Text>
+          <View className="bg-brand/5 border border-brand/20 rounded-xl p-4">
+            <View className="flex-row gap-4">
+              <View className="flex-1 items-center py-2">
+                <DollarSign size={20} color="#4F46E5" />
+                <Text className="text-lg font-bold text-gray-900 mt-1">
+                  {currency} {availableBalance.toFixed(0)}
+                </Text>
+                <Text className="text-xs text-gray-500 mt-0.5">Available</Text>
+              </View>
+              <View className="w-px bg-brand/20" />
+              <View className="flex-1 items-center py-2">
+                <TrendingUp size={20} color="#CA8A04" />
+                <Text className="text-lg font-bold text-gray-900 mt-1">
+                  {currency} {pendingBalance.toFixed(0)}
+                </Text>
+                <Text className="text-xs text-gray-500 mt-0.5">Pending</Text>
+              </View>
+            </View>
+            {availableBalance > 0 && (
+              <TouchableOpacity
+                className="mt-3 bg-brand rounded-lg py-2.5 items-center"
+                activeOpacity={0.8}
+                onPress={() =>
+                  Alert.alert(
+                    'Request Payout',
+                    `Available balance: ${currency} ${availableBalance.toFixed(2)}\n\nPayout requests are processed within 2 business days.`,
+                    [{ text: 'OK' }],
+                  )
+                }
+              >
+                <Text className="text-white text-sm font-semibold">Request Payout</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        ) : confirmedReservations.length === 0 ? (
-          <View className="items-center py-8">
-            <Calendar size={36} color="#717171" />
-            <Text className="text-sm text-gray-500 mt-2">
-              No upcoming reservations
-            </Text>
+        </View>
+
+        {/* Performance metrics panel */}
+        {metricsData.length > 0 && (
+          <View className="px-6 mb-6">
+            <View className="flex-row items-center gap-2 mb-3">
+              <BarChart2 size={18} color="#1a1a1a" />
+              <Text className="text-lg font-semibold text-gray-900">Performance</Text>
+            </View>
+            <View className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+              {/* Top row: revenue + bookings */}
+              <View className="flex-row gap-3 mb-3">
+                <View className="flex-1 bg-white rounded-xl border border-gray-100 p-3 items-center">
+                  <DollarSign size={18} color="#4F46E5" />
+                  <Text className="text-base font-bold text-gray-900 mt-1">
+                    {currency} {totalRevenue.toFixed(0)}
+                  </Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">Total Revenue</Text>
+                </View>
+                <View className="flex-1 bg-white rounded-xl border border-gray-100 p-3 items-center">
+                  <CheckCircle size={18} color="#16A34A" />
+                  <Text className="text-base font-bold text-gray-900 mt-1">{totalBookings}</Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">Total Bookings</Text>
+                </View>
+              </View>
+              {/* Bottom row: avg rating + completion rate */}
+              <View className="flex-row gap-3">
+                <View className="flex-1 bg-white rounded-xl border border-gray-100 p-3 items-center">
+                  <Star size={18} color="#CA8A04" />
+                  <Text className="text-base font-bold text-gray-900 mt-1">
+                    {avgRating > 0 ? avgRating.toFixed(1) : '—'}
+                  </Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">Avg Rating</Text>
+                </View>
+                <View className="flex-1 bg-white rounded-xl border border-gray-100 p-3 items-center">
+                  <TrendingUp size={18} color="#0891B2" />
+                  <Text className="text-base font-bold text-gray-900 mt-1">
+                    {avgCompletionRate}%
+                  </Text>
+                  <Text className="text-xs text-gray-500 mt-0.5">Completion Rate</Text>
+                </View>
+              </View>
+              {/* Per-property breakdown if multiple */}
+              {metricsData.length > 1 && (
+                <View className="mt-3 pt-3 border-t border-gray-100">
+                  {metricsData.map((p: any) => (
+                    <View key={p.propertyId} className="flex-row items-center justify-between py-1.5">
+                      <Text className="text-sm text-gray-700 flex-1 mr-3" numberOfLines={1}>
+                        {p.title}
+                      </Text>
+                      <Text className="text-xs text-gray-400 mr-3">{p.bookings} bookings</Text>
+                      <Text className="text-sm font-semibold text-gray-900">
+                        {currency} {(p.revenue ?? 0).toFixed(0)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
-        ) : (
-          <FlatList
-            data={confirmedReservations.slice(0, 5)}
-            keyExtractor={(item) => item.id.toString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 24 }}
-            renderItem={renderReservationCard}
-          />
         )}
-      </View>
 
-      {/* Quick actions */}
-      <View className="px-6">
-        <Text className="text-lg font-semibold text-gray-900 mb-3">
-          Quick Actions
-        </Text>
+        {/* Upcoming reservations */}
+        <View className="mb-6">
+          <View className="flex-row items-center justify-between px-6 mb-3">
+            <Text className="text-lg font-semibold text-gray-900">
+              Upcoming Reservations
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/hosting/reservations')}
+            >
+              <Text className="text-sm font-medium text-brand">See all</Text>
+            </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity
-          onPress={() => router.push('/hosting/listings')}
-          activeOpacity={0.8}
-          className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
-        >
-          <View className="w-10 h-10 rounded-full bg-brand/10 items-center justify-center">
-            <List size={20} color="#4F46E5" />
-          </View>
-          <View className="flex-1 ml-3">
-            <Text className="text-base font-semibold text-gray-900">
-              View Listings
-            </Text>
-            <Text className="text-sm text-gray-500">
-              Manage your properties
-            </Text>
-          </View>
-        </TouchableOpacity>
+          {loadingConfirmed ? (
+            <View className="py-8">
+              <Spinner size="small" />
+            </View>
+          ) : confirmedReservations.length === 0 ? (
+            <View className="items-center py-8">
+              <Calendar size={36} color="#717171" />
+              <Text className="text-sm text-gray-500 mt-2">
+                No upcoming reservations
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={confirmedReservations.slice(0, 5)}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 24 }}
+              renderItem={renderReservationCard}
+            />
+          )}
+        </View>
 
-        <TouchableOpacity
-          onPress={() => router.push('/hosting/listing/new')}
-          activeOpacity={0.8}
-          className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
-        >
-          <View className="w-10 h-10 rounded-full bg-brand/10 items-center justify-center">
-            <Plus size={20} color="#4F46E5" />
-          </View>
-          <View className="flex-1 ml-3">
-            <Text className="text-base font-semibold text-gray-900">
-              Create Listing
-            </Text>
-            <Text className="text-sm text-gray-500">
-              List a new property on Oikivo
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {/* Quick actions */}
+        <View className="px-6">
+          <Text className="text-lg font-semibold text-gray-900 mb-3">
+            Quick Actions
+          </Text>
 
-        <TouchableOpacity
-          onPress={() => router.push('/hosting/regulations/egypt')}
-          activeOpacity={0.8}
-          className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
-        >
-          <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center">
-            <Text className="text-xl">🇪🇬</Text>
-          </View>
-          <View className="flex-1 ml-3">
-            <Text className="text-base font-semibold text-gray-900">
-              Egypt Regulations
-            </Text>
-            <Text className="text-sm text-gray-500">
-              Holiday Home License (MoTA)
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => router.push('/hosting/listings')}
+            activeOpacity={0.8}
+            className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-full bg-brand/10 items-center justify-center">
+              <List size={20} color="#4F46E5" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="text-base font-semibold text-gray-900">
+                View Listings
+              </Text>
+              <Text className="text-sm text-gray-500">
+                Manage your properties
+              </Text>
+            </View>
+          </TouchableOpacity>
 
-      {/* Back to guest mode */}
-      <View className="px-6 mt-auto mb-6">
-        <Button
-          title="Switch to guest mode"
-          variant="secondary"
-          onPress={handleBackToGuest}
-        />
-      </View>
+          <TouchableOpacity
+            onPress={() => router.push('/hosting/listing/new')}
+            activeOpacity={0.8}
+            className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-full bg-brand/10 items-center justify-center">
+              <Plus size={20} color="#4F46E5" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="text-base font-semibold text-gray-900">
+                Create Listing
+              </Text>
+              <Text className="text-sm text-gray-500">
+                List a new property on Oikivo
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/hosting/regulations/egypt')}
+            activeOpacity={0.8}
+            className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center">
+              <Text className="text-xl">🇪🇬</Text>
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="text-base font-semibold text-gray-900">
+                Egypt Regulations
+              </Text>
+              <Text className="text-sm text-gray-500">
+                Holiday Home License (MoTA)
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Back to guest mode */}
+        <View className="px-6 mt-6">
+          <Button
+            title="Switch to guest mode"
+            variant="secondary"
+            onPress={handleBackToGuest}
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
+
+

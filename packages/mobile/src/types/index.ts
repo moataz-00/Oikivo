@@ -1,6 +1,7 @@
 export type Language = 'en' | 'ar';
 export type SpaceType = 'entire_place' | 'private_room' | 'shared_room';
-export type PropertyStatus = 'draft' | 'published' | 'archived';
+export type PropertyStatus = 'draft' | 'published' | 'pending_review' | 'archived';
+export type CancellationPolicy = 'flexible' | 'moderate' | 'strict';
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'declined';
 export type PaymentStatus = 'pending' | 'paid' | 'refunded';
 export type AmenityCategory = 'essential' | 'standout' | 'safety';
@@ -18,6 +19,7 @@ export interface User {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isIdVerified: boolean;
+  idVerificationStatus?: 'pending' | 'approved' | 'rejected' | null;
   isAdmin: boolean;
   isConsultant?: boolean;
   preferredLanguage: Language;
@@ -29,6 +31,12 @@ export interface Category {
   name: string;
   nameAr: string;
   icon: string;
+}
+
+export interface HouseRule {
+  id: number;
+  rule: string;
+  ruleAr?: string;
 }
 
 export interface Amenity {
@@ -92,6 +100,15 @@ export interface Property extends PropertyListItem {
   status: PropertyStatus;
   photos: PropertyPhoto[];
   amenities: Amenity[];
+  houseRules: HouseRule[];
+  cancellationPolicy?: CancellationPolicy;
+  bookingMode?: 'instant_book' | 'approve_first_three';
+  weeklyDiscount?: number;
+  monthlyDiscount?: number;
+  weekendPrice?: number;
+  newListingPromotionEnabled?: boolean;
+  lastMinuteDiscountPercent?: number;
+  categoryId?: number;
 }
 
 export interface Booking {

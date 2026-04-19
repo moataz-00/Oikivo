@@ -118,6 +118,9 @@ const EMAIL_TEMPLATE_REGISTRY: Array<{
 
 @Injectable()
 export class AdminService {
+  private dashboardCache: { data: any; cachedAt: number } = { data: null, cachedAt: 0 };
+  private static readonly DASHBOARD_CACHE_TTL = 60_000; // 60 seconds
+
   constructor(
     @InjectRepository(UserEntity)
     private usersRepo: Repository<UserEntity>,
@@ -160,10 +163,20 @@ export class AdminService {
   ) {}
 
   // ─── Users ─────────────────────────────────────────────────────────────────
-  async getUsers(page = 1, limit = 20, search?: string, role?: string) {
+  async getUsers(
+    page = 1,
+    limit = 20,
+    search?: string,
+    role?: string,
+    sortBy: 'createdAt' | 'firstName' | 'email' = 'createdAt',
+    sortOrder: 'ASC' | 'DESC' = 'DESC',
+    idVerificationStatus?: string,
+  ) {
+    const allowedSort = ['createdAt', 'firstName', 'email'] as const;
+    const safeSort = allowedSort.includes(sortBy as any) ? sortBy : 'createdAt';
     const qb = this.usersRepo
       .createQueryBuilder('u')
-      .orderBy('u.createdAt', 'DESC')
+      .orderBy(`u.${safeSort}`, sortOrder === 'ASC' ? 'ASC' : 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
@@ -177,6 +190,8 @@ export class AdminService {
     if (role === 'host') qb.andWhere('u.isHost = true');
     else if (role === 'admin') qb.andWhere('u.isAdmin = true');
     else if (role === 'guest') qb.andWhere('u.isHost = false AND u.isAdmin = false');
+
+    if (idVerificationStatus) qb.andWhere('u.idVerificationStatus = :ivs', { ivs: idVerificationStatus });
 
     const [items, total] = await qb.getManyAndCount();
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -198,12 +213,13 @@ export class AdminService {
     return { message: user.isAdmin ? 'Admin role granted' : 'Admin role revoked', isAdmin: user.isAdmin };
   }
 
-  async reviewIdDocument(userId: number, approved: boolean) {
+  async reviewIdDocument(userId: number, approved: boolean, rejectionReason?: string) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
     if (!user.idDocumentUrl) throw new BadRequestException('No ID document submitted by this user');
     (user as any).isIdVerified = approved;
     (user as any).idVerificationStatus = approved ? 'approved' : 'rejected';
+    (user as any).idRejectionReason = approved ? null : (rejectionReason ?? null);
     await this.usersRepo.save(user);
     return { message: approved ? 'ID approved — user is now ID verified' : 'ID rejected', isIdVerified: approved };
   }
@@ -337,6 +353,11 @@ export class AdminService {
 
   // ─── Dashboard ─────────────────────────────────────────────────────────────
   async getDashboardStats(from?: string, to?: string) {
+    // Return cached stats if within TTL (no date filter = default dashboard)
+    if (!from && !to && this.dashboardCache.data && Date.now() - this.dashboardCache.cachedAt < AdminService.DASHBOARD_CACHE_TTL) {
+      return this.dashboardCache.data;
+    }
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfWeek = new Date(now);
@@ -357,7 +378,7 @@ export class AdminService {
       todayCheckIns, todayCheckOuts,
       revenueTotal, revenueMonth, revenueWeek,
       recentBookings,
-      pendingPayouts, openDisputes, pendingIdVerifications,
+      pendingPayouts, openDisputes, pendingIdVerifications, pendingInstapayRefunds,
     ] = await Promise.all([
       this.usersRepo.count(),
       this.usersRepo.count({ where: { isActive: true } }),
@@ -399,9 +420,11 @@ export class AdminService {
         .then((r: any[]) => parseInt(r[0].cnt)),
       this.dataSource.query(`SELECT COUNT(*) AS cnt FROM users WHERE id_verification_status = 'pending'`)
         .then((r: any[]) => parseInt(r[0].cnt)),
+      this.dataSource.query(`SELECT COUNT(*) AS cnt FROM bookings WHERE status = 'cancelled' AND payment_method = 'instapay' AND payment_status = 'paid'`)
+        .then((r: any[]) => parseInt(r[0].cnt, 10)),
     ]);
 
-    return {
+    const result = {
       users: { total: totalUsers, active: activeUsers, hosts: totalHosts, guests: totalUsers - totalHosts, newThisMonth, newThisWeek },
       properties: { total: totalProperties, published: publishedProperties, draft: draftProperties, archived: archivedProperties },
       bookings: { total: totalBookings, completed: completedBookings, pending: pendingBookings, confirmed: confirmedBookings, cancelled: cancelledBookings, todayCheckIns, todayCheckOuts },
@@ -415,10 +438,17 @@ export class AdminService {
         pendingPayouts,
         openDisputes,
         pendingIdVerifications,
+        pendingInstapayRefunds,
       },
       recentBookings,
       period: await this._getPeriodStats(periodStart, periodEnd),
     };
+
+    // Cache default dashboard (no date filter)
+    if (!from && !to) {
+      this.dashboardCache = { data: result, cachedAt: Date.now() };
+    }
+    return result;
   }
 
   private async _getPeriodStats(periodStart: Date, periodEnd: Date) {
@@ -451,7 +481,19 @@ export class AdminService {
     };
   }
 
-  async getRevenueChart() {
+  async getRevenueChart(from?: string, to?: string) {
+    const params: string[] = [];
+    let dateFilter: string;
+    if (from) {
+      params.push(from);
+      dateFilter = 'created_at >= ?';
+      if (to) {
+        params.push(to + ' 23:59:59');
+        dateFilter += ' AND created_at <= ?';
+      }
+    } else {
+      dateFilter = 'created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)';
+    }
     const rows = await this.dataSource.query(`
       SELECT
         DATE_FORMAT(created_at, '%Y-%m') AS month,
@@ -459,10 +501,10 @@ export class AdminService {
         COUNT(*)                          AS bookings
       FROM bookings
       WHERE payment_status = 'paid'
-        AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+        AND ${dateFilter}
       GROUP BY month
       ORDER BY month ASC
-    `);
+    `, params);
     return rows.map((r: any) => ({
       month: r.month,
       revenue: parseFloat(r.revenue),
@@ -584,9 +626,12 @@ export class AdminService {
   }
 
   async updateSetting(key: string, value: string) {
-    const setting = await this.settingsRepo.findOne({ where: { key } });
-    if (!setting) throw new NotFoundException(`Setting '${key}' not found`);
-    setting.value = value;
+    let setting = await this.settingsRepo.findOne({ where: { key } });
+    if (!setting) {
+      setting = this.settingsRepo.create({ key, value });
+    } else {
+      setting.value = value;
+    }
     return this.settingsRepo.save(setting);
   }
 
@@ -699,7 +744,7 @@ export class AdminService {
 
   // ─── Badge Counts (lightweight nav indicators) ────────────────────────────
   async getBadgeCounts() {
-    const [pendingPayouts, openDisputes, pendingVerifications] = await Promise.all([
+    const [pendingPayouts, openDisputes, pendingVerifications, pendingInstapayRefunds] = await Promise.all([
       this.payoutsRepo.count({ where: { status: 'pending' } }),
       this.dataSource
         .query(`SELECT COUNT(*) AS cnt FROM disputes WHERE status = 'open'`)
@@ -707,8 +752,11 @@ export class AdminService {
       this.dataSource
         .query(`SELECT COUNT(*) AS cnt FROM users WHERE id_verification_status = 'pending'`)
         .then((r: any[]) => parseInt(r[0].cnt, 10)),
+      this.dataSource
+        .query(`SELECT COUNT(*) AS cnt FROM bookings WHERE status = 'cancelled' AND payment_method = 'instapay' AND payment_status = 'paid'`)
+        .then((r: any[]) => parseInt(r[0].cnt, 10)),
     ]);
-    return { pendingPayouts, openDisputes, pendingVerifications };
+    return { pendingPayouts, openDisputes, pendingVerifications, pendingInstapayRefunds };
   }
 
   // ─── System Health ─────────────────────────────────────────────────────────
@@ -768,6 +816,11 @@ export class AdminService {
       } catch { /* skip individual failures */ }
     }
     return { sent, total: users.length, audience, subject };
+  }
+
+  async sendTestEmail(subject: string, body: string, recipientEmail: string) {
+    await this.mail.sendAdminBlast(recipientEmail, 'Admin', `[TEST] ${subject}`, body);
+    return { sent: 1, recipientEmail, subject };
   }
 
   // ─── User Detail + CRUD ────────────────────────────────────────────────────
@@ -1302,20 +1355,22 @@ export class AdminService {
   }
 
   // ─── Data Export ───────────────────────────────────────────────────────────
-  async getExportData(type: 'bookings' | 'users' | 'properties' | 'payouts' | 'reviews' | 'disputes') {
+  async getExportData(type: 'bookings' | 'users' | 'properties' | 'payouts' | 'reviews' | 'disputes', page = 1, limit = 5000) {
+    const take = Math.min(limit, 5000);
+    const skip = (page - 1) * take;
     switch (type) {
       case 'bookings':
-        return this.bookingsRepo.find({ relations: ['property', 'guest', 'host'], order: { createdAt: 'DESC' }, take: 50000 });
+        return this.bookingsRepo.find({ relations: ['property', 'guest', 'host'], order: { createdAt: 'DESC' }, skip, take });
       case 'users':
-        return this.usersRepo.find({ order: { createdAt: 'DESC' }, take: 50000 });
+        return this.usersRepo.find({ order: { createdAt: 'DESC' }, skip, take });
       case 'properties':
-        return this.propertiesRepo.find({ relations: ['host', 'category'], order: { createdAt: 'DESC' }, take: 50000 });
+        return this.propertiesRepo.find({ relations: ['host', 'category'], order: { createdAt: 'DESC' }, skip, take });
       case 'payouts':
-        return this.payoutsRepo.find({ relations: ['host'], order: { createdAt: 'DESC' }, take: 50000 });
+        return this.payoutsRepo.find({ relations: ['host'], order: { createdAt: 'DESC' }, skip, take });
       case 'reviews':
-        return this.reviewsRepo.find({ relations: ['reviewer', 'property'], order: { createdAt: 'DESC' }, take: 50000 });
+        return this.reviewsRepo.find({ relations: ['reviewer', 'property'], order: { createdAt: 'DESC' }, skip, take });
       case 'disputes':
-        return this.dataSource.query(`SELECT * FROM disputes ORDER BY created_at DESC LIMIT 50000`);
+        return this.dataSource.query(`SELECT * FROM disputes ORDER BY created_at DESC LIMIT ? OFFSET ?`, [take, skip]);
       default:
         throw new BadRequestException('Invalid export type');
     }
@@ -1527,7 +1582,7 @@ export class AdminService {
     `, [fromDate, toDate]);
 
     const topConsultants: any[] = await this.dataSource.query(`
-      SELECT c.id, u.first_name, u.last_name, u.email, c.specialization,
+      SELECT c.id, u.first_name, u.last_name, u.email, c.specializations,
         COUNT(DISTINCT CASE WHEN cb.payment_status IN ('paid','refunded') THEN cb.id END) AS bookings,
         COALESCE(SUM(CASE WHEN cb.payment_status IN ('paid','refunded') THEN cb.price ELSE 0 END), 0) AS revenue,
         COALESCE(SUM(CASE WHEN cb.payment_status IN ('paid','refunded') THEN cb.platform_fee ELSE 0 END), 0) AS platform_fees
@@ -1618,7 +1673,7 @@ export class AdminService {
         platformFees: parseFloat(consultantStats[0]?.platform_fees ?? '0'),
         topConsultants: topConsultants.map(c => ({
           id: c.id, name: `${c.first_name} ${c.last_name}`, email: c.email,
-          specialization: c.specialization, bookings: parseInt(c.bookings),
+          specializations: c.specializations, bookings: parseInt(c.bookings),
           revenue: parseFloat(c.revenue), platformFees: parseFloat(c.platform_fees),
         })),
       },
@@ -1700,5 +1755,237 @@ export class AdminService {
     const expense = await this.expensesRepo.findOne({ where: { id } });
     if (!expense) throw new NotFoundException('Expense not found');
     return this.expensesRepo.remove(expense);
+  }
+
+  // ─── FIX AD1: Payment Transactions ────────────────────────────────────────
+
+  async getPaymentTransactions(
+    page = 1,
+    limit = 20,
+    filters: { method?: string; status?: string; from?: string; to?: string; search?: string },
+  ) {
+    const qb = this.bookingsRepo
+      .createQueryBuilder('b')
+      .leftJoinAndSelect('b.guest', 'guest')
+      .leftJoinAndSelect('b.host', 'host')
+      .leftJoinAndSelect('b.property', 'property')
+      .orderBy('b.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (filters.method) qb.andWhere('b.paymentMethod = :method', { method: filters.method });
+    if (filters.status) qb.andWhere('b.paymentStatus = :status', { status: filters.status });
+    if (filters.from) qb.andWhere('b.createdAt >= :from', { from: new Date(filters.from) });
+    if (filters.to) qb.andWhere('b.createdAt <= :to', { to: new Date(filters.to) });
+    if (filters.search) {
+      qb.andWhere(
+        '(b.paymentReference LIKE :s OR b.opayOrderReference LIKE :s OR b.stripePaymentIntentId LIKE :s OR CAST(b.id AS CHAR) LIKE :s)',
+        { s: `%${filters.search}%` },
+      );
+    }
+
+    const [items, total] = await qb.getManyAndCount();
+
+    return {
+      items: items.map((b) => ({
+        id: b.id,
+        type: 'property_booking',
+        guestName: b.guest ? `${b.guest.firstName} ${b.guest.lastName}` : null,
+        hostName: b.host ? `${b.host.firstName} ${b.host.lastName}` : null,
+        propertyTitle: b.property?.title ?? null,
+        totalAmount: b.totalAmount,
+        serviceFee: b.serviceFee,
+        paymentMethod: b.paymentMethod,
+        paymentStatus: b.paymentStatus,
+        paymentReference: b.paymentReference,
+        opayOrderReference: b.opayOrderReference,
+        stripePaymentIntentId: b.stripePaymentIntentId,
+        createdAt: b.createdAt,
+        status: b.status,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  // ─── FIX AD7: User Merge / Dedup ─────────────────────────────────────────
+
+  async findDuplicateUsers(search: string) {
+    if (!search || search.length < 2) return [];
+
+    const users = await this.usersRepo
+      .createQueryBuilder('u')
+      .where(
+        '(LOWER(u.email) LIKE LOWER(:s) OR u.phone LIKE :s OR LOWER(u.firstName) LIKE LOWER(:s) OR LOWER(u.lastName) LIKE LOWER(:s))',
+        { s: `%${search}%` },
+      )
+      .orderBy('u.createdAt', 'ASC')
+      .take(20)
+      .getMany();
+
+    return users.map((u) => ({
+      id: u.id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email,
+      phone: u.phone,
+      googleId: u.googleId ?? null,
+      appleId: u.appleId ?? null,
+      isHost: u.isHost,
+      isAdmin: u.isAdmin,
+      isActive: u.isActive,
+      createdAt: u.createdAt,
+    }));
+  }
+
+  async mergeUsers(keepId: number, mergeId: number, adminId?: number) {
+    if (keepId === mergeId) throw new BadRequestException('Cannot merge a user with themselves');
+
+    const keep = await this.usersRepo.findOne({ where: { id: keepId } });
+    const merge = await this.usersRepo.findOne({ where: { id: mergeId } });
+    if (!keep) throw new NotFoundException('Primary user not found');
+    if (!merge) throw new NotFoundException('Secondary user not found');
+    if (merge.isAdmin) throw new BadRequestException('Cannot merge an admin account');
+
+    // Transfer all owned data from mergeId → keepId
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query('UPDATE bookings SET guest_id = ? WHERE guest_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE bookings SET host_id = ? WHERE host_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE properties SET host_id = ? WHERE host_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE reviews SET reviewer_id = ? WHERE reviewer_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE reviews SET host_id = ? WHERE host_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE payouts SET host_id = ? WHERE host_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE earnings SET host_id = ? WHERE host_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE disputes SET raised_by_id = ? WHERE raised_by_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE messages SET sender_id = ? WHERE sender_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE notifications SET user_id = ? WHERE user_id = ?', [keepId, mergeId]);
+      await manager.query('UPDATE wishlists SET user_id = ? WHERE user_id = ?', [keepId, mergeId]).catch(() => {});
+      await manager.query('UPDATE saved_searches SET user_id = ? WHERE user_id = ?', [keepId, mergeId]).catch(() => {});
+
+      // Inherit host flag if merge user was a host
+      if (merge.isHost && !keep.isHost) {
+        await manager.update(UserEntity, keepId, { isHost: true });
+      }
+
+      // Deactivate the merged account
+      await manager.update(UserEntity, mergeId, { isActive: false, email: `merged_${mergeId}_${merge.email}` });
+
+      // Log the merge action
+      await manager.save(AdminActivityLogEntity, {
+        adminId,
+        action: 'MERGE_USERS',
+        entityType: 'user',
+        entityId: String(keepId),
+        details: { keepId, mergeId, mergedEmail: merge.email, mergedName: `${merge.firstName} ${merge.lastName}` },
+      });
+    });
+
+    return { success: true, keepId, mergeId, message: `User #${mergeId} merged into #${keepId}` };
+  }
+
+  // ─── FIX AD9: Notification Templates ──────────────────────────────────────
+
+  private readonly notificationTemplates = [
+    // Push notifications
+    { slug: 'push-booking-confirmed', type: 'push', name: 'Booking Confirmed', title: 'Booking Confirmed', body: 'Your booking at {{property}} is confirmed!', enabled: true },
+    { slug: 'push-booking-cancelled', type: 'push', name: 'Booking Cancelled', title: 'Booking Cancelled', body: 'Your booking at {{property}} has been cancelled.', enabled: true },
+    { slug: 'push-new-message', type: 'push', name: 'New Message', title: 'New Message', body: '{{sender}} sent you a message.', enabled: true },
+    { slug: 'push-payout-processed', type: 'push', name: 'Payout Processed', title: 'Payout Sent', body: 'Your payout of {{amount}} has been processed.', enabled: true },
+    { slug: 'push-review-received', type: 'push', name: 'Review Received', title: 'New Review', body: '{{reviewer}} left a {{rating}}★ review on {{property}}.', enabled: true },
+    { slug: 'push-booking-request', type: 'push', name: 'Booking Request', title: 'New Booking Request', body: '{{guest}} wants to book {{property}} ({{dates}}).', enabled: true },
+    { slug: 'push-dispute-update', type: 'push', name: 'Dispute Update', title: 'Dispute Updated', body: 'Your dispute #{{disputeId}} has been updated.', enabled: true },
+    { slug: 'push-id-verified', type: 'push', name: 'ID Verified', title: 'ID Verified', body: 'Your identity has been verified. You can now list properties.', enabled: true },
+    // SMS notifications
+    { slug: 'sms-otp-verification', type: 'sms', name: 'OTP Verification', title: '', body: 'Your Sakan verification code is {{otp}}. Valid for 10 minutes.', enabled: true },
+    { slug: 'sms-booking-confirmed', type: 'sms', name: 'Booking Confirmed', title: '', body: 'Sakan: Your booking #{{bookingId}} at {{property}} is confirmed for {{dates}}.', enabled: true },
+    { slug: 'sms-payout-sent', type: 'sms', name: 'Payout Sent', title: '', body: 'Sakan: Your payout of {{amount}} has been sent to your {{method}} account.', enabled: true },
+    { slug: 'sms-booking-reminder', type: 'sms', name: 'Booking Reminder', title: '', body: 'Sakan: Reminder - Your stay at {{property}} starts tomorrow ({{date}}).', enabled: true },
+  ];
+
+  getNotificationTemplates() {
+    return this.notificationTemplates;
+  }
+
+  updateNotificationTemplate(slug: string, data: { title?: string; body?: string; enabled?: boolean }) {
+    const tpl = this.notificationTemplates.find((t) => t.slug === slug);
+    if (!tpl) throw new NotFoundException('Template not found');
+    if (data.title !== undefined) tpl.title = data.title;
+    if (data.body !== undefined) tpl.body = data.body;
+    if (data.enabled !== undefined) tpl.enabled = data.enabled;
+    return tpl;
+  }
+
+  // ─── FIX AD11: Host Onboarding Funnel ─────────────────────────────────────
+
+  async getHostOnboardingFunnel() {
+    // Stage 1: Registered as host but no property
+    const stage1: any[] = await this.dataSource.query(`
+      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_document_status
+      FROM users u
+      WHERE u.is_host = 1 AND u.is_active = 1
+        AND u.id NOT IN (SELECT DISTINCT host_id FROM properties)
+      ORDER BY u.created_at DESC
+    `);
+
+    // Stage 2: Has property but none published
+    const stage2: any[] = await this.dataSource.query(`
+      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_document_status,
+             COUNT(p.id) AS property_count
+      FROM users u
+      JOIN properties p ON p.host_id = u.id
+      WHERE u.is_host = 1 AND u.is_active = 1
+        AND u.id NOT IN (SELECT DISTINCT host_id FROM properties WHERE status = 'published')
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `);
+
+    // Stage 3: Published property but no ID verification
+    const stage3: any[] = await this.dataSource.query(`
+      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_document_status,
+             COUNT(DISTINCT p.id) AS published_properties
+      FROM users u
+      JOIN properties p ON p.host_id = u.id AND p.status = 'published'
+      WHERE u.is_host = 1 AND u.is_active = 1
+        AND (u.id_document_status IS NULL OR u.id_document_status != 'approved')
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `);
+
+    // Stage 4: Verified but no bookings yet
+    const stage4: any[] = await this.dataSource.query(`
+      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_document_status,
+             COUNT(DISTINCT p.id) AS published_properties
+      FROM users u
+      JOIN properties p ON p.host_id = u.id AND p.status = 'published'
+      WHERE u.is_host = 1 AND u.is_active = 1
+        AND u.id_document_status = 'approved'
+        AND u.id NOT IN (SELECT DISTINCT host_id FROM bookings WHERE status NOT IN ('cancelled'))
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `);
+
+    // Stage 5: Fully onboarded (has at least one completed booking)
+    const stage5Count: any[] = await this.dataSource.query(`
+      SELECT COUNT(DISTINCT u.id) AS count
+      FROM users u
+      JOIN bookings b ON b.host_id = u.id AND b.status IN ('confirmed', 'completed')
+      WHERE u.is_host = 1 AND u.is_active = 1
+    `);
+
+    return {
+      funnel: [
+        { stage: 1, label: 'Registered — No Property', count: stage1.length, users: stage1.slice(0, 20) },
+        { stage: 2, label: 'Has Property — Not Published', count: stage2.length, users: stage2.slice(0, 20) },
+        { stage: 3, label: 'Published — Not Verified', count: stage3.length, users: stage3.slice(0, 20) },
+        { stage: 4, label: 'Verified — No Bookings', count: stage4.length, users: stage4.slice(0, 20) },
+        { stage: 5, label: 'Fully Onboarded', count: parseInt(stage5Count[0]?.count ?? '0'), users: [] },
+      ],
+    };
   }
 }

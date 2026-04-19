@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Not, In } from 'typeorm';
+import { Repository, Between, Not, In, DataSource } from 'typeorm';
 import { AvailabilityEntity } from '../entities/availability.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { PropertyEntity } from '../entities/property.entity';
@@ -21,6 +21,7 @@ export class AvailabilityService {
     private bookingsRepo: Repository<BookingEntity>,
     @InjectRepository(PropertyEntity)
     private propertiesRepo: Repository<PropertyEntity>,
+    private dataSource: DataSource,
   ) {}
 
   async getCalendar(propertyId: number, year: number, month: number) {
@@ -41,11 +42,11 @@ export class AvailabilityService {
       },
     });
 
-    // Get confirmed bookings in range
+    // Get active bookings in range (FIX A1: include in_progress)
     const bookings = await this.bookingsRepo
       .createQueryBuilder('booking')
       .where('booking.propertyId = :propertyId', { propertyId })
-      .andWhere('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed'] })
+      .andWhere('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'in_progress'] })
       .andWhere('booking.checkIn <= :endStr', { endStr })
       .andWhere('booking.checkOut >= :startStr', { startStr })
       .getMany();
@@ -108,24 +109,73 @@ export class AvailabilityService {
     if (!property) throw new NotFoundException('Property not found');
     if (property.hostId !== hostId) throw new ForbiddenException('Not your property');
 
+    // FIX A2: Warn if blocking dates that overlap with confirmed/in_progress bookings
+    const conflictingBookings: string[] = [];
+    if (dto.isBlocked && dto.dates.length > 0) {
+      const sortedDates = [...dto.dates].sort();
+      const minDate = sortedDates[0];
+      const maxDate = sortedDates[sortedDates.length - 1];
+      const bookings = await this.bookingsRepo
+        .createQueryBuilder('booking')
+        .where('booking.propertyId = :propertyId', { propertyId })
+        .andWhere('booking.status IN (:...statuses)', {
+          statuses: ['confirmed', 'in_progress'],
+        })
+        .andWhere('booking.checkIn <= :maxDate', { maxDate })
+        .andWhere('booking.checkOut > :minDate', { minDate })
+        .getMany();
+
+      const dateSet = new Set(dto.dates);
+      for (const booking of bookings) {
+        const ci = new Date(booking.checkIn);
+        const co = new Date(booking.checkOut);
+        for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
+          const ds = d.toISOString().split('T')[0];
+          if (dateSet.has(ds)) {
+            conflictingBookings.push(`Booking #${booking.id} (${booking.checkIn} – ${booking.checkOut})`);
+            break;
+          }
+        }
+      }
+
+      if (conflictingBookings.length > 0) {
+        throw new BadRequestException(
+          `Cannot block dates that overlap with active bookings: ${conflictingBookings.join(', ')}. Cancel the bookings first.`,
+        );
+      }
+    }
+
     const results: AvailabilityEntity[] = [];
 
-    for (const date of dto.dates) {
-      let row = await this.availabilityRepo.findOne({ where: { propertyId, date } });
-      if (row) {
-        row.isBlocked = dto.isBlocked;
-        if (dto.priceOverride !== undefined) {
-          row.priceOverride = dto.priceOverride;
-        }
-      } else {
-        row = this.availabilityRepo.create({
-          propertyId,
-          date,
-          isBlocked: dto.isBlocked,
-          priceOverride: dto.priceOverride,
-        });
+    // FIX A4: Bulk upsert instead of N separate queries
+    if (dto.dates.length > 0) {
+      const values = dto.dates.map(date => ({
+        propertyId,
+        date,
+        isBlocked: dto.isBlocked,
+        priceOverride: dto.priceOverride ?? null,
+        source: 'host' as const,
+      }));
+
+      const placeholders = values.map(() => '(?, ?, ?, ?, ?)').join(', ');
+      const params: any[] = [];
+      for (const v of values) {
+        params.push(v.propertyId, v.date, v.isBlocked, v.priceOverride, v.source);
       }
-      results.push(await this.availabilityRepo.save(row));
+
+      await this.dataSource.query(
+        `INSERT INTO availability (propertyId, date, isBlocked, priceOverride, source)
+         VALUES ${placeholders}
+         ON DUPLICATE KEY UPDATE isBlocked = VALUES(isBlocked),
+           priceOverride = COALESCE(VALUES(priceOverride), priceOverride),
+           source = VALUES(source)`,
+        params,
+      );
+
+      const inserted = await this.availabilityRepo.find({
+        where: { propertyId, date: In(dto.dates) },
+      });
+      results.push(...inserted);
     }
 
     return results;
@@ -140,22 +190,25 @@ export class AvailabilityService {
     const end = new Date(dto.endDate);
     if (start > end) throw new BadRequestException('startDate must be before endDate');
 
-    const datesUpdated: string[] = [];
+    // FIX A4: Bulk upsert instead of N separate queries
+    const dates: string[] = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const date = d.toISOString().split('T')[0];
-      let row = await this.availabilityRepo.findOne({ where: { propertyId, date } });
-      if (row) {
-        row.priceOverride = dto.pricePerNight;
-      } else {
-        row = this.availabilityRepo.create({
-          propertyId,
-          date,
-          isBlocked: false,
-          priceOverride: dto.pricePerNight,
-        });
+      dates.push(d.toISOString().split('T')[0]);
+    }
+
+    if (dates.length > 0) {
+      const placeholders = dates.map(() => '(?, ?, ?, ?, ?)').join(', ');
+      const params: any[] = [];
+      for (const date of dates) {
+        params.push(propertyId, date, false, dto.pricePerNight, 'host');
       }
-      await this.availabilityRepo.save(row);
-      datesUpdated.push(date);
+
+      await this.dataSource.query(
+        `INSERT INTO availability (propertyId, date, isBlocked, priceOverride, source)
+         VALUES ${placeholders}
+         ON DUPLICATE KEY UPDATE priceOverride = VALUES(priceOverride)`,
+        params,
+      );
     }
 
     return {
@@ -164,7 +217,7 @@ export class AvailabilityService {
       startDate: dto.startDate,
       endDate: dto.endDate,
       pricePerNight: dto.pricePerNight,
-      datesUpdated: datesUpdated.length,
+      datesUpdated: dates.length,
     };
   }
 
@@ -259,10 +312,11 @@ export class AvailabilityService {
     });
 
     const bookedDates = new Set<string>();
+    // FIX A1: include in_progress in availability range check
     const bookings = await this.bookingsRepo
       .createQueryBuilder('booking')
       .where('booking.propertyId = :propertyId', { propertyId })
-      .andWhere('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed'] })
+      .andWhere('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'in_progress'] })
       .andWhere('booking.checkIn <= :to', { to })
       .andWhere('booking.checkOut >= :from', { from })
       .getMany();
@@ -316,10 +370,11 @@ export class AvailabilityService {
     if (blockedCount > 0) return false;
 
     // Check for overlapping bookings
+    // FIX A1: Include 'in_progress' to prevent double-booking occupied properties
     const conflictCount = await this.bookingsRepo
       .createQueryBuilder('booking')
       .where('booking.propertyId = :propertyId', { propertyId })
-      .andWhere('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed'] })
+      .andWhere('booking.status IN (:...statuses)', { statuses: ['pending', 'confirmed', 'in_progress'] })
       .andWhere('booking.checkIn < :checkOut', { checkOut })
       .andWhere('booking.checkOut > :checkIn', { checkIn })
       .getCount();

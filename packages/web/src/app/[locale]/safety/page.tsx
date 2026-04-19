@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/Motion';
 import {
@@ -18,14 +18,14 @@ const features = [
     icon: Shield,
     iconBg: 'bg-violet-50 text-violet-600',
     title: '2. Identity Verification',
-    desc: 'We use verified email, verified phone, and optional government ID checks. Hosts can require additional verification before accepting bookings. Always communicate and pay within Journey Stay.',
+    desc: 'We use verified email, verified phone, and optional government ID checks. Hosts can require additional verification before accepting bookings. Always communicate and pay within Oikivo.',
   },
   {
     id: 'payments',
     icon: CreditCard,
     iconBg: 'bg-emerald-50 text-emerald-600',
     title: '3. Secure Payments',
-    desc: 'Payments are processed through encrypted channels. Never send money outside Journey Stay — not via cash, direct bank transfers, or external payment links shared in messages.',
+    desc: 'Payments are processed through encrypted channels. Never send money outside Oikivo — not via cash, direct bank transfers, or external payment links shared in messages.',
   },
   {
     id: 'reporting',
@@ -57,7 +57,7 @@ export default function SafetyPage() {
               <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Support</span>
               <h1 className="font-display font-bold text-4xl text-white mb-3">Safety Information</h1>
               <p className="text-indigo-100 text-sm max-w-xl leading-relaxed">
-                How Journey Stay helps guests and hosts stay safe before, during, and after every trip.
+                How Oikivo helps guests and hosts stay safe before, during, and after every trip.
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
                 {['Verified users', 'Secure payments', 'Incident support', '24/7 help'].map((chip) => (

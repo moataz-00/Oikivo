@@ -29,7 +29,7 @@ export class PropertyEntity {
   @Column({ name: 'host_id', type: 'bigint', unsigned: true })
   hostId: number;
 
-  @ManyToOne(() => UserEntity, (u) => u.properties, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, (u) => u.properties, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'host_id' })
   host: UserEntity;
 
@@ -95,7 +95,7 @@ export class PropertyEntity {
   @Column({ name: 'security_deposit', type: 'decimal', precision: 10, scale: 2, default: 0 })
   securityDeposit: number;
 
-  @Column({ name: 'service_fee_percent', type: 'decimal', precision: 5, scale: 2, default: 14.00 })
+  @Column({ name: 'service_fee_percent', type: 'decimal', precision: 5, scale: 2, default: 5.00 })
   serviceFeePercent: number;
 
   @Column({ name: 'min_nights', default: 1 })
