@@ -29,6 +29,7 @@ import { SmsModule } from './sms/sms.module';
 import { ConsultationsModule } from './consultations/consultations.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
+import { PriceAlertsModule } from './price-alerts/price-alerts.module';
 import { CommonModule } from './common/common.module';
 import { CacheModule } from '@nestjs/cache-manager';
 
@@ -204,6 +205,7 @@ import { BookingStatusHistoryEntity } from './entities/booking-status-history.en
     ConsultationsModule,
     AuditLogModule,
     SavedSearchesModule,
+    PriceAlertsModule,
   ],
   providers: [
     // Enforce @Throttle() decorators across all controllers globally

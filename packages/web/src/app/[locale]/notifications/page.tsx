@@ -101,9 +101,7 @@ function getNotifRoute(n: Notification, locale: string): string | null {
     case 'payout':
       return `/${locale}/hosting`;
     case 'new_message':
-      return data.conversationId
-        ? `/${locale}/inbox/${data.conversationId}`
-        : `/${locale}/inbox`;
+      return `/${locale}/hosting/inbox`;
     case 'host_activated':
       return `/${locale}/hosting`;
     case 'cohost_invite':

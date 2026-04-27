@@ -193,19 +193,26 @@ export function PhotoGallery({ images, title }: PhotoGalleryProps) {
 
           {viewMode === 'single' ? (
             <>
-              {/* Single image view */}
+              {/* Single image view — all images stacked, only active one visible.
+                  No remount on navigate → instant switching, no extra network requests. */}
               <div className="flex h-full items-center justify-center px-4 sm:px-16 pt-16 pb-24">
                 <div className="relative w-full max-w-5xl" style={{ height: 'calc(100vh - 160px)' }}>
-                  <Image
-                    key={activeIndex}
-                    src={imageUrls[activeIndex] ?? ''}
-                    alt={`${title} - photo ${activeIndex + 1}`}
-                    fill
-                    className="object-contain"
-                    sizes="100vw"
-                    quality={90}
-                    priority
-                  />
+                  {images.map((_, idx) => (
+                    <Image
+                      key={idx}
+                      src={imageUrls[idx] ?? ''}
+                      alt={`${title} - photo ${idx + 1}`}
+                      fill
+                      className={cn(
+                        'object-contain transition-opacity duration-150',
+                        idx === activeIndex ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                      )}
+                      sizes="100vw"
+                      quality={90}
+                      priority={idx === 0}
+                      loading={idx < 5 ? 'eager' : 'lazy'}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -282,6 +289,7 @@ export function PhotoGallery({ images, title }: PhotoGalleryProps) {
                     className="object-cover"
                     sizes="64px"
                     quality={50}
+                    loading="eager"
                   />
                 </button>
               ))}

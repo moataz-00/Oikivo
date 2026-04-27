@@ -434,8 +434,11 @@ export function InstapayModal({
                   <p className="text-sm text-neutral-600 mb-1">
                     We&apos;ve received your payment reference and will verify it shortly.
                   </p>
+                  <p className="text-sm text-neutral-700 mb-2 font-medium">
+                    We review all payment proofs within <span className="text-indigo-600">2 business hours</span>.
+                  </p>
                   <p className="text-xs text-neutral-400 mb-6">
-                    You&apos;ll get a notification once your booking is confirmed � usually within a few hours.
+                    Your booking will be confirmed as soon as verification is complete. You&apos;ll receive an in-app notification and email once approved.
                   </p>
                   <Button
                     className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200/60 border-0"

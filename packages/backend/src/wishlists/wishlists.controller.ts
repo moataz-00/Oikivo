@@ -28,6 +28,15 @@ export class WishlistsController {
     return this.wishlistsService.findByShareToken(token);
   }
 
+  /** UUID-based lookup — used for authenticated detail page URLs */
+  @Get('u/:uuid')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a wishlist by UUID' })
+  findOneByUuid(@Param('uuid') uuid: string, @CurrentUser() user: UserEntity) {
+    return this.wishlistsService.findOneByUuid(uuid, user.id);
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

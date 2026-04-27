@@ -9,6 +9,7 @@ import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { validateMagicBytes } from '../common/utils/magic-bytes.util';
 import { ConsultationsService } from './consultations.service';
 import {
   ApplyAsConsultantDto, UpdateConsultantProfileDto,
@@ -317,6 +318,7 @@ export class ConsultationsAuthController {
 
   // P2: Upload payment proof screenshot for a booking
   @Post('bookings/:id/upload-payment-proof')
+  @Throttle({ default: { ttl: 3600000, limit: 5 } })
   @ApiOperation({ summary: 'Upload InstaPay payment proof screenshot (client)' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -348,6 +350,8 @@ export class ConsultationsAuthController {
     @Body('reference') reference?: string,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
+    // SEC-02: Validate magic bytes to prevent MIME-type spoofing
+    validateMagicBytes(file.path, ['jpeg', 'png', 'webp']);
     const proofUrl = `/uploads/payments/consultation-proofs/${file.filename}`;
     return this.svc.submitConsultationInstapayProof(user.id, id, {
       reference: reference ?? '',

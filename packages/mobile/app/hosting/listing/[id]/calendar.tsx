@@ -13,6 +13,10 @@ import {
   ChevronRight,
   Lock,
   Tag,
+  Link2,
+  Plus,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react-native';
 import {
   format,
@@ -26,7 +30,7 @@ import {
   isBefore,
   startOfDay,
 } from 'date-fns';
-import { availabilityApi } from '@/lib/api';
+import { availabilityApi, type ICalChannel } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
@@ -45,7 +49,12 @@ export default function CalendarManagementScreen() {
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
-  const [tab, setTab] = useState<'block' | 'pricing'>('block');
+  const [tab, setTab] = useState<'block' | 'pricing' | 'ical'>('block');
+
+  // iCal state
+  const [icalName, setICalName] = useState('');
+  const [icalUrl, setICalUrl] = useState('');
+  const [addingChannel, setAddingChannel] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
   const [selectedEnd, setSelectedEnd] = useState<Date | null>(null);
@@ -63,6 +72,44 @@ export default function CalendarManagementScreen() {
     queryKey: ['calendar', propertyId, monthStr],
     queryFn: () => availabilityApi.getCalendar(propertyId, monthStr),
     enabled: !isNaN(propertyId),
+  });
+
+  // iCal channels
+  const {
+    data: channels = [],
+    isLoading: channelsLoading,
+    refetch: refetchChannels,
+  } = useQuery({
+    queryKey: ['ical-channels', propertyId],
+    queryFn: () => availabilityApi.getChannels(propertyId),
+    enabled: !isNaN(propertyId) && tab === 'ical',
+  });
+
+  const addChannelMutation = useMutation({
+    mutationFn: () => availabilityApi.addChannel(propertyId, icalName.trim(), icalUrl.trim()),
+    onSuccess: () => {
+      setICalName('');
+      setICalUrl('');
+      setAddingChannel(false);
+      refetchChannels();
+      success('Added', 'iCal channel linked successfully.');
+    },
+    onError: () => showError('Error', 'Could not add iCal channel. Check the URL and try again.'),
+  });
+
+  const removeChannelMutation = useMutation({
+    mutationFn: (sourceId: number) => availabilityApi.removeChannel(propertyId, sourceId),
+    onSuccess: () => refetchChannels(),
+    onError: () => showError('Error', 'Could not remove channel.'),
+  });
+
+  const syncChannelMutation = useMutation({
+    mutationFn: (sourceId: number) => availabilityApi.syncChannel(propertyId, sourceId),
+    onSuccess: () => {
+      refetchChannels();
+      success('Synced', 'Calendar synced from remote source.');
+    },
+    onError: () => showError('Error', 'Sync failed. Please try again.'),
   });
 
   // Build a set of blocked dates for quick lookup
@@ -231,26 +278,38 @@ export default function CalendarManagementScreen() {
         <TouchableOpacity
           onPress={() => { setTab('block'); setSelectedStart(null); setSelectedEnd(null); }}
           activeOpacity={0.8}
-          className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5 ${
+          className={`flex-1 flex-row items-center justify-center py-2 rounded-lg gap-1 ${
             tab === 'block' ? 'bg-white shadow-sm' : ''
           }`}
         >
-          <Lock size={14} color={tab === 'block' ? '#1a1a1a' : '#9CA3AF'} />
-          <Text className={`text-sm font-semibold ${
+          <Lock size={13} color={tab === 'block' ? '#1a1a1a' : '#9CA3AF'} />
+          <Text className={`text-xs font-semibold ${
             tab === 'block' ? 'text-gray-900' : 'text-gray-400'
-          }`}>Block Dates</Text>
+          }`}>Block</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => { setTab('pricing'); setSelectedStart(null); setSelectedEnd(null); }}
           activeOpacity={0.8}
-          className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5 ${
+          className={`flex-1 flex-row items-center justify-center py-2 rounded-lg gap-1 ${
             tab === 'pricing' ? 'bg-white shadow-sm' : ''
           }`}
         >
-          <Tag size={14} color={tab === 'pricing' ? '#1a1a1a' : '#9CA3AF'} />
-          <Text className={`text-sm font-semibold ${
+          <Tag size={13} color={tab === 'pricing' ? '#1a1a1a' : '#9CA3AF'} />
+          <Text className={`text-xs font-semibold ${
             tab === 'pricing' ? 'text-gray-900' : 'text-gray-400'
-          }`}>Seasonal Pricing</Text>
+          }`}>Pricing</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setTab('ical')}
+          activeOpacity={0.8}
+          className={`flex-1 flex-row items-center justify-center py-2 rounded-lg gap-1 ${
+            tab === 'ical' ? 'bg-white shadow-sm' : ''
+          }`}
+        >
+          <Link2 size={13} color={tab === 'ical' ? '#1a1a1a' : '#9CA3AF'} />
+          <Text className={`text-xs font-semibold ${
+            tab === 'ical' ? 'text-gray-900' : 'text-gray-400'
+          }`}>iCal</Text>
         </TouchableOpacity>
       </View>
 
@@ -258,6 +317,9 @@ export default function CalendarManagementScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
+        {/* Month header + calendar grid (not shown on iCal tab) */}
+        {tab !== 'ical' && (
+          <>
         {/* Month header */}
         <View className="flex-row items-center justify-between px-6 py-4">
           <TouchableOpacity onPress={goToPrevMonth} className="p-2">
@@ -272,11 +334,12 @@ export default function CalendarManagementScreen() {
         </View>
 
         {/* Tab description */}
-        {tab === 'block' ? (
+        {tab === 'block' && (
           <View className="px-6 mb-3">
             <Text className="text-sm text-gray-500">Select a date range to block — guests won't be able to book those nights.</Text>
           </View>
-        ) : (
+        )}
+        {tab === 'pricing' && (
           <View className="px-6 mb-3">
             <Text className="text-sm text-gray-500">Select a date range and enter a custom price per night to override your base rate.</Text>
           </View>
@@ -401,28 +464,132 @@ export default function CalendarManagementScreen() {
             />
           </View>
         )}
+          </>
+        )}
+
+        {/* ============================================================ */}
+        {/* iCal channels tab (UX-07 / P1-08) */}
+        {/* ============================================================ */}
+        {tab === 'ical' && (
+          <View className="px-6 mt-4">
+            <Text className="text-sm text-gray-500 mb-4">
+              Sync blocked dates from external platforms (Airbnb, Booking.com, etc.) using iCal links.
+            </Text>
+
+            {channelsLoading ? (
+              <View className="py-6 items-center"><Spinner size="small" /></View>
+            ) : channels.length === 0 ? (
+              <View className="py-6 items-center">
+                <Link2 size={32} color="#D1D5DB" />
+                <Text className="text-gray-400 text-sm mt-2">No channels linked yet</Text>
+              </View>
+            ) : (
+              <View className="space-y-3 mb-4">
+                {channels.map((ch: ICalChannel) => (
+                  <View key={ch.id} className="p-3 rounded-xl border border-gray-200 bg-gray-50">
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1 mr-2">
+                        <Text className="text-sm font-semibold text-gray-900" numberOfLines={1}>{ch.name}</Text>
+                        <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>{ch.url}</Text>
+                        {ch.lastSyncAt && (
+                          <Text className="text-xs text-gray-400 mt-0.5">
+                            Last sync: {new Date(ch.lastSyncAt).toLocaleDateString()}
+                          </Text>
+                        )}
+                      </View>
+                      <View className="flex-row gap-1">
+                        <TouchableOpacity
+                          onPress={() => syncChannelMutation.mutate(ch.id)}
+                          disabled={syncChannelMutation.isPending}
+                          className="p-2 rounded-lg bg-indigo-50"
+                        >
+                          <RefreshCw size={15} color="#4F46E5" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => removeChannelMutation.mutate(ch.id)}
+                          disabled={removeChannelMutation.isPending}
+                          className="p-2 rounded-lg bg-red-50"
+                        >
+                          <Trash2 size={15} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {addingChannel ? (
+              <View className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                <Text className="text-sm font-semibold text-gray-700">Add iCal channel</Text>
+                <TextInput
+                  placeholder="Name (e.g. Airbnb)"
+                  value={icalName}
+                  onChangeText={setICalName}
+                  className="border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900"
+                />
+                <TextInput
+                  placeholder="iCal URL (https://...)"
+                  value={icalUrl}
+                  onChangeText={setICalUrl}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  className="border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900"
+                />
+                <View className="flex-row gap-2 mt-1">
+                  <TouchableOpacity
+                    onPress={() => { setAddingChannel(false); setICalName(''); setICalUrl(''); }}
+                    className="flex-1 border border-gray-300 rounded-xl py-2.5 items-center"
+                  >
+                    <Text className="text-sm font-semibold text-gray-600">Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => addChannelMutation.mutate()}
+                    disabled={!icalName.trim() || !icalUrl.trim() || addChannelMutation.isPending}
+                    className="flex-1 bg-indigo-600 rounded-xl py-2.5 items-center disabled:opacity-50"
+                  >
+                    <Text className="text-sm font-semibold text-white">
+                      {addChannelMutation.isPending ? 'Adding...' : 'Add Channel'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => setAddingChannel(true)}
+                className="flex-row items-center justify-center gap-2 border-2 border-dashed border-indigo-300 rounded-xl py-3"
+                activeOpacity={0.8}
+              >
+                <Plus size={16} color="#4F46E5" />
+                <Text className="text-sm font-semibold text-indigo-600">Link iCal calendar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </ScrollView>
 
-      {/* Bottom action */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 pt-3 pb-8">
-        {tab === 'block' ? (
-          <Button
-            title="Block Selected Dates"
-            onPress={handleBlockDates}
-            loading={blockMutation.isPending}
-            disabled={!selectedStart || !selectedEnd}
-            size="lg"
-          />
-        ) : (
-          <Button
-            title="Apply Seasonal Price"
-            onPress={handleSetSeasonalPricing}
-            loading={seasonalPricingMutation.isPending}
-            disabled={!selectedStart || !selectedEnd || !seasonalPrice}
-            size="lg"
-          />
-        )}
-      </View>
+      {/* Bottom action (hidden on iCal tab) */}
+      {tab !== 'ical' && (
+        <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 pt-3 pb-8">
+          {tab === 'block' ? (
+            <Button
+              title="Block Selected Dates"
+              onPress={handleBlockDates}
+              loading={blockMutation.isPending}
+              disabled={!selectedStart || !selectedEnd}
+              size="lg"
+            />
+          ) : (
+            <Button
+              title="Apply Seasonal Price"
+              onPress={handleSetSeasonalPricing}
+              loading={seasonalPricingMutation.isPending}
+              disabled={!selectedStart || !selectedEnd || !seasonalPrice}
+              size="lg"
+            />
+          )}
+        </View>
+      )}
     </View>
   );
 }

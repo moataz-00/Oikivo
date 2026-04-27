@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -18,6 +19,8 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class PayoutsService {
+  private readonly logger = new Logger(PayoutsService.name);
+
   private getEncryptionKey(): Buffer | null {
     const keyRaw = this.config.get<string>('PAYOUT_ENCRYPTION_KEY')
       || this.config.get<string>('ENCRYPTION_KEY')
@@ -39,7 +42,23 @@ export class PayoutsService {
     private mail: MailService,
     private auditLog: AuditLogService,
     private dataSource: DataSource,
-  ) {}
+  ) {
+    // BE-07: Fail fast if payout encryption key is missing so bank details are
+    // never silently written unencrypted or fail at decryption time.
+    const keyRaw = config.get<string>('PAYOUT_ENCRYPTION_KEY')
+      || config.get<string>('ENCRYPTION_KEY')
+      || '';
+    if (!keyRaw || keyRaw.length < 32) {
+      const msg =
+        'PayoutsService: PAYOUT_ENCRYPTION_KEY (or ENCRYPTION_KEY as fallback) is not set or is ' +
+        'shorter than 32 characters. Payout bank-detail encryption is disabled — ' +
+        'set a 32+ character secret in your environment before processing payouts.';
+      if (config.get<string>('NODE_ENV') === 'production') {
+        throw new Error(msg);
+      }
+      this.logger.warn(msg);
+    }
+  }
 
   // ─── AES-256-GCM field encryption ─────────────────────────────────────────
   private encryptField(text: string): string {

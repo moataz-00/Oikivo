@@ -121,7 +121,7 @@ export function WizardStep({
             {onNext && (
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button size="md" onClick={onNext} disabled={nextDisabled || isLoading} isLoading={isLoading}>
-                  {isLastStep ? `🎉 ${t('publishListing')}` : (nextLabel ?? tCommon('next'))} {!isLastStep && '→'}
+                  {isLastStep ? (nextLabel ?? `🎉 ${t('publishListing')}`) : (nextLabel ?? tCommon('next'))} {!isLastStep && '→'}
                 </Button>
               </motion.div>
             )}

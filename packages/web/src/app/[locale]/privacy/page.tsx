@@ -205,7 +205,7 @@ export default function PrivacyPage() {
                 </div>
                 <p>
                   For privacy questions or to exercise your rights, contact our Data Protection Officer at{' '}
-                  <a href="mailto:privacy@journeystay.com" className="text-brand hover:underline">privacy@journeystay.com</a>.
+                  <a href="mailto:oikivo.support@gmail.com" className="text-brand hover:underline">oikivo.support@gmail.com</a>.
                   We will respond within 30 days of receiving your request.
                 </p>
               </section>

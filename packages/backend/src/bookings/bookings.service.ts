@@ -26,6 +26,7 @@ import { CurrencyService } from '../common/currency.service';
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 import { startOfDay } from 'date-fns';
 import { isEgyptianPublicHoliday } from '../common/holidays.util';
+import { localDateStr } from '../common/utils/date.util';
 
 @Injectable()
 export class BookingsService {
@@ -181,18 +182,34 @@ export class BookingsService {
       throw new BadRequestException('Property is not available for the selected dates');
     }
 
-    // Calculate price with weekend pricing and discounts
+    // Calculate price with weekend pricing, custom overrides, and discounts
     const pricePerNight = Number(property.pricePerNight ?? 0);
     const weekendPrice =
       property.weekendPrice != null ? Number(property.weekendPrice) : null;
 
+    // Load per-date price overrides for the booking window
+    const overrideRows = await this.availabilityRepo.find({
+      where: { propertyId: dto.propertyId },
+      select: ['date', 'priceOverride'],
+    });
+    const priceOverrides = new Map<string, number>(
+      overrideRows
+        .filter((r) => r.priceOverride != null)
+        .map((r) => [r.date, Number(r.priceOverride)]),
+    );
+
     let baseAmount = 0;
-    // Sum per-night prices respecting weekend rates and Egyptian public holidays
+    // Sum per-night prices respecting custom overrides, weekend rates, and Egyptian public holidays
     for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
-      const dow = d.getDay(); // 5=Friday, 6=Saturday
-      const isWeekend = dow === 5 || dow === 6;
-      const isPeak = isWeekend || this.isEgyptianPublicHolidayCheck(d);
-      baseAmount += isPeak && weekendPrice != null ? weekendPrice : pricePerNight;
+      const dateStr = localDateStr(d);
+      const override = priceOverrides.get(dateStr);
+      if (override != null) {
+        baseAmount += override;
+      } else {
+        const dow = d.getDay(); // 5=Friday, 6=Saturday
+        const isPeak = dow === 5 || dow === 6 || this.isEgyptianPublicHolidayCheck(d);
+        baseAmount += isPeak && weekendPrice != null ? weekendPrice : pricePerNight;
+      }
     }
     baseAmount = parseFloat(baseAmount.toFixed(2));
 
@@ -291,14 +308,14 @@ export class BookingsService {
       // Block the dates in availability within the same transaction (batch upsert)
       const datesToBlock: string[] = [];
       for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
-        datesToBlock.push(d.toISOString().split('T')[0]);
+        datesToBlock.push(localDateStr(d));
       }
       if (datesToBlock.length > 0) {
         const values = datesToBlock
           .map((date) => `(${dto.propertyId}, '${date}', 1)`)
           .join(', ');
         await txAvailabilityRepo.query(
-          `INSERT INTO availability (property_id, date, is_blocked)
+          `INSERT INTO property_availability (property_id, date, is_blocked)
            VALUES ${values}
            ON DUPLICATE KEY UPDATE is_blocked = 1`,
         );
@@ -473,14 +490,14 @@ export class BookingsService {
       const checkOutDate = new Date(bookingForUpdate.checkOut);
       const datesToBlock: string[] = [];
       for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
-        datesToBlock.push(d.toISOString().split('T')[0]);
+        datesToBlock.push(localDateStr(d));
       }
       if (datesToBlock.length > 0) {
         const values = datesToBlock
           .map((date) => `(${bookingForUpdate.propertyId}, '${date}', 1, 'booking')`)
           .join(', ');
         await txAvailabilityRepo.query(
-          `INSERT INTO availability (property_id, date, is_blocked, source)
+          `INSERT INTO property_availability (property_id, date, is_blocked, source)
            VALUES ${values}
            ON DUPLICATE KEY UPDATE is_blocked = 1, source = 'booking'`,
         );
@@ -628,15 +645,38 @@ export class BookingsService {
 
     const cancelledBy = booking.guestId === userId ? 'guest' : 'host';
 
-    // Guests cannot cancel after check-in has started
-    // FIX BUG-GM2: Use timezone-aware comparison
+    // Guests can only cancel within the policy's partial-refund window
+    //   flexible  (partialWindow=0): allow same-day cancellation before check-in time
+    //   moderate  (partialWindow=1): must be at least 1 day before check-in
+    //   strict    (partialWindow=7): must be at least 7 days before check-in
     if (cancelledBy === 'guest') {
       const propertyTimezone = booking.property?.timezone || null;
       const checkInDate = new Date(booking.checkIn);
       const daysUntilCheckIn = this.calculateDaysUntilCheckIn(checkInDate, propertyTimezone);
-      
-      if (daysUntilCheckIn <= 0) {
-        throw new BadRequestException('Cancellations are not allowed on or after the check-in date');
+      const policy = booking.cancellationPolicy ?? 'flexible';
+      const partialWindowMap: Record<string, number> = { flexible: 0, moderate: 1, strict: 7 };
+      const partialWindow = partialWindowMap[policy] ?? 0;
+
+      if (daysUntilCheckIn < 0) {
+        throw new BadRequestException('Cancellations are not allowed after the check-in date');
+      }
+
+      if (daysUntilCheckIn === 0 && partialWindow === 0) {
+        // flexible: same-day cancel allowed only before check-in time
+        const checkInAfter: string = booking.property?.checkInAfter ?? '15:00:00';
+        const timezone = propertyTimezone || 'UTC';
+        const nowInTz = toZonedTime(new Date(), timezone);
+        const [ciHour, ciMinute] = checkInAfter.split(':').map(Number);
+        const nowMinutes = nowInTz.getHours() * 60 + nowInTz.getMinutes();
+        const checkInMinutes = ciHour * 60 + ciMinute;
+        if (nowMinutes >= checkInMinutes) {
+          throw new BadRequestException('Cancellations are not allowed on or after the check-in time');
+        }
+      } else if (daysUntilCheckIn <= partialWindow) {
+        // moderate/strict: past the partial-refund deadline
+        throw new BadRequestException(
+          `Cancellations for this property require at least ${partialWindow} day(s) notice before check-in`,
+        );
       }
     }
 
@@ -841,8 +881,8 @@ export class BookingsService {
       }
     }
 
-    // If OPay refund was triggered, send a dedicated refund notification to the guest
-    if (opayRefundTriggered && cancelledBy === 'guest') {
+    // If OPay refund was triggered, send a dedicated refund notification to the guest (WF-01 fix)
+    if (opayRefundTriggered) {
       try {
         const feBase = this.getFrontendBaseUrl();
         const tripsUrl = `${feBase}/en/trips`;
@@ -1633,7 +1673,7 @@ export class BookingsService {
     const skip = (page - 1) * take;
 
     if (status === 'upcoming') {
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDateStr(new Date());
       const [data, total] = await this.bookingsRepo.findAndCount({
         where: { hostId, status: 'confirmed', checkIn: MoreThanOrEqual(today) },
         relations: ['property', 'property.photos', 'guest'],
@@ -1710,7 +1750,7 @@ export class BookingsService {
     const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
     const monthlyRows: Array<{ month: string; bookings: number; revenue: number }> = await this.dataSource.query(
       `SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
-              COUNT(*) AS bookings,
+              SUM(status IN ('confirmed','completed')) AS bookings,
               COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN total_amount - service_fee ELSE 0 END), 0) AS revenue
        FROM bookings
        WHERE host_id = ? AND created_at >= ?
@@ -1740,9 +1780,9 @@ export class BookingsService {
     const propertyBookingStats: Array<{ property_id: number; bookings: number; revenue: number; nights: number }> =
       await this.dataSource.query(
         `SELECT property_id,
-                COUNT(*) AS bookings,
+                SUM(status IN ('confirmed','completed')) AS bookings,
                 COALESCE(SUM(CASE WHEN status IN ('completed','confirmed') THEN total_amount - service_fee ELSE 0 END), 0) AS revenue,
-                COALESCE(SUM(nights), 0) AS nights
+                COALESCE(SUM(CASE WHEN status IN ('confirmed','completed') THEN nights ELSE 0 END), 0) AS nights
          FROM bookings WHERE host_id = ?
          GROUP BY property_id`,
         [hostId],
@@ -1763,11 +1803,12 @@ export class BookingsService {
     const coverMap = new Map(coverPhotos.map((c) => [Number(c.property_id), c.url]));
 
     const byProperty = hostProperties.map((p) => {
-      const stats = propStatsMap.get(p.id);
+      const pid = Number(p.id);
+      const stats = propStatsMap.get(pid);
       return {
         id: p.id,
         title: p.title,
-        image: coverMap.get(p.id) ?? null,
+        image: coverMap.get(pid) ?? null,
         bookings: Number(stats?.bookings ?? 0),
         revenue: Number(stats?.revenue ?? 0),
         nights: Number(stats?.nights ?? 0),
@@ -1789,7 +1830,7 @@ export class BookingsService {
       await this.dataSource.query(
         `
           SELECT DATE_FORMAT(r.created_at, '%Y-%m') AS month,
-                 ROUND(AVG(r.rating), 2) AS avgRating,
+                 ROUND(AVG(r.overall_rating), 2) AS avgRating,
                  COUNT(*) AS reviewCount
           FROM reviews r
           INNER JOIN bookings b ON b.id = r.booking_id
@@ -1878,6 +1919,28 @@ export class BookingsService {
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
+  }
+
+  // BE-03: Notify all active admin users in-app when an InstaPay proof is uploaded
+  async notifyAdminsOfPaymentProofUpload(bookingId: number): Promise<void> {
+    try {
+      const admins = await this.usersRepo.find({ where: { isAdmin: true, isActive: true } });
+      await Promise.all(
+        admins.map((admin) =>
+          this.notificationsService.create(
+            admin.id,
+            'instapay_proof_uploaded',
+            'InstaPay Proof Uploaded',
+            'تم رفع إثبات InstaPay',
+            `Guest has uploaded an InstaPay payment proof for booking #${bookingId}. Please review and approve.`,
+            `قام الضيف برفع إثبات الدفع عبر InstaPay للحجز #${bookingId}. يرجى المراجعة والموافقة.`,
+            { bookingId },
+          ),
+        ),
+      );
+    } catch (e) {
+      this.logger.error(`Failed to notify admins of payment proof upload for booking #${bookingId}: ${(e as Error).message}`);
+    }
   }
 
   /**
@@ -1993,7 +2056,7 @@ export class BookingsService {
     const ci = new Date(checkIn);
     const co = new Date(checkOut);
     for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
-      const date = d.toISOString().split('T')[0];
+      const date = localDateStr(d);
       await this.availabilityRepo.update(
         { propertyId, date },
         { isBlocked: false },
@@ -2041,8 +2104,8 @@ export class BookingsService {
     const horizonDays = 90;
     const endDate = new Date(now);
     endDate.setDate(endDate.getDate() + horizonDays);
-    const startStr = now.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
+    const startStr = localDateStr(now);
+    const endStr = localDateStr(endDate);
 
     // Confirmed upcoming bookings
     const upcoming = await this.bookingsRepo.find({
@@ -2066,7 +2129,7 @@ export class BookingsService {
     // Historical occupancy rate (last 90 days)
     const past90 = new Date(now);
     past90.setDate(past90.getDate() - 90);
-    const pastStr = past90.toISOString().split('T')[0];
+    const pastStr = localDateStr(past90);
     const histResult = await this.dataSource.query(
       `SELECT COUNT(*) as totalBookings,
               SUM(nights) as totalNights,

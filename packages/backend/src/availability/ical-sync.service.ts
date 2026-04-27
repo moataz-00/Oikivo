@@ -258,6 +258,10 @@ export class ICalSyncService {
 
   // ─── Sync logic ────────────────────────────────────────────────────────────
 
+  private fmtLocal(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   async syncSource(source: ICalSourceEntity): Promise<ICalSourceEntity> {
     if (this.propertySyncLocks.has(source.propertyId)) {
       throw new ConflictException('A calendar sync is already running for this property');
@@ -284,7 +288,7 @@ export class ICalSyncService {
         const end = new Date(event.end); // DTEND is exclusive in iCal
         for (let d = new Date(event.start); d < end; d.setDate(d.getDate() + 1)) {
           if (d < today) continue; // skip past dates
-          const date = d.toISOString().split('T')[0];
+          const date = this.fmtLocal(d);
 
           // Either upsert or create
           let row = await this.availabilityRepo.findOne({
@@ -402,7 +406,7 @@ export class ICalSyncService {
       // iCal all-day: DTEND = next day
       const endDate = new Date(row.date);
       endDate.setDate(endDate.getDate() + 1);
-      const end = endDate.toISOString().split('T')[0].replace(/-/g, '');
+      const end = this.fmtLocal(endDate).replace(/-/g, '');
       return [
         'BEGIN:VEVENT',
         `UID:${row.id}-${row.date}@journeystay`,

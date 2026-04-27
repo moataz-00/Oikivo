@@ -350,7 +350,7 @@ export default function HostDashboardPage() {
             <div className="rounded-2xl border border-neutral-200 overflow-hidden bg-white max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-200 scrollbar-track-transparent">
               {[
                 { emoji: '🏠', label: t('listings'), href: `/${locale}/hosting/listings`, desc: `${listings?.length ?? 0} listings` },
-                { emoji: '🗓️', label: t('reservations'), href: `/${locale}/hosting/reservations`, desc: `${pendingReservations?.length ?? 0} pending` },                { emoji: '', label: 'Earnings & Payouts', href: `/${locale}/hosting/earnings`, desc: 'Income & payout requests' },
+                { emoji: '🗓️', label: t('reservations'), href: `/${locale}/hosting/reservations`, desc: `${pendingReservations?.length ?? 0} pending` },
                 { emoji: '📊', label: 'Analytics', href: `/${locale}/hosting/analytics`, desc: 'Revenue & booking stats' },
                 { emoji: <img src="https://flagcdn.com/24x18/eg.png" width={24} height={18} alt="Egypt" className="rounded-sm object-cover" />, label: 'Egypt Regulations', href: `/${locale}/hosting/regulations/egypt`, desc: 'Holiday Home License (MoTA)' },
                 { emoji: '✨', label: t('createListing'), href: `/${locale}/hosting/new`, desc: 'Add a home or experience' },

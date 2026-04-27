@@ -22,12 +22,14 @@ import { existsSync, mkdirSync } from 'fs';
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler'; // FIX BUG-GC1
+import { validateMagicBytes } from '../common/utils/magic-bytes.util';
 import { BookingsService } from './bookings.service';
 import { InvoiceService } from './invoice.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserEntity } from '../entities/user.entity';
+import { MailService } from '../mail/mail.service';
 
 @ApiTags('bookings')
 @Controller('bookings')
@@ -37,6 +39,7 @@ export class BookingsController {
   constructor(
     private readonly bookingsService: BookingsService,
     private readonly invoiceService: InvoiceService,
+    private readonly mailService: MailService,
   ) {}
 
   @Post()
@@ -209,6 +212,7 @@ export class BookingsController {
   }
 
   @Post(':id/upload-payment-proof')
+  @Throttle({ default: { ttl: 3600000, limit: 5 } })
   @ApiOperation({ summary: 'Upload InstaPay transaction screenshot (guest)' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -232,13 +236,45 @@ export class BookingsController {
       limits: { fileSize: 10 * 1024 * 1024 },
     }),
   )
-  uploadPaymentProof(
+  async uploadPaymentProof(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() _user: UserEntity,
+    @CurrentUser() user: UserEntity,
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    return { url: `/uploads/payments/${id}/${file.filename}` };
+    // SEC-02: Validate magic bytes to prevent MIME-type spoofing
+    validateMagicBytes(file.path, ['jpeg', 'png', 'webp', 'gif']);
+    const proofUrl = `/uploads/payments/${id}/${file.filename}`;
+
+    // Notify support team of new InstaPay proof upload
+    try {
+      const booking = await this.bookingsService.findOne(id);
+      const guestName = booking?.guest ? `${booking.guest.firstName} ${booking.guest.lastName}` : `Guest #${user.id}`;
+      const propertyTitle = booking?.property?.title ?? `Booking #${id}`;
+      const amount = booking ? `${booking.currency ?? 'EGP'} ${Number(booking.totalAmount).toFixed(2)}` : 'N/A';
+      await this.mailService.send(
+        'oikivo.support@gmail.com',
+        `[Action Required] InstaPay Proof Uploaded — Booking #${id}`,
+        `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+  <h2 style="color:#4f46e5;">New InstaPay Payment Proof</h2>
+  <p>A guest has uploaded an InstaPay payment proof and is awaiting manual verification.</p>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Booking</td><td style="padding:8px 0;font-weight:600;">#${id}</td></tr>
+    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Guest</td><td style="padding:8px 0;font-weight:600;">${guestName}</td></tr>
+    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Property</td><td style="padding:8px 0;font-weight:600;">${propertyTitle}</td></tr>
+    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Amount</td><td style="padding:8px 0;font-weight:600;">${amount}</td></tr>
+  </table>
+  <p style="font-size:13px;color:#64748b;">Please log in to the admin panel to review and approve or decline this payment.</p>
+</div>`,
+      );
+    } catch (_e) {
+      // Non-blocking — don't fail the upload if email fails
+    }
+
+    // BE-03: Create in-app notification for all admin users
+    this.bookingsService.notifyAdminsOfPaymentProofUpload(id).catch(() => {});
+
+    return { url: proofUrl };
   }
 
   @Get(':id/payment-proof/:filename')

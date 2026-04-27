@@ -175,7 +175,7 @@ export function ListingCard({ property }: ListingCardProps) {
         )}
         {isDraft && (
           <Link
-            href={`/${locale}/hosting/listings/${property.id}/verify`}
+            href={`/${locale}/hosting/listings/${property.uuid}/verify`}
             className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-colors bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-90 shadow-sm"
           >
             <BadgeCheck className="h-4 w-4" />
@@ -192,7 +192,7 @@ export function ListingCard({ property }: ListingCardProps) {
         {/* â”€â”€ Action strip â”€â”€ */}
         <div className="grid grid-cols-4 gap-1 border-t border-neutral-100 pt-3 mt-auto">
           <ActionBtn href={`/${locale}/hosting/listings/${property.uuid}/edit`}    icon={<Edit3     className="h-4 w-4" />} label="Edit"      color="indigo" />
-          <ActionBtn href={`/${locale}/rooms/${property.uuid}`}                    icon={<Eye       className="h-4 w-4" />} label="Preview"  color="teal"   />
+          <ActionBtn href={`/${locale}/rooms/${property.uuid}`}                    icon={<Eye       className="h-4 w-4" />} label="Preview"  color="teal"   newTab />
           <ActionBtn href={`/${locale}/hosting/listings/${property.uuid}/calendar`}icon={<Calendar  className="h-4 w-4" />} label="Calendar" color="blue"   />
           <ActionBtn
             onClick={handleArchive}
@@ -264,6 +264,7 @@ type ActionBtnProps = {
   label: string;
   color: 'indigo' | 'teal' | 'blue' | 'red' | 'violet';
   disabled?: boolean;
+  newTab?: boolean;
 } & ({ href: string; onClick?: never } | { href?: never; onClick: () => void });
 
 const COLOR_MAP = {
@@ -274,7 +275,7 @@ const COLOR_MAP = {
   violet: 'hover:bg-violet-50 hover:text-violet-600',
 };
 
-function ActionBtn({ icon, label, color, href, onClick, disabled }: ActionBtnProps) {
+function ActionBtn({ icon, label, color, href, onClick, disabled, newTab }: ActionBtnProps) {
   const cls = cn(
     'flex flex-col items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium text-neutral-400 transition-colors w-full',
     COLOR_MAP[color],
@@ -282,7 +283,7 @@ function ActionBtn({ icon, label, color, href, onClick, disabled }: ActionBtnPro
   );
   if (href) {
     return (
-      <Link href={href} className={cls}>
+      <Link href={href} className={cls} target={newTab ? '_blank' : undefined} rel={newTab ? 'noopener noreferrer' : undefined}>
         {icon}
         <span className="leading-none">{label}</span>
       </Link>

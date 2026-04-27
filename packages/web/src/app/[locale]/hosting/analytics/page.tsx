@@ -225,7 +225,7 @@ export default function HostAnalyticsPage() {
     else if (!isHost) router.push(`/${locale}`);
   }, [hasHydrated, isLoggedIn, isHost, locale, router]);
 
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading, isError, refetch } = useQuery({
     queryKey: ['host-analytics'],
     queryFn: bookingsApi.getHostAnalytics,
     enabled: hasHydrated && isLoggedIn && isHost,
@@ -269,6 +269,18 @@ export default function HostAnalyticsPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+      ) : isError ? (
+        <div className="text-center py-20 text-neutral-400">
+          <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50 text-red-400" />
+          <p className="text-red-500 font-medium">Failed to load analytics</p>
+          <p className="text-sm mt-1">Check your connection and try again.</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-4 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       ) : !analytics ? (
         <div className="text-center py-20 text-neutral-400">
           <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-30" />
@@ -431,7 +443,7 @@ export default function HostAnalyticsPage() {
                         {(row as any).impressions > 0 && (
                           <p className="text-xs text-neutral-400">
                             {(row as any).impressions.toLocaleString()} impression{(row as any).impressions !== 1 ? 's' : ''}
-                            {(row as any).views > 0 ? (
+                            {(row as any).views > 0 && (row as any).views <= (row as any).impressions ? (
                               <span className="ml-1 text-blue-500 font-medium">
                                 · {(((row as any).views / (row as any).impressions) * 100).toFixed(1)}% CTR
                               </span>

@@ -81,6 +81,17 @@ export default function BookingDetailPage() {
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Adjust failed'),
   });
 
+  const markProofViewedMut = useMutation({
+    mutationFn: () => adminApi.markProofViewed(bookingId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-booking', bookingId] }),
+  });
+
+  const confirmPaymentMut = useMutation({
+    mutationFn: () => adminApi.confirmPayment(bookingId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-booking', bookingId] }); toast.success('Payment confirmed'); },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Confirm failed'),
+  });
+
   if (invalidId) return <div className="text-gray-500 dark:text-gray-400 text-center py-20">Invalid booking ID</div>;
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-500 border-t-transparent" /></div>;
   if (isError) return <div className="flex flex-col items-center gap-3 py-20 text-center"><span className="text-4xl">⚠️</span><p className="text-lg font-semibold text-gray-900 dark:text-white">{(error as any)?.response?.status === 404 ? 'Booking not found' : 'Failed to load booking'}</p><p className="text-sm text-gray-500 dark:text-gray-400">{(error as any)?.response?.status === 404 ? 'This booking may have been deleted.' : 'The backend may be unavailable. Try refreshing the page.'}</p></div>;
@@ -239,9 +250,14 @@ export default function BookingDetailPage() {
             {booking.paymentProofUrl && (
               <div className="mt-4 p-4 bg-gray-100/50 dark:bg-gray-800/50 border border-gray-700/50 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2"><Image className="h-4 w-4 text-blue-400" />Payment Proof</h3>
-                <a href={getUploadUrl(booking.paymentProofUrl)} target="_blank" rel="noopener noreferrer">
+                <a href={getUploadUrl(booking.paymentProofUrl)} target="_blank" rel="noopener noreferrer" onClick={() => !booking.proofViewedAt && markProofViewedMut.mutate()}>
                   <img src={getUploadUrl(booking.paymentProofUrl)} alt="Payment proof" className="max-w-full max-h-48 rounded-lg border border-gray-300 dark:border-gray-700 object-contain" />
                 </a>
+                {booking.proofViewedAt ? (
+                  <p className="text-xs text-emerald-500 mt-2">✓ Viewed {new Date(booking.proofViewedAt).toLocaleString()}</p>
+                ) : (
+                  <p className="text-xs text-amber-400 mt-2">Click image to mark as viewed before approving</p>
+                )}
               </div>
             )}
           </div>
@@ -256,7 +272,47 @@ export default function BookingDetailPage() {
                 <div className="col-span-2"><label className="text-xs text-gray-500">Reason</label><p className="text-gray-600 dark:text-gray-300 mt-0.5">{booking.cancellationReason || '—'}</p></div>
                 <div><label className="text-xs text-gray-500">Policy</label><p className="text-gray-900 dark:text-white capitalize mt-0.5">{booking.cancellationPolicy || '—'}</p></div>
                 <div><label className="text-xs text-gray-500">Cancellation Fee</label><p className="text-gray-900 dark:text-white mt-0.5">{booking.cancellationFee ? `${fmt(booking.cancellationFee)} ${currency}` : '—'}</p></div>
+                <div><label className="text-xs text-gray-500">Guest Refund</label>
+                  <p className={`mt-0.5 font-semibold ${Number(booking.refundAmount) > 0 ? 'text-violet-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {Number(booking.refundAmount) > 0 ? `${fmt(booking.refundAmount)} ${currency}` : 'No refund'}
+                  </p>
+                </div>
+                <div><label className="text-xs text-gray-500">Host Retains</label>
+                  <p className="text-emerald-400 font-semibold mt-0.5">
+                    {Number(booking.cancellationFee) > 0
+                      ? `${fmt(Number(booking.totalAmount) - Number(booking.refundAmount || 0))} ${currency}`
+                      : (Number(booking.refundAmount) > 0 ? '—' : `${fmt(booking.totalAmount)} ${currency}`)}
+                  </p>
+                </div>
               </div>
+              {/* Policy tier explanation */}
+              {booking.cancellationPolicy && booking.cancelledAt && booking.checkIn && (() => {
+                const cancelledAt = new Date(booking.cancelledAt);
+                const checkIn = new Date(String(booking.checkIn) + 'T00:00:00');
+                const daysAtCancel = Math.ceil((checkIn.getTime() - cancelledAt.getTime()) / (1000 * 60 * 60 * 24));
+                const p = booking.cancellationPolicy;
+                let tier = '';
+                let color = '';
+                if (p === 'flexible') {
+                  tier = daysAtCancel >= 1 ? '🟢 Full refund window (≥24 h before check-in)' : '🔴 Past refund window (check-in day)';
+                  color = daysAtCancel >= 1 ? 'text-emerald-400' : 'text-red-400';
+                } else if (p === 'moderate') {
+                  if (daysAtCancel >= 5) { tier = '🟢 Full refund window (≥5 days before)'; color = 'text-emerald-400'; }
+                  else if (daysAtCancel >= 1) { tier = '🟡 Partial refund window (1–4 days before)'; color = 'text-amber-400'; }
+                  else { tier = '🔴 Past refund window (check-in day)'; color = 'text-red-400'; }
+                } else if (p === 'strict') {
+                  if (daysAtCancel >= 14) { tier = '🟢 Full refund window (≥14 days before)'; color = 'text-emerald-400'; }
+                  else if (daysAtCancel >= 7) { tier = '🟡 Partial refund window (7–13 days before)'; color = 'text-amber-400'; }
+                  else { tier = '🔴 No refund window (<7 days before)'; color = 'text-red-400'; }
+                }
+                return tier ? (
+                  <div className="mt-3 pt-3 border-t border-red-800/20">
+                    <p className="text-xs text-gray-500 uppercase mb-1">Refund Tier at Cancellation</p>
+                    <p className={`text-xs font-medium ${color}`}>{tier}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{daysAtCancel} day{daysAtCancel !== 1 ? 's' : ''} before check-in · {p} policy</p>
+                  </div>
+                ) : null;
+              })()}
             </div>
           )}
 
@@ -306,6 +362,15 @@ export default function BookingDetailPage() {
             {booking.status !== 'cancelled' && (
               <button onClick={() => setCancelModal(true)} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900/20 hover:bg-red-900/40 rounded-lg text-sm text-red-400 transition-colors">
                 <XCircle className="h-4 w-4" />Admin Cancel
+              </button>
+            )}
+            {booking.paymentProofUrl && booking.paymentStatus !== 'paid' && (
+              <button
+                onClick={() => confirmPaymentMut.mutate()}
+                disabled={!booking.proofViewedAt || confirmPaymentMut.isPending}
+                title={!booking.proofViewedAt ? 'View payment proof first' : 'Confirm payment'}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-900/20 hover:bg-emerald-900/40 rounded-lg text-sm text-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                <CreditCard className="h-4 w-4" />{!booking.proofViewedAt ? 'View Proof to Approve' : 'Confirm Payment'}
               </button>
             )}
             <button onClick={() => { setRefundAmount(String(booking.totalAmount || 0)); setRefundModal(true); }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-900/20 hover:bg-violet-900/40 rounded-lg text-sm text-violet-400 transition-colors">

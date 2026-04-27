@@ -142,7 +142,7 @@ export function Footer() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-indigo-500/30">
                   <img src="/favicon-96x96.png" alt="Oikivo" width={40} height={40} className="h-full w-full object-cover" />
                 </div>
-                <span className="font-brand text-2xl text-white">
+                <span className="font-brand text-3xl text-indigo-400 tracking-wide">
                   Oikivo
                 </span>
               </div>

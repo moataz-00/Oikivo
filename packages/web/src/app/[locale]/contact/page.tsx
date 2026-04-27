@@ -62,7 +62,7 @@ export default function ContactPage() {
           className="lg:col-span-2 space-y-5"
         >
           {[
-            { icon: Mail, title: 'Email us', value: 'support@sakan.app', sub: 'Mon–Fri, 9am–6pm' },
+            { icon: Mail, title: 'Email us', value: 'oikivo.support@gmail.com', sub: 'Mon–Fri, 9am–6pm' },
             { icon: Phone, title: 'Call us', value: '+20 100 000 0000', sub: 'Mon–Fri, 9am–6pm' },
             { icon: MapPin, title: 'Visit us', value: 'Cairo, Egypt', sub: 'By appointment only' },
             { icon: Clock, title: 'Response time', value: 'Within 24 hours', sub: 'For general inquiries' },

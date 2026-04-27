@@ -20,6 +20,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
@@ -62,6 +63,7 @@ export class ReviewsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { ttl: 86400000, limit: 5 } })
   @ApiOperation({ summary: 'Create a review for a completed booking' })
   create(@CurrentUser() user: UserEntity, @Body() dto: CreateReviewDto) {
     return this.reviewsService.create(user.id, dto);
@@ -89,6 +91,32 @@ export class ReviewsController {
     @Body() dto: ReplyReviewDto,
   ) {
     return this.reviewsService.replyToReview(id, user.id, dto);
+  }
+
+  @Get('host/pending-guest-reviews')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get completed bookings awaiting a host→guest review' })
+  getPendingGuestReviews(@CurrentUser() user: UserEntity) {
+    return this.reviewsService.getBookingsAwaitingHostReview(user.id);
+  }
+
+  @Get('host/guest-reviews')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all host→guest reviews written by the current host' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  getHostGuestReviews(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+  ) {
+    return this.reviewsService.getHostGuestReviews(
+      user.id,
+      parseInt(page) || 1,
+      parseInt(limit) || 20,
+    );
   }
 
   @Get('property/:propertyId')

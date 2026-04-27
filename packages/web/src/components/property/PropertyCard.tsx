@@ -23,9 +23,11 @@ import 'swiper/css/pagination';
 interface PropertyCardProps {
   property: Property;
   priority?: boolean;
+  /** If provided, replaces the default remove-from-wishlist action when heart is clicked on a wishlisted item */
+  onRemove?: () => void;
 }
 
-export function PropertyCard({ property, priority = false }: PropertyCardProps) {
+export function PropertyCard({ property, priority = false, onRemove }: PropertyCardProps) {
   const locale = useLocale();
   const t = useTranslations('property');
   const tWL = useTranslations('wishlists');
@@ -56,8 +58,12 @@ export function PropertyCard({ property, priority = false }: PropertyCardProps) 
       window.location.href = `/${locale}/login`;
       return;
     }
-    if (isWishlisted && wishlistId) {
-      removeFromWishlist.mutate({ wishlistId, propertyId: property.id });
+    if (isWishlisted || onRemove) {
+      if (onRemove) {
+        onRemove();
+      } else if (wishlistId) {
+        removeFromWishlist.mutate({ wishlistId, propertyId: property.id });
+      }
     } else {
       setWishlistModalOpen(true);
     }
@@ -96,8 +102,8 @@ export function PropertyCard({ property, priority = false }: PropertyCardProps) 
           >
             {images.length > 0 ? (
               images.slice(0, 5).map((img, idx) => (
-                <SwiperSlide key={img.id}>
-                  <Link href={`/${locale}/rooms/${property.uuid || property.id}`} className="block h-full w-full">
+                <SwiperSlide key={img.id} className="relative h-full">
+                  <Link href={`/${locale}/rooms/${property.uuid || property.id}`} className="block h-full w-full" target="_blank" rel="noopener noreferrer">
                     <Image
                       src={getImageUrl(img.url)}
                       alt={property.title}
@@ -112,7 +118,7 @@ export function PropertyCard({ property, priority = false }: PropertyCardProps) 
               ))
             ) : (
               <SwiperSlide>
-                <Link href={`/${locale}/rooms/${property.uuid || property.id}`} className="block h-full w-full">
+                <Link href={`/${locale}/rooms/${property.uuid || property.id}`} className="block h-full w-full" target="_blank" rel="noopener noreferrer">
                   <div className="h-full w-full bg-neutral-200 flex items-center justify-center">
                     <span className="text-neutral-400 text-sm">{t('noPhoto')}</span>
                   </div>
@@ -160,7 +166,7 @@ export function PropertyCard({ property, priority = false }: PropertyCardProps) 
               className={cn(
                 'h-[22px] w-[22px] drop-shadow-md transition-all duration-200',
                 isWishlisted
-                  ? 'fill-neutral-900 text-neutral-900 scale-110'
+                    ? 'fill-red-500 text-red-500 scale-110'
                   : 'fill-black/25 text-white hover:fill-black/40'
               )}
             />
@@ -184,7 +190,7 @@ export function PropertyCard({ property, priority = false }: PropertyCardProps) 
         </div>
 
         {/* Info */}
-        <Link href={`/${locale}/rooms/${property.uuid || property.id}`} className="block mt-3">
+        <Link href={`/${locale}/rooms/${property.uuid || property.id}`} className="block mt-3" target="_blank" rel="noopener noreferrer">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-[15px] text-neutral-900 truncate leading-snug">

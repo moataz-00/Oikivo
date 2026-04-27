@@ -80,7 +80,7 @@ export class ExperienceBookingEntity {
   @Column({
     name: 'payment_method',
     type: 'enum',
-    enum: ['instapay', 'cash', 'card', 'stripe', 'opay-card'],
+    enum: ['instapay', 'cash', 'card', 'opay-card'],
     nullable: true,
   })
   paymentMethod: string | null;

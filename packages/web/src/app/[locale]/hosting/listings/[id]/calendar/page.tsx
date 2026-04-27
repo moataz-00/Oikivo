@@ -7,9 +7,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft, CalendarClock, BadgeCheck, TrendingUp, ChevronDown,
-  Link2, RefreshCw, Trash2, Plus, CheckCircle2, AlertCircle, Clock, Copy,
+  ChevronLeft, ChevronRight, CalendarClock, BadgeCheck, TrendingUp, ChevronDown,
+  Link2, RefreshCw, Trash2, Plus, CheckCircle2, AlertCircle, Clock, Copy, Calendar, X,
 } from 'lucide-react';
+import {
+  format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
+  addMonths, subMonths, parseISO, isBefore, isAfter,
+} from 'date-fns';
+import { cn } from '@/lib/utils';
 import { propertiesApi, availabilityApi } from '@/lib/api';
 import type { ICalSource } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +22,188 @@ import { CalendarView } from '@/components/hosting/CalendarView';
 import { Spinner, FullPageSpinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
+
+function DatePickerModal({
+  startDate,
+  endDate,
+  onChange,
+  onClose,
+}: {
+  startDate: string;
+  endDate: string;
+  onChange: (start: string, end: string) => void;
+  onClose: () => void;
+}) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [viewDate, setViewDate] = useState(
+    startDate ? startOfMonth(parseISO(startDate)) : startOfMonth(today)
+  );
+  const [localStart, setLocalStart] = useState(startDate);
+  const [localEnd, setLocalEnd] = useState(endDate);
+  const [step, setStep] = useState<'start' | 'end'>(startDate ? 'end' : 'start');
+  const [hoverDate, setHoverDate] = useState('');
+
+  const monthStart = startOfMonth(viewDate);
+  const days = eachDayOfInterval({ start: monthStart, end: endOfMonth(viewDate) });
+  const paddingDays = Array.from({ length: getDay(monthStart) });
+
+  const handleDayClick = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    if (step === 'start') {
+      setLocalStart(dateStr);
+      setLocalEnd('');
+      setStep('end');
+    } else {
+      if (localStart && isBefore(date, parseISO(localStart))) {
+        setLocalStart(dateStr);
+        setLocalEnd('');
+      } else {
+        setLocalEnd(dateStr);
+      }
+    }
+  };
+
+  const getCellClass = (date: Date, dateStr: string) => {
+    const isPast = isBefore(date, today);
+    const isStartOrEnd = localStart === dateStr || localEnd === dateStr;
+    const inRange =
+      localStart && localEnd &&
+      isAfter(date, parseISO(localStart)) &&
+      isBefore(date, parseISO(localEnd));
+    const inHoverRange =
+      step === 'end' && localStart && hoverDate &&
+      isAfter(date, parseISO(localStart)) &&
+      isBefore(date, parseISO(hoverDate));
+    if (isStartOrEnd) return 'bg-amber-500 text-white font-bold rounded-full';
+    if (inRange) return 'bg-amber-100 text-amber-900';
+    if (!localEnd && inHoverRange) return 'bg-amber-50 text-amber-700';
+    if (isPast) return 'opacity-30 cursor-not-allowed';
+    return 'hover:bg-neutral-100 text-neutral-800';
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-5 shadow-xl"
+      >
+        {/* Step tabs */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setStep('start')}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                step === 'start' ? 'bg-amber-500 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              )}
+            >
+              {localStart || 'Start date'}
+            </button>
+            <ChevronRight className="h-3.5 w-3.5 text-neutral-400" />
+            <button
+              type="button"
+              onClick={() => localStart && setStep('end')}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                step === 'end' ? 'bg-amber-500 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              )}
+            >
+              {localEnd || 'End date'}
+            </button>
+          </div>
+          <button type="button" onClick={onClose} className="text-neutral-400 hover:text-neutral-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Month navigation */}
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setViewDate((d) => subMonths(d, 1))}
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-neutral-100"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-semibold text-neutral-800">{format(viewDate, 'MMMM yyyy')}</span>
+          <button
+            type="button"
+            onClick={() => setViewDate((d) => addMonths(d, 1))}
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-neutral-100"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Day headers */}
+        <div className="mb-1 grid grid-cols-7">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+            <div key={i} className="py-1 text-center text-xs font-medium text-neutral-400">{d}</div>
+          ))}
+        </div>
+
+        {/* Day grid */}
+        <div className="grid grid-cols-7 gap-y-0.5">
+          {paddingDays.map((_, i) => <div key={`p${i}`} />)}
+          {days.map((date) => {
+            const dateStr = format(date, 'yyyy-MM-dd');
+            const isPast = isBefore(date, today);
+            return (
+              <button
+                key={dateStr}
+                type="button"
+                disabled={isPast}
+                onClick={() => !isPast && handleDayClick(date)}
+                onMouseEnter={() => !isPast && setHoverDate(dateStr)}
+                onMouseLeave={() => setHoverDate('')}
+                className={cn(
+                  'flex h-8 w-full items-center justify-center text-sm transition-colors',
+                  getCellClass(date, dateStr)
+                )}
+              >
+                {format(date, 'd')}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3">
+          <button
+            type="button"
+            onClick={() => { setLocalStart(''); setLocalEnd(''); setStep('start'); }}
+            className="text-xs text-neutral-400 underline hover:text-neutral-600"
+          >
+            Clear
+          </button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" type="button" onClick={onClose}>Cancel</Button>
+            <Button
+              size="sm"
+              type="button"
+              disabled={!localStart || !localEnd}
+              onClick={() => { onChange(localStart, localEnd); onClose(); }}
+            >
+              Apply
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export default function ListingCalendarPage() {
   const params = useParams();
@@ -33,6 +220,8 @@ export default function ListingCalendarPage() {
   // iCal channel manager state
   const [showChannels, setShowChannels] = useState(false);
   const [channelForm, setChannelForm] = useState({ label: '', url: '' });
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [channelToDelete, setChannelToDelete] = useState<ICalSource | null>(null);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -53,6 +242,7 @@ export default function ListingCalendarPage() {
       toast.success(`Seasonal pricing applied to ${res.datesUpdated} dates`);
       setShowSeasonalForm(false);
       setSeasonalForm({ startDate: '', endDate: '', pricePerNight: '', label: '' });
+      qc.invalidateQueries({ queryKey: ['calendar', listing?.id] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Failed to apply seasonal pricing'),
   });
@@ -70,6 +260,8 @@ export default function ListingCalendarPage() {
       toast.success('Calendar connected and syncing…');
       setChannelForm({ label: '', url: '' });
       qc.invalidateQueries({ queryKey: ['ical-channels', listing?.id] });
+      // Delay slightly to let the initial sync settle before refreshing the calendar grid
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['calendar', listing?.id] }), 2500);
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Failed to connect calendar'),
   });
@@ -77,8 +269,9 @@ export default function ListingCalendarPage() {
   const syncChannelMutation = useMutation({
     mutationFn: (sourceId: number) => availabilityApi.syncChannel(listing!.id, sourceId),
     onSuccess: () => {
-      toast.success('Sync triggered');
+      toast.success('Sync complete');
       qc.invalidateQueries({ queryKey: ['ical-channels', listing?.id] });
+      qc.invalidateQueries({ queryKey: ['calendar', listing?.id] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Sync failed'),
   });
@@ -87,7 +280,9 @@ export default function ListingCalendarPage() {
     mutationFn: (sourceId: number) => availabilityApi.removeChannel(listing!.id, sourceId),
     onSuccess: () => {
       toast.success('Calendar disconnected');
+      setChannelToDelete(null);
       qc.invalidateQueries({ queryKey: ['ical-channels', listing?.id] });
+      qc.invalidateQueries({ queryKey: ['calendar', listing?.id] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Failed to remove calendar'),
   });
@@ -194,27 +389,24 @@ export default function ListingCalendarPage() {
                     <p className="text-xs text-amber-700">
                       Apply a custom nightly price to all dates in a range (overrides default price, keeps availability unchanged).
                     </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-700 mb-1">Start Date</label>
-                        <input
-                          type="date"
-                          required
-                          value={seasonalForm.startDate}
-                          onChange={(e) => setSeasonalForm((f) => ({ ...f, startDate: e.target.value }))}
-                          className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-700 mb-1">End Date</label>
-                        <input
-                          type="date"
-                          required
-                          value={seasonalForm.endDate}
-                          onChange={(e) => setSeasonalForm((f) => ({ ...f, endDate: e.target.value }))}
-                          className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">Date Range</label>
+                      <button
+                        type="button"
+                        onClick={() => setDatePickerOpen(true)}
+                        className="w-full flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-left hover:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      >
+                        <Calendar className="h-4 w-4 shrink-0 text-neutral-400" />
+                        {seasonalForm.startDate && seasonalForm.endDate ? (
+                          <span className="text-neutral-900">
+                            {seasonalForm.startDate} → {seasonalForm.endDate}
+                          </span>
+                        ) : seasonalForm.startDate ? (
+                          <span className="text-neutral-900">From {seasonalForm.startDate}…</span>
+                        ) : (
+                          <span className="text-neutral-400">Select date range…</span>
+                        )}
+                      </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -350,11 +542,7 @@ export default function ListingCalendarPage() {
                                   <RefreshCw className="h-3.5 w-3.5" />
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    if (confirm(`Remove "${ch.label}"? Its blocked dates will be unblocked.`)) {
-                                      removeChannelMutation.mutate(ch.id);
-                                    }
-                                  }}
+                                  onClick={() => setChannelToDelete(ch)}
                                   title="Remove"
                                   className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 transition-colors"
                                 >
@@ -418,6 +606,72 @@ export default function ListingCalendarPage() {
           </>
         )}
       </div>
+
+      <AnimatePresence>
+        {datePickerOpen && (
+          <DatePickerModal
+            startDate={seasonalForm.startDate}
+            endDate={seasonalForm.endDate}
+            onChange={(start, end) => setSeasonalForm((f) => ({ ...f, startDate: start, endDate: end }))}
+            onClose={() => setDatePickerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Delete calendar confirmation modal */}
+      <AnimatePresence>
+        {channelToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => !removeChannelMutation.isPending && setChannelToDelete(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl"
+            >
+              {/* Icon */}
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+                <Trash2 className="h-5 w-5 text-red-500" />
+              </div>
+
+              <h2 className="text-base font-semibold text-neutral-900">Disconnect calendar?</h2>
+              <p className="mt-1.5 text-sm text-neutral-500">
+                <span className="font-medium text-neutral-700">{channelToDelete.label}</span> will be removed and all dates it blocked will be automatically unblocked.
+              </p>
+
+              <div className="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-xs text-amber-700">
+                This cannot be undone. You can reconnect the feed at any time.
+              </div>
+
+              <div className="mt-5 flex gap-2 justify-end">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setChannelToDelete(null)}
+                  disabled={removeChannelMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => removeChannelMutation.mutate(channelToDelete.id)}
+                  isLoading={removeChannelMutation.isPending}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  Disconnect
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

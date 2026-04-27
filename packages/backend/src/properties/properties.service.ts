@@ -18,6 +18,10 @@ import { BookingEntity } from '../entities/booking.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { isEgyptianPublicHoliday } from '../common/holidays.util';
+import { localDateStr } from '../common/utils/date.util';
+import { MailService, tplAdminPropertyPendingReview } from '../mail/mail.service';
+
+const ADMIN_NOTIFY_EMAIL = 'oikivo.support@gmail.com';
 
 export interface PriceBreakdown {
   nights: number;
@@ -57,6 +61,7 @@ export class PropertiesService {
     @InjectRepository(BookingEntity)
     private bookingsRepo: Repository<BookingEntity>,
     private dataSource: DataSource,
+    private mail: MailService,
   ) {}
 
   async create(hostId: number, dto: CreateListingDto): Promise<PropertyEntity> {
@@ -88,6 +93,16 @@ export class PropertiesService {
     return property;
   }
 
+  /** Returns only the UUIDs from the input array that still exist in the DB. */
+  async validateUuids(uuids: string[]): Promise<string[]> {
+    if (!uuids.length) return [];
+    const rows = await this.propertiesRepo.find({
+      where: { uuid: In(uuids) },
+      select: ['uuid'],
+    });
+    return rows.map((r) => r.uuid);
+  }
+
   async findByUuid(uuid: string): Promise<PropertyEntity> {
     const property = await this.propertiesRepo.findOne({
       where: { uuid },
@@ -105,7 +120,7 @@ export class PropertiesService {
       throw new ForbiddenException('You do not own this property');
     }
 
-    const { amenityIds, ...updateData } = dto;
+    const { amenityIds, wizardLastStep: incomingStep, ...updateData } = dto;
 
     // FIX P9: If property is published, validate that update doesn't break listing requirements
     const isLive = property.status === 'published' || property.status === 'pending_review';
@@ -130,6 +145,10 @@ export class PropertiesService {
     }
 
     Object.assign(property, updateData);
+    // Only advance wizardLastStep — never regress it (handles back-navigation in wizard)
+    if (incomingStep !== undefined) {
+      property.wizardLastStep = Math.max(property.wizardLastStep ?? 0, incomingStep);
+    }
     await this.propertiesRepo.save(property);
 
     // FIX P9: After saving, re-check photo count for live listings
@@ -172,80 +191,142 @@ export class PropertiesService {
     const amenitiesCount = property.amenities?.length ?? 0;
     const houseRulesCount = property.houseRules?.length ?? 0;
 
+    // Step-gating: wStep=0 means legacy listing → run all checks (backward compatible)
+    const wStep = property.wizardLastStep ?? 0;
+    const mustCheck = (minStep: number) => !wStep || wStep >= minStep;
+    const notReachedMsg = 'Complete the listing wizard to enable this check.';
+
     const checks: { key: string; label: string; status: 'pass' | 'fail'; message?: string }[] = [
       {
         key: 'title',
         label: 'Listing title',
-        status: property.title ? 'pass' : 'fail',
-        ...(!property.title && { message: 'Add a title for your listing.' }),
+        status: !mustCheck(8) ? 'fail' :
+          (property.title &&
+           property.title.trim() !== 'Untitled listing' &&
+           property.title.trim().length >= 3
+            ? 'pass'
+            : 'fail'),
+        ...(!mustCheck(8)
+          ? { message: notReachedMsg }
+          : !(property.title && property.title.trim() !== 'Untitled listing' && property.title.trim().length >= 3)
+          ? { message: 'Add a meaningful title for your listing.' }
+          : {}),
       },
       {
         key: 'description',
         label: 'Description',
-        status: property.description ? 'pass' : 'fail',
-        ...(!property.description && { message: 'Write a description for guests.' }),
+        status: !mustCheck(9) ? 'fail' : (property.description ? 'pass' : 'fail'),
+        ...(!mustCheck(9)
+          ? { message: notReachedMsg }
+          : !property.description
+          ? { message: 'Write a description for guests.' }
+          : {}),
       },
       {
         key: 'location',
         label: 'Location details',
-        status: property.city && property.country ? 'pass' : 'fail',
-        ...(!(property.city && property.country) && { message: 'Add your property city and country.' }),
+        status: !mustCheck(3) ? 'fail' : (property.city && property.country ? 'pass' : 'fail'),
+        ...(!mustCheck(3)
+          ? { message: notReachedMsg }
+          : !(property.city && property.country)
+          ? { message: 'Add your property city and country.' }
+          : {}),
       },
       {
         key: 'map_location',
         label: 'Map pin',
-        status: property.latitude && property.longitude ? 'pass' : 'fail',
-        ...(!(property.latitude && property.longitude) && { message: 'Set your property location on the map.' }),
+        status: !mustCheck(3) ? 'fail' :
+          (property.latitude != null && Number(property.latitude) !== 0 &&
+           property.longitude != null && Number(property.longitude) !== 0
+            ? 'pass'
+            : 'fail'),
+        ...(!mustCheck(3)
+          ? { message: notReachedMsg }
+          : !(property.latitude != null && Number(property.latitude) !== 0 &&
+              property.longitude != null && Number(property.longitude) !== 0)
+          ? { message: 'Set your property location on the map.' }
+          : {}),
       },
       {
         key: 'pricing',
         label: 'Nightly price set',
-        status: property.pricePerNight && Number(property.pricePerNight) > 0 ? 'pass' : 'fail',
-        ...(!(property.pricePerNight && Number(property.pricePerNight) > 0) && { message: 'Set a price per night.' }),
+        status: !mustCheck(12) ? 'fail' :
+          (property.pricePerNight && Number(property.pricePerNight) > 0 ? 'pass' : 'fail'),
+        ...(!mustCheck(12)
+          ? { message: notReachedMsg }
+          : !(property.pricePerNight && Number(property.pricePerNight) > 0)
+          ? { message: 'Set a price per night.' }
+          : {}),
       },
       {
         key: 'category',
         label: 'Property category',
-        status: property.categoryId ? 'pass' : 'fail',
-        ...(!property.categoryId && { message: 'Choose a category for your property.' }),
+        status: !mustCheck(5) ? 'fail' : (property.categoryId ? 'pass' : 'fail'),
+        ...(!mustCheck(5)
+          ? { message: notReachedMsg }
+          : !property.categoryId
+          ? { message: 'Choose a category for your property.' }
+          : {}),
       },
       {
         key: 'capacity',
         label: 'Guest capacity',
-        status: property.maxGuests >= 1 ? 'pass' : 'fail',
-        ...(property.maxGuests < 1 && { message: 'Set maximum number of guests.' }),
+        status: !mustCheck(4) ? 'fail' : (property.maxGuests >= 1 ? 'pass' : 'fail'),
+        ...(!mustCheck(4)
+          ? { message: notReachedMsg }
+          : property.maxGuests < 1
+          ? { message: 'Set maximum number of guests.' }
+          : {}),
       },
       {
         key: 'photos',
         label: 'At least 5 photos',
-        status: photoCount >= 5 ? 'pass' : 'fail',
-        ...(photoCount < 5 && { message: `You have ${photoCount} photo${photoCount !== 1 ? 's' : ''}. Add at least ${5 - photoCount} more.` }),
+        status: !mustCheck(7) ? 'fail' : (photoCount >= 5 ? 'pass' : 'fail'),
+        ...(!mustCheck(7)
+          ? { message: notReachedMsg }
+          : photoCount < 5
+          ? { message: `You have ${photoCount} photo${photoCount !== 1 ? 's' : ''}. Add at least ${5 - photoCount} more.` }
+          : {}),
       },
       {
         key: 'cover_photo',
         label: 'Cover photo set',
-        status: hasCover ? 'pass' : 'fail',
-        ...(!hasCover && { message: 'Mark one photo as the cover image.' }),
+        status: !mustCheck(7) ? 'fail' : (hasCover ? 'pass' : 'fail'),
+        ...(!mustCheck(7)
+          ? { message: notReachedMsg }
+          : !hasCover
+          ? { message: 'Mark one photo as the cover image.' }
+          : {}),
       },
       {
         key: 'cancellation',
         label: 'Cancellation policy',
-        status: property.cancellationPolicy ? 'pass' : 'fail',
-        ...(!property.cancellationPolicy && { message: 'Choose a cancellation policy.' }),
+        status: !mustCheck(10) ? 'fail' : (property.cancellationPolicy ? 'pass' : 'fail'),
+        ...(!mustCheck(10)
+          ? { message: notReachedMsg }
+          : !property.cancellationPolicy
+          ? { message: 'Choose a cancellation policy.' }
+          : {}),
       },
       {
         key: 'amenities',
         label: 'At least 3 amenities',
-        status: amenitiesCount >= 3 ? 'pass' : 'fail',
-        ...(amenitiesCount < 3 && {
-          message: `Add at least ${3 - amenitiesCount} more amenit${3 - amenitiesCount === 1 ? 'y' : 'ies'}.`,
-        }),
+        status: !mustCheck(6) ? 'fail' : (amenitiesCount >= 3 ? 'pass' : 'fail'),
+        ...(!mustCheck(6)
+          ? { message: notReachedMsg }
+          : amenitiesCount < 3
+          ? { message: `Add at least ${3 - amenitiesCount} more amenit${3 - amenitiesCount === 1 ? 'y' : 'ies'}.` }
+          : {}),
       },
       {
         key: 'house_rules',
         label: 'House rules configured',
-        status: houseRulesCount > 0 ? 'pass' : 'fail',
-        ...(houseRulesCount === 0 && { message: 'Add at least one house rule before publishing.' }),
+        status: !mustCheck(10) ? 'fail' : (houseRulesCount > 0 ? 'pass' : 'fail'),
+        ...(!mustCheck(10)
+          ? { message: notReachedMsg }
+          : houseRulesCount === 0
+          ? { message: 'Add at least one house rule before publishing.' }
+          : {}),
       },
       {
         key: 'host_email',
@@ -289,12 +370,15 @@ export class PropertiesService {
       {
         key: 'weekend_price_warning',
         label: 'Weekend pricing sanity check',
-        status:
-          property.weekendPrice == null ||
-          Number(property.weekendPrice) >= Number(property.pricePerNight ?? 0)
-            ? 'pass'
-            : 'info',
-        ...(property.weekendPrice != null && Number(property.weekendPrice) < Number(property.pricePerNight ?? 0) && {
+        status: !mustCheck(13)
+          ? 'info'
+          : (property.weekendPrice == null ||
+             Number(property.weekendPrice) >= Number(property.pricePerNight ?? 0)
+              ? 'pass'
+              : 'info'),
+        ...(mustCheck(13) &&
+          property.weekendPrice != null &&
+          Number(property.weekendPrice) < Number(property.pricePerNight ?? 0) && {
           message: 'Weekend price is below base nightly price. This is allowed, but may reduce weekend earnings.',
         }),
       },
@@ -344,7 +428,19 @@ export class PropertiesService {
 
     property.status = 'pending_review';
     property.isActive = false;
-    return this.propertiesRepo.save(property);
+    const saved = await this.propertiesRepo.save(property);
+
+    // Notify admin that a new listing is pending review
+    const adminPanelUrl = (process.env.ADMIN_URL ?? 'http://localhost:3003') + '/content-moderation';
+    const hostDisplayName = host ? `${host.firstName} ${host.lastName}` : `Host #${hostId}`;
+    const hostEmail = host?.email ?? '';
+    this.mail.send(
+      ADMIN_NOTIFY_EMAIL,
+      'New Listing Submitted for Review',
+      tplAdminPropertyPendingReview(property.title, hostDisplayName, hostEmail, adminPanelUrl),
+    ).catch(() => {});
+
+    return saved;
   }
 
   async archive(id: number, hostId: number): Promise<PropertyEntity> {
@@ -353,7 +449,7 @@ export class PropertiesService {
       throw new ForbiddenException('You do not own this property');
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr(new Date());
     const futureBookings = await this.bookingsRepo.find({
       where: {
         propertyId: property.id,
@@ -574,6 +670,7 @@ export class PropertiesService {
     property: PropertyEntity,
     checkIn: string,
     checkOut: string,
+    priceOverrides: Map<string, number> = new Map(),
   ): number {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
@@ -587,9 +684,15 @@ export class PropertiesService {
       d < checkOutDate;
       d.setDate(d.getDate() + 1)
     ) {
-      const dow = d.getDay(); // 5=Friday, 6=Saturday
-      const isPeak = dow === 5 || dow === 6 || isEgyptianPublicHoliday(d);
-      amount += isPeak && weekendPrice != null ? weekendPrice : basePrice;
+      const dateStr = localDateStr(d);
+      const override = priceOverrides.get(dateStr);
+      if (override != null) {
+        amount += override;
+      } else {
+        const dow = d.getDay(); // 5=Friday, 6=Saturday
+        const isPeak = dow === 5 || dow === 6 || isEgyptianPublicHoliday(d);
+        amount += isPeak && weekendPrice != null ? weekendPrice : basePrice;
+      }
     }
     return parseFloat(amount.toFixed(2));
   }
@@ -599,6 +702,7 @@ export class PropertiesService {
     checkIn: string,
     checkOut: string,
     guests: number,
+    priceOverrides: Map<string, number> = new Map(),
   ): PriceBreakdown {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
@@ -616,7 +720,7 @@ export class PropertiesService {
       property.weekendPrice != null ? Number(property.weekendPrice) : null;
 
     // Base amount using weekend pricing per night
-    const baseAmount = this.calculateNightlyBase(property, checkIn, checkOut);
+    const baseAmount = this.calculateNightlyBase(property, checkIn, checkOut, priceOverrides);
 
     // Apply length-of-stay discounts (monthly wins over weekly)
     const weeklyDiscount = Number(property.weeklyDiscount ?? 0);
@@ -694,7 +798,40 @@ export class PropertiesService {
     guests: number,
   ): Promise<PriceBreakdown> {
     const property = await this.findOne(propertyId);
-    return this.calculatePrice(property, checkIn, checkOut, guests);
+
+    // Load per-date price overrides for the booking window
+    const rows: { date: string; price_override: string | null }[] = await this.dataSource.query(
+      `SELECT date, price_override FROM property_availability
+       WHERE property_id = ? AND date >= ? AND date < ? AND price_override IS NOT NULL`,
+      [propertyId, checkIn, checkOut],
+    );
+    const priceOverrides = new Map<string, number>(
+      rows.map((r) => [r.date, Number(r.price_override)]),
+    );
+
+    return this.calculatePrice(property, checkIn, checkOut, guests, priceOverrides);
+  }
+
+  async bulkCheckBookings(
+    hostId: number,
+    ids: number[],
+  ): Promise<{ id: number; title: string; bookingCount: number }[]> {
+    const result: { id: number; title: string; bookingCount: number }[] = [];
+    for (const id of ids) {
+      const prop = await this.propertiesRepo.findOne({ where: { id, hostId } });
+      if (!prop) continue;
+      const bookingCount = await this.bookingsRepo
+        .createQueryBuilder('booking')
+        .where('booking.propertyId = :propertyId', { propertyId: id })
+        .andWhere('booking.status IN (:...statuses)', {
+          statuses: ['pending', 'confirmed', 'in_progress'],
+        })
+        .getCount();
+      if (bookingCount > 0) {
+        result.push({ id, title: prop.title, bookingCount });
+      }
+    }
+    return result;
   }
 
   async bulkAction(
@@ -712,6 +849,25 @@ export class PropertiesService {
         } else if (action === 'archive') {
           await this.archive(id, hostId);
         } else if (action === 'delete') {
+          // Check for active bookings before attempting deletion
+          const activeBookingCount = await this.bookingsRepo
+            .createQueryBuilder('booking')
+            .where('booking.propertyId = :propertyId', { propertyId: id })
+            .andWhere('booking.status IN (:...statuses)', {
+              statuses: ['pending', 'confirmed', 'in_progress'],
+            })
+            .getCount();
+          if (activeBookingCount > 0) {
+            throw new BadRequestException(
+              `Cannot delete: property has ${activeBookingCount} active booking(s).`,
+            );
+          }
+          // Soft-archive first if not already archived (permanentDelete requires archived status)
+          const prop = await this.findOne(id);
+          if (prop.hostId !== hostId) throw new ForbiddenException('You do not own this property');
+          if (prop.status !== 'archived') {
+            await this.delete(id, hostId);
+          }
           await this.permanentDelete(id, hostId);
         }
         succeeded.push(id);
@@ -885,8 +1041,8 @@ export class PropertiesService {
     const start = new Date(now);
     const end = new Date(now);
     end.setDate(end.getDate() + horizon);
-    const startStr = start.toISOString().split('T')[0];
-    const endStr = end.toISOString().split('T')[0];
+    const startStr = localDateStr(start);
+    const endStr = localDateStr(end);
 
     const upcoming = await this.bookingsRepo.find({
       where: {

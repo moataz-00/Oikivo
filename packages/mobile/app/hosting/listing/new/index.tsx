@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -231,6 +231,12 @@ export default function NewListingScreen() {
   });
 
   // ---------------------------------------------------------------------------
+  // Wizard step (UX-04)
+  // ---------------------------------------------------------------------------
+  const [step, setStep] = useState(0);
+  const TOTAL_STEPS = 6;
+
+  // ---------------------------------------------------------------------------
   // Form validation
   // ---------------------------------------------------------------------------
   const isValid =
@@ -279,6 +285,15 @@ export default function NewListingScreen() {
     });
   };
 
+  const STEP_TITLES = [
+    'Property Type',
+    'Location',
+    'Space Details',
+    'Amenities',
+    'Photos & Rules',
+    'Pricing & Policies',
+  ];
+
   // ---------------------------------------------------------------------------
   // Number input component
   // ---------------------------------------------------------------------------
@@ -304,9 +319,7 @@ export default function NewListingScreen() {
           onPress={onDecrement}
           disabled={value <= min}
           className={`w-9 h-9 rounded-full border items-center justify-center ${
-            value <= min
-              ? 'border-gray-200 opacity-40'
-              : 'border-gray-400'
+            value <= min ? 'border-gray-200 opacity-40' : 'border-gray-400'
           }`}
         >
           <Minus size={16} color="#222" />
@@ -318,9 +331,7 @@ export default function NewListingScreen() {
           onPress={onIncrement}
           disabled={value >= max}
           className={`w-9 h-9 rounded-full border items-center justify-center ${
-            value >= max
-              ? 'border-gray-200 opacity-40'
-              : 'border-gray-400'
+            value >= max ? 'border-gray-200 opacity-40' : 'border-gray-400'
           }`}
         >
           <Plus size={16} color="#222" />
@@ -336,452 +347,242 @@ export default function NewListingScreen() {
     <View className="flex-1 bg-white">
       <ScreenHeader title="Create a Listing" />
 
+      {/* -- Step progress bar -------------------------------------------- */}
+      <View className="px-6 pt-3 pb-1">
+        <View className="flex-row items-center mb-1">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <View
+              key={i}
+              className={`flex-1 h-1.5 rounded-full mx-0.5 ${
+                i <= step ? 'bg-indigo-600' : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </View>
+        <Text className="text-xs text-gray-500 mt-1">
+          Step {step + 1} of {TOTAL_STEPS} � {STEP_TITLES[step]}
+        </Text>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 140 }}
           keyboardShouldPersistTaps="handled"
+          key={step}
         >
-          {/* ============================================================ */}
-          {/* Basic info */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-6 mb-4">
-            Basic Information
-          </Text>
-
-          <Input
-            label="Title"
-            placeholder="Give your place a catchy title"
-            value={title}
-            onChangeText={setTitle}
-          />
-
-          <Input
-            label="Description"
-            placeholder="Describe what makes your place special..."
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-            inputClassName="min-h-[100px] py-3"
-            style={{ textAlignVertical: 'top' }}
-          />
 
           {/* ============================================================ */}
-          {/* Space type */}
+          {/* STEP 0: Property Type */}
           {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-4 mb-3">
-            Type of space
-          </Text>
-
-          {SPACE_TYPES.map((type) => (
-            <TouchableOpacity
-              key={type.value}
-              onPress={() => setSpaceType(type.value)}
-              activeOpacity={0.8}
-              className={`p-4 rounded-xl border mb-3 ${
-                spaceType === type.value
-                  ? 'border-brand bg-brand/5'
-                  : 'border-gray-200'
-              }`}
-            >
-              <Text
-                className={`text-base font-semibold ${
-                  spaceType === type.value
-                    ? 'text-brand'
-                    : 'text-gray-900'
-                }`}
-              >
-                {type.label}
-              </Text>
-              <Text className="text-sm text-gray-500 mt-0.5">
-                {type.description}
-              </Text>
-            </TouchableOpacity>
-          ))}
-
-          {/* ============================================================ */}
-          {/* Property kind */}
-          {/* ============================================================ */}
-          <Input
-            label="Property kind"
-            placeholder="e.g. apartment, villa, house, cabin..."
-            value={propertyKind}
-            onChangeText={setPropertyKind}
-            containerClassName="mt-4"
-          />
-
-          {/* ============================================================ */}
-          {/* Location */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-4 mb-4">
-            Location
-          </Text>
-
-          <Input
-            label="City"
-            placeholder="City name"
-            value={city}
-            onChangeText={setCity}
-          />
-
-          <Input
-            label="Country"
-            placeholder="Country name"
-            value={country}
-            onChangeText={setCountry}
-          />
-
-          <View className="flex-row gap-3 mb-2">
-            <View className="flex-1">
-              <Input
-                label="Latitude (optional)"
-                placeholder="e.g. 30.0444"
-                value={latitude}
-                onChangeText={setLatitude}
-                keyboardType="decimal-pad"
-              />
-            </View>
-            <View className="flex-1">
-              <Input
-                label="Longitude (optional)"
-                placeholder="e.g. 31.2357"
-                value={longitude}
-                onChangeText={setLongitude}
-                keyboardType="decimal-pad"
-              />
-            </View>
-          </View>
-
-          {/* ============================================================ */}
-          {/* Check-in / Check-out */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-4 mb-3">
-            Check-in & Check-out
-          </Text>
-
-          <View className="flex-row gap-3 mb-4">
-            <View className="flex-1">
-              <Input
-                label="Check-in after"
-                placeholder="15:00"
-                value={checkInAfter}
-                onChangeText={setCheckInAfter}
-                keyboardType="numbers-and-punctuation"
-              />
-            </View>
-            <View className="flex-1">
-              <Input
-                label="Check-out before"
-                placeholder="11:00"
-                value={checkOutBefore}
-                onChangeText={setCheckOutBefore}
-                keyboardType="numbers-and-punctuation"
-              />
-            </View>
-          </View>
-
-          {/* ============================================================ */}
-          {/* Pricing */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-4 mb-4">
-            Pricing
-          </Text>
-
-          <Input
-            label="Price per night ($)"
-            placeholder="0"
-            value={pricePerNight}
-            onChangeText={setPricePerNight}
-            keyboardType="decimal-pad"
-          />
-
-          {/* ============================================================ */}
-          {/* Cancellation policy */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-6 mb-3">
-            Cancellation policy
-          </Text>
-
-          {CANCELLATION_POLICIES.map((policy) => (
-            <TouchableOpacity
-              key={policy.value}
-              onPress={() => setCancellationPolicy(policy.value)}
-              activeOpacity={0.8}
-              className={`p-4 rounded-xl border mb-3 ${
-                cancellationPolicy === policy.value
-                  ? 'border-indigo-500 bg-indigo-50'
-                  : 'border-gray-200'
-              }`}
-            >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className={`text-sm font-semibold ${
-                    cancellationPolicy === policy.value ? 'text-indigo-700' : 'text-gray-900'
-                  }`}>
-                    {policy.label}
-                  </Text>
-                  <Text className="text-xs text-gray-500 mt-0.5">
-                    {policy.description}
-                  </Text>
-                </View>
-                {cancellationPolicy === policy.value && (
-                  <Text className="text-indigo-600 text-lg font-bold ml-3">âœ“</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
-
-          {/* ============================================================ */}
-          {/* Discounts */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-6 mb-3">
-            Discounts
-          </Text>
-
-          {/* New listing promotion */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setNewListingPromoEnabled((v) => !v)}
-            className={`flex-row items-center justify-between p-4 rounded-xl border mb-3 ${
-              newListingPromoEnabled ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
-            }`}
-          >
-            <View className="flex-1 pr-3">
-              <View className="flex-row items-center gap-2 mb-1">
-                <Text className="text-sm font-semibold text-gray-900">New listing promotion</Text>
-                <View className="rounded-full bg-indigo-100 px-2 py-0.5">
-                  <Text className="text-xs font-bold text-indigo-700">20% off</Text>
-                </View>
-              </View>
-              <Text className="text-xs text-gray-500">Apply to your first 3 bookings to attract early guests</Text>
-            </View>
-            <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-              newListingPromoEnabled ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300'
-            }`}>
-              {newListingPromoEnabled && <Text className="text-white text-xs font-bold">âœ“</Text>}
-            </View>
-          </TouchableOpacity>
-
-          {/* Last-minute discount */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">Last-minute discount</Text>
-            <Text className="text-xs text-gray-500 mb-3">For bookings 14 days or less before arrival</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {[0, 5, 10, 15, 20].map((v) => (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.8}
-                  onPress={() => setLastMinuteDiscountPercent(v)}
-                  className={`rounded-full border px-4 py-2 ${
-                    lastMinuteDiscountPercent === v
-                      ? 'border-indigo-500 bg-indigo-500'
-                      : 'border-gray-300 bg-white'
-                  }`}
-                >
-                  <Text className={`text-sm font-medium ${
-                    lastMinuteDiscountPercent === v ? 'text-white' : 'text-gray-700'
-                  }`}>
-                    {v === 0 ? 'None' : `${v}%`}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Weekly discount */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">Weekly discount (7+ nights)</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {[0, 5, 10, 15, 20, 25].map((v) => (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.8}
-                  onPress={() => setWeeklyDiscount(v)}
-                  className={`rounded-full border px-4 py-2 ${
-                    weeklyDiscount === v
-                      ? 'border-indigo-500 bg-indigo-500'
-                      : 'border-gray-300 bg-white'
-                  }`}
-                >
-                  <Text className={`text-sm font-medium ${
-                    weeklyDiscount === v ? 'text-white' : 'text-gray-700'
-                  }`}>
-                    {v === 0 ? 'None' : `${v}%`}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Monthly discount */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">Monthly discount (28+ nights)</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {[0, 10, 15, 20, 25, 30].map((v) => (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.8}
-                  onPress={() => setMonthlyDiscount(v)}
-                  className={`rounded-full border px-4 py-2 ${
-                    monthlyDiscount === v
-                      ? 'border-indigo-500 bg-indigo-500'
-                      : 'border-gray-300 bg-white'
-                  }`}
-                >
-                  <Text className={`text-sm font-medium ${
-                    monthlyDiscount === v ? 'text-white' : 'text-gray-700'
-                  }`}>
-                    {v === 0 ? 'None' : `${v}%`}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* ============================================================ */}
-          {/* Booking style */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-2 mb-3">
-            Booking style
-          </Text>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setBookingMode('approve_first_three')}
-            className={`p-4 rounded-xl border mb-3 ${
-              bookingMode === 'approve_first_three' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
-            }`}
-          >
-            <View className="flex-row items-start gap-3">
-              <Text className="text-2xl">ðŸ“…</Text>
-              <View className="flex-1">
-                <View className="flex-row items-center gap-2 mb-1">
-                  <Text className="text-sm font-semibold text-gray-900">Approve your first 3 bookings</Text>
-                </View>
-                <View className="self-start rounded-full bg-green-100 px-2 py-0.5 mb-2">
-                  <Text className="text-xs font-medium text-green-700">Recommended</Text>
-                </View>
-                <Text className="text-xs text-gray-500">Review and approve guests until you feel comfortable, then switch to Instant Book.</Text>
-              </View>
-              {bookingMode === 'approve_first_three' && (
-                <Text className="text-indigo-600 text-lg font-bold">âœ“</Text>
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setBookingMode('instant_book')}
-            className={`p-4 rounded-xl border mb-4 ${
-              bookingMode === 'instant_book' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
-            }`}
-          >
-            <View className="flex-row items-start gap-3">
-              <Text className="text-2xl">âš¡</Text>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-gray-900 mb-1">Use Instant Book</Text>
-                <Text className="text-xs text-gray-500">Guests can book without waiting for approval. Great for maximizing occupancy.</Text>
-              </View>
-              {bookingMode === 'instant_book' && (
-                <Text className="text-indigo-600 text-lg font-bold">âœ“</Text>
-              )}
-            </View>
-          </TouchableOpacity>
-
-          {/* ============================================================ */}
-          {/* Details */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-4 mb-2">
-            Space details
-          </Text>
-
-          <NumberInput
-            label="Max guests"
-            value={maxGuests}
-            onIncrement={() => setMaxGuests((v) => v + 1)}
-            onDecrement={() => setMaxGuests((v) => v - 1)}
-            min={1}
-            max={20}
-          />
-          <NumberInput
-            label="Bedrooms"
-            value={bedrooms}
-            onIncrement={() => setBedrooms((v) => v + 1)}
-            onDecrement={() => setBedrooms((v) => v - 1)}
-            min={0}
-            max={20}
-          />
-          <NumberInput
-            label="Beds"
-            value={beds}
-            onIncrement={() => setBeds((v) => v + 1)}
-            onDecrement={() => setBeds((v) => v - 1)}
-            min={1}
-            max={30}
-          />
-          <NumberInput
-            label="Bathrooms"
-            value={bathrooms}
-            onIncrement={() => setBathrooms((v) => v + 1)}
-            onDecrement={() => setBathrooms((v) => v - 1)}
-            min={0}
-            max={10}
-          />
-
-          {/* ============================================================ */}
-          {/* Category */}
-          {/* ============================================================ */}
-          {categories.length > 0 && (
+          {step === 0 && (
             <>
-              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-3">
-                Category
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-4">
+                Basic Information
               </Text>
 
-              <FlatList
-                data={categories}
-                keyExtractor={(item) => item.id.toString()}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8 }}
-                renderItem={({ item }) => {
-                  const isActive = selectedCategoryId === item.id;
-                  return (
-                    <TouchableOpacity
-                      onPress={() =>
-                        setSelectedCategoryId(
-                          isActive ? null : item.id,
-                        )
-                      }
-                      activeOpacity={0.8}
-                      className={`items-center px-4 py-2.5 rounded-full border ${
-                        isActive
-                          ? 'bg-brand border-brand'
-                          : 'bg-white border-gray-200'
-                      }`}
-                    >
-                      <Text className="text-base">{item.icon}</Text>
-                      <Text
-                        className={`text-xs font-medium mt-0.5 ${
-                          isActive ? 'text-white' : 'text-gray-700'
-                        }`}
-                      >
-                        {item.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                }}
+              <Input
+                label="Title"
+                placeholder="Give your place a catchy title"
+                value={title}
+                onChangeText={setTitle}
               />
+
+              <Input
+                label="Description"
+                placeholder="Describe what makes your place special..."
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+                inputClassName="min-h-[100px] py-3"
+                style={{ textAlignVertical: 'top' }}
+              />
+
+              <Text className="text-lg font-semibold text-gray-900 mt-4 mb-3">
+                Type of space
+              </Text>
+
+              {SPACE_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type.value}
+                  onPress={() => setSpaceType(type.value)}
+                  activeOpacity={0.8}
+                  className={`p-4 rounded-xl border mb-3 ${
+                    spaceType === type.value
+                      ? 'border-brand bg-brand/5'
+                      : 'border-gray-200'
+                  }`}
+                >
+                  <Text className={`text-base font-semibold ${spaceType === type.value ? 'text-brand' : 'text-gray-900'}`}>
+                    {type.label}
+                  </Text>
+                  <Text className="text-sm text-gray-500 mt-0.5">{type.description}</Text>
+                </TouchableOpacity>
+              ))}
+
+              <Input
+                label="Property kind"
+                placeholder="e.g. apartment, villa, house, cabin..."
+                value={propertyKind}
+                onChangeText={setPropertyKind}
+                containerClassName="mt-4"
+              />
+
+              {categories.length > 0 && (
+                <>
+                  <Text className="text-lg font-semibold text-gray-900 mt-6 mb-3">
+                    Category
+                  </Text>
+                  <FlatList
+                    data={categories}
+                    keyExtractor={(item) => item.id.toString()}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8 }}
+                    renderItem={({ item }) => {
+                      const isActive = selectedCategoryId === item.id;
+                      return (
+                        <TouchableOpacity
+                          onPress={() => setSelectedCategoryId(isActive ? null : item.id)}
+                          activeOpacity={0.8}
+                          className={`items-center px-4 py-2.5 rounded-full border ${isActive ? 'bg-brand border-brand' : 'bg-white border-gray-200'}`}
+                        >
+                          <Text className="text-base">{item.icon}</Text>
+                          <Text className={`text-xs font-medium mt-0.5 ${isActive ? 'text-white' : 'text-gray-700'}`}>
+                            {item.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    }}
+                  />
+                </>
+              )}
             </>
           )}
 
           {/* ============================================================ */}
-          {/* Amenities */}
+          {/* STEP 1: Location */}
           {/* ============================================================ */}
-          {amenities.length > 0 && (
+          {step === 1 && (
+            <>
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-4">
+                Where is your place?
+              </Text>
+
+              <Input
+                label="City"
+                placeholder="City name"
+                value={city}
+                onChangeText={setCity}
+              />
+
+              <Input
+                label="Country"
+                placeholder="Country name"
+                value={country}
+                onChangeText={setCountry}
+              />
+
+              <View className="flex-row gap-3 mb-2">
+                <View className="flex-1">
+                  <Input
+                    label="Latitude (optional)"
+                    placeholder="e.g. 30.0444"
+                    value={latitude}
+                    onChangeText={setLatitude}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Input
+                    label="Longitude (optional)"
+                    placeholder="e.g. 31.2357"
+                    value={longitude}
+                    onChangeText={setLongitude}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* ============================================================ */}
+          {/* STEP 2: Space Details */}
+          {/* ============================================================ */}
+          {step === 2 && (
+            <>
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-2">
+                Space details
+              </Text>
+
+              <NumberInput
+                label="Max guests"
+                value={maxGuests}
+                onIncrement={() => setMaxGuests((v) => v + 1)}
+                onDecrement={() => setMaxGuests((v) => v - 1)}
+                min={1}
+                max={20}
+              />
+              <NumberInput
+                label="Bedrooms"
+                value={bedrooms}
+                onIncrement={() => setBedrooms((v) => v + 1)}
+                onDecrement={() => setBedrooms((v) => v - 1)}
+                min={0}
+                max={20}
+              />
+              <NumberInput
+                label="Beds"
+                value={beds}
+                onIncrement={() => setBeds((v) => v + 1)}
+                onDecrement={() => setBeds((v) => v - 1)}
+                min={1}
+                max={30}
+              />
+              <NumberInput
+                label="Bathrooms"
+                value={bathrooms}
+                onIncrement={() => setBathrooms((v) => v + 1)}
+                onDecrement={() => setBathrooms((v) => v - 1)}
+                min={0}
+                max={10}
+              />
+
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-3">
+                Check-in &amp; Check-out
+              </Text>
+
+              <View className="flex-row gap-3 mb-4">
+                <View className="flex-1">
+                  <Input
+                    label="Check-in after"
+                    placeholder="15:00"
+                    value={checkInAfter}
+                    onChangeText={setCheckInAfter}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Input
+                    label="Check-out before"
+                    placeholder="11:00"
+                    value={checkOutBefore}
+                    onChangeText={setCheckOutBefore}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* ============================================================ */}
+          {/* STEP 3: Amenities */}
+          {/* ============================================================ */}
+          {step === 3 && (
             <>
               <Text className="text-lg font-semibold text-gray-900 mt-6 mb-1">
                 Amenities
@@ -802,9 +603,7 @@ export default function NewListingScreen() {
                       onPress={() => toggleAmenity(amenity.id)}
                       activeOpacity={0.8}
                       className={`flex-row items-center px-3 py-2 rounded-full border ${
-                        isActive
-                          ? 'bg-brand border-brand'
-                          : 'bg-white border-gray-200'
+                        isActive ? 'bg-brand border-brand' : 'bg-white border-gray-200'
                       }`}
                     >
                       <Text className="text-sm mr-1">{amenity.icon}</Text>
@@ -819,115 +618,294 @@ export default function NewListingScreen() {
           )}
 
           {/* ============================================================ */}
-          {/* House rules */}
+          {/* STEP 4: Photos & House Rules */}
           {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-6 mb-1">
-            House rules
-          </Text>
-          <Text className="text-xs text-gray-500 mb-3">
-            Add at least 1 rule to publish{' '}
-            <Text className={houseRules.filter((r) => r.trim()).length >= 1 ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'}>
-              ({houseRules.filter((r) => r.trim()).length} added)
-            </Text>
-          </Text>
+          {step === 4 && (
+            <>
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-1">
+                Photos
+              </Text>
+              <Text className="text-xs text-gray-500 mb-3">
+                Add at least 5 photos to publish{' '}
+                <Text className={photoUris.length >= 5 ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'}>
+                  ({photoUris.length}/5 minimum)
+                </Text>
+              </Text>
 
-          {houseRules.map((rule, idx) => (
-            <View key={idx} className="flex-row items-center gap-2 mb-2">
-              <View className="flex-1">
-                <Input
-                  placeholder={`Rule ${idx + 1}, e.g. No pets`}
-                  value={rule}
-                  onChangeText={(val) => updateRule(idx, val)}
-                />
+              <View className="flex-row flex-wrap gap-2 mb-3">
+                {photoUris.map((uri, idx) => (
+                  <View key={idx} className="relative">
+                    <TouchableOpacity onPress={() => setCoverIndex(idx)} activeOpacity={0.85}>
+                      <Image
+                        source={{ uri }}
+                        style={{ width: 100, height: 100, borderRadius: 10 }}
+                        resizeMode="cover"
+                      />
+                      {coverIndex === idx && (
+                        <View className="absolute top-1 left-1 bg-brand rounded-full px-1.5 py-0.5">
+                          <Text className="text-white text-[10px] font-bold">Cover</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => removePhoto(idx)}
+                      className="absolute top-1 right-1 bg-black/50 rounded-full p-0.5"
+                    >
+                      <Trash2 size={12} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {photoUris.length < 20 && (
+                  <TouchableOpacity
+                    onPress={pickPhotos}
+                    activeOpacity={0.8}
+                    className="w-[100px] h-[100px] rounded-xl border-2 border-dashed border-gray-300 items-center justify-center"
+                  >
+                    <Camera size={24} color="#9CA3AF" />
+                    <Text className="text-xs text-gray-400 mt-1">Add photos</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              {houseRules.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => removeRule(idx)}
-                  className="p-2"
-                >
-                  <Trash2 size={18} color="#EF4444" />
-                </TouchableOpacity>
+
+              {photoUris.length > 1 && (
+                <Text className="text-xs text-gray-500 mb-4">
+                  Tap a photo to set it as the cover photo.
+                </Text>
               )}
-            </View>
-          ))}
 
-          <TouchableOpacity
-            onPress={addRule}
-            className="flex-row items-center mt-1 mb-6 py-2"
-          >
-            <Plus size={16} color="#4F46E5" />
-            <Text className="text-brand text-sm font-medium ml-1">Add another rule</Text>
-          </TouchableOpacity>
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-1">
+                House rules
+              </Text>
+              <Text className="text-xs text-gray-500 mb-3">
+                Add at least 1 rule to publish{' '}
+                <Text className={houseRules.filter((r) => r.trim()).length >= 1 ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'}>
+                  ({houseRules.filter((r) => r.trim()).length} added)
+                </Text>
+              </Text>
 
-          {/* ============================================================ */}
-          {/* Photos */}
-          {/* ============================================================ */}
-          <Text className="text-lg font-semibold text-gray-900 mt-2 mb-1">
-            Photos
-          </Text>
-          <Text className="text-xs text-gray-500 mb-3">
-            Add at least 5 photos to publish{' '}
-            <Text className={photoUris.length >= 5 ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'}>
-              ({photoUris.length}/5 minimum)
-            </Text>
-          </Text>
-
-          <View className="flex-row flex-wrap gap-2 mb-3">
-            {photoUris.map((uri, idx) => (
-              <View key={idx} className="relative">
-                <TouchableOpacity onPress={() => setCoverIndex(idx)} activeOpacity={0.85}>
-                  <Image
-                    source={{ uri }}
-                    style={{ width: 100, height: 100, borderRadius: 10 }}
-                    resizeMode="cover"
-                  />
-                  {coverIndex === idx && (
-                    <View className="absolute top-1 left-1 bg-brand rounded-full px-1.5 py-0.5">
-                      <Text className="text-white text-[10px] font-bold">Cover</Text>
-                    </View>
+              {houseRules.map((rule, idx) => (
+                <View key={idx} className="flex-row items-center gap-2 mb-2">
+                  <View className="flex-1">
+                    <Input
+                      placeholder={`Rule ${idx + 1}, e.g. No pets`}
+                      value={rule}
+                      onChangeText={(val) => updateRule(idx, val)}
+                    />
+                  </View>
+                  {houseRules.length > 1 && (
+                    <TouchableOpacity onPress={() => removeRule(idx)} className="p-2">
+                      <Trash2 size={18} color="#EF4444" />
+                    </TouchableOpacity>
                   )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => removePhoto(idx)}
-                  className="absolute top-1 right-1 bg-black/50 rounded-full p-0.5"
-                >
-                  <Trash2 size={12} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ))}
+                </View>
+              ))}
 
-            {photoUris.length < 20 && (
-              <TouchableOpacity
-                onPress={pickPhotos}
-                activeOpacity={0.8}
-                className="w-[100px] h-[100px] rounded-xl border-2 border-dashed border-gray-300 items-center justify-center"
-              >
-                <Camera size={24} color="#9CA3AF" />
-                <Text className="text-xs text-gray-400 mt-1">Add photos</Text>
+              <TouchableOpacity onPress={addRule} className="flex-row items-center mt-1 mb-6 py-2">
+                <Plus size={16} color="#4F46E5" />
+                <Text className="text-brand text-sm font-medium ml-1">Add another rule</Text>
               </TouchableOpacity>
-            )}
-          </View>
+            </>
+          )}
 
-          {photoUris.length > 1 && (
-            <Text className="text-xs text-gray-500 mb-4">
-              Tap a photo to set it as the cover photo.
-            </Text>
+          {/* ============================================================ */}
+          {/* STEP 5: Pricing & Policies */}
+          {/* ============================================================ */}
+          {step === 5 && (
+            <>
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-4">
+                Pricing
+              </Text>
+
+              <Input
+                label="Price per night ($)"
+                placeholder="0"
+                value={pricePerNight}
+                onChangeText={setPricePerNight}
+                keyboardType="decimal-pad"
+              />
+
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-3">
+                Cancellation policy
+              </Text>
+
+              {CANCELLATION_POLICIES.map((policy) => (
+                <TouchableOpacity
+                  key={policy.value}
+                  onPress={() => setCancellationPolicy(policy.value)}
+                  activeOpacity={0.8}
+                  className={`p-4 rounded-xl border mb-3 ${
+                    cancellationPolicy === policy.value
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200'
+                  }`}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1">
+                      <Text className={`text-sm font-semibold ${cancellationPolicy === policy.value ? 'text-indigo-700' : 'text-gray-900'}`}>
+                        {policy.label}
+                      </Text>
+                      <Text className="text-xs text-gray-500 mt-0.5">{policy.description}</Text>
+                    </View>
+                    {cancellationPolicy === policy.value && (
+                      <Text className="text-indigo-600 text-lg font-bold ml-3">?</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+
+              <Text className="text-lg font-semibold text-gray-900 mt-6 mb-3">
+                Booking style
+              </Text>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setBookingMode('approve_first_three')}
+                className={`p-4 rounded-xl border mb-3 ${bookingMode === 'approve_first_three' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`}
+              >
+                <View className="flex-row items-start gap-3">
+                  <Text className="text-2xl">??</Text>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-gray-900 mb-1">Approve your first 3 bookings</Text>
+                    <View className="self-start rounded-full bg-green-100 px-2 py-0.5 mb-2">
+                      <Text className="text-xs font-medium text-green-700">Recommended</Text>
+                    </View>
+                    <Text className="text-xs text-gray-500">Review and approve guests until you feel comfortable, then switch to Instant Book.</Text>
+                  </View>
+                  {bookingMode === 'approve_first_three' && (
+                    <Text className="text-indigo-600 text-lg font-bold">?</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setBookingMode('instant_book')}
+                className={`p-4 rounded-xl border mb-4 ${bookingMode === 'instant_book' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`}
+              >
+                <View className="flex-row items-start gap-3">
+                  <Text className="text-2xl">?</Text>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-gray-900 mb-1">Use Instant Book</Text>
+                    <Text className="text-xs text-gray-500">Guests can book without waiting for approval. Great for maximizing occupancy.</Text>
+                  </View>
+                  {bookingMode === 'instant_book' && (
+                    <Text className="text-indigo-600 text-lg font-bold">?</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              <Text className="text-lg font-semibold text-gray-900 mt-2 mb-3">Discounts</Text>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setNewListingPromoEnabled((v) => !v)}
+                className={`flex-row items-center justify-between p-4 rounded-xl border mb-3 ${newListingPromoEnabled ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`}
+              >
+                <View className="flex-1 pr-3">
+                  <View className="flex-row items-center gap-2 mb-1">
+                    <Text className="text-sm font-semibold text-gray-900">New listing promotion</Text>
+                    <View className="rounded-full bg-indigo-100 px-2 py-0.5">
+                      <Text className="text-xs font-bold text-indigo-700">20% off</Text>
+                    </View>
+                  </View>
+                  <Text className="text-xs text-gray-500">Apply to your first 3 bookings to attract early guests</Text>
+                </View>
+                <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${newListingPromoEnabled ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300'}`}>
+                  {newListingPromoEnabled && <Text className="text-white text-xs font-bold">?</Text>}
+                </View>
+              </TouchableOpacity>
+
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-700 mb-2">Last-minute discount</Text>
+                <Text className="text-xs text-gray-500 mb-3">For bookings 14 days or less before arrival</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {[0, 5, 10, 15, 20].map((v) => (
+                    <TouchableOpacity
+                      key={v}
+                      activeOpacity={0.8}
+                      onPress={() => setLastMinuteDiscountPercent(v)}
+                      className={`rounded-full border px-4 py-2 ${lastMinuteDiscountPercent === v ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300 bg-white'}`}
+                    >
+                      <Text className={`text-sm font-medium ${lastMinuteDiscountPercent === v ? 'text-white' : 'text-gray-700'}`}>
+                        {v === 0 ? 'None' : `${v}%`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-700 mb-2">Weekly discount (7+ nights)</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {[0, 5, 10, 15, 20, 25].map((v) => (
+                    <TouchableOpacity
+                      key={v}
+                      activeOpacity={0.8}
+                      onPress={() => setWeeklyDiscount(v)}
+                      className={`rounded-full border px-4 py-2 ${weeklyDiscount === v ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300 bg-white'}`}
+                    >
+                      <Text className={`text-sm font-medium ${weeklyDiscount === v ? 'text-white' : 'text-gray-700'}`}>
+                        {v === 0 ? 'None' : `${v}%`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-700 mb-2">Monthly discount (28+ nights)</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {[0, 10, 15, 20, 25, 30].map((v) => (
+                    <TouchableOpacity
+                      key={v}
+                      activeOpacity={0.8}
+                      onPress={() => setMonthlyDiscount(v)}
+                      className={`rounded-full border px-4 py-2 ${monthlyDiscount === v ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300 bg-white'}`}
+                    >
+                      <Text className={`text-sm font-medium ${monthlyDiscount === v ? 'text-white' : 'text-gray-700'}`}>
+                        {v === 0 ? 'None' : `${v}%`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </>
           )}
 
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ============================================================ */}
-      {/* Create button */}
-      {/* ============================================================ */}
+      {/* -- Navigation buttons -------------------------------------------- */}
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 pt-3 pb-8">
-        <Button
-          title="Create Listing"
-          onPress={handleCreate}
-          loading={createMutation.isPending}
-          disabled={!isValid}
-          size="lg"
-        />
+        <View className="flex-row gap-3">
+          {step > 0 && (
+            <TouchableOpacity
+              onPress={() => setStep((s) => s - 1)}
+              className="flex-1 h-12 rounded-xl border border-gray-300 items-center justify-center"
+            >
+              <Text className="text-sm font-semibold text-gray-700">Back</Text>
+            </TouchableOpacity>
+          )}
+
+          {step < TOTAL_STEPS - 1 ? (
+            <TouchableOpacity
+              onPress={() => setStep((s) => s + 1)}
+              className={`flex-1 h-12 rounded-xl items-center justify-center bg-indigo-600 ${step === 0 ? 'flex-1' : ''}`}
+            >
+              <Text className="text-sm font-semibold text-white">Next</Text>
+            </TouchableOpacity>
+          ) : (
+            <Button
+              title="Create Listing"
+              onPress={handleCreate}
+              loading={createMutation.isPending}
+              disabled={!isValid}
+              size="lg"
+              className="flex-1"
+            />
+          )}
+        </View>
       </View>
     </View>
   );

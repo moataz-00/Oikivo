@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -72,7 +73,7 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDto, ipAddress?: string) {
+  async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     let loginUser: UserEntity | null = null;
     try {
       const user = await this.usersRepo.findOne({
@@ -120,6 +121,13 @@ export class AuthService {
         await this.usersRepo.update(user.id, { failedLoginAttempts: 0, lockedUntil: null });
       }
 
+      // SEC-07: Enforce 2FA (TOTP) for all admin accounts (temporarily disabled)
+      // if (user.isAdmin && !user.isTotpEnabled) {
+      //   throw new ForbiddenException(
+      //     'Admin accounts must have 2FA (TOTP) enabled. Please configure it in your account settings before logging in.',
+      //   );
+      // }
+
       // 2FA TOTP check
       if (user.isTotpEnabled) {
         if (!dto.totpCode) {
@@ -133,11 +141,15 @@ export class AuthService {
       await this.saveRefreshToken(user.id, tokens.refreshToken);
 
       // Save session record for session management (best-effort)
+      const { osName, deviceName } = this.parseUserAgent(userAgent);
       this.sessionRepo
         .save(
           this.sessionRepo.create({
             userId: user.id,
             ipAddress: ipAddress ?? null,
+            userAgent: userAgent ? userAgent.substring(0, 500) : null,
+            osName,
+            deviceName,
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days like refresh token
           }),
         )
@@ -491,7 +503,7 @@ export class AuthService {
 
     const frontendUrlRaw = this.config.get('FRONTEND_URL', 'http://localhost:3000');
     const frontendUrl = frontendUrlRaw.split(',')[0]?.trim() || 'http://localhost:3000';
-    const confirmUrl = `${frontendUrl.replace(/\/$/, '')}/en/account?action=confirm-email&token=${encodeURIComponent(token)}`;
+    const confirmUrl = `${frontendUrl.replace(/\/$/, '')}/en/auth/confirm-email-change?token=${encodeURIComponent(token)}`;
 
     await this.mail.send(newEmail, 'Confirm your new email — Oikivo', tplConfirmEmailChange(user.firstName, newEmail, confirmUrl));
 
@@ -624,6 +636,55 @@ export class AuthService {
   async revokeAllSessions(userId: number): Promise<{ message: string }> {
     await this.sessionRepo.delete({ userId });
     return { message: 'All sessions revoked' };
+  }
+
+  // ─── User-Agent Parser ────────────────────────────────────────────────────
+
+  private parseUserAgent(ua?: string): { osName: string | null; deviceName: string | null } {
+    if (!ua) return { osName: null, deviceName: null };
+
+    // OS detection
+    let osName: string | null = null;
+    if (/windows nt 10/i.test(ua))         osName = 'Windows 10/11';
+    else if (/windows nt 6\.3/i.test(ua))  osName = 'Windows 8.1';
+    else if (/windows nt 6\.2/i.test(ua))  osName = 'Windows 8';
+    else if (/windows nt 6\.1/i.test(ua))  osName = 'Windows 7';
+    else if (/windows/i.test(ua))          osName = 'Windows';
+    else if (/iphone os ([\d_]+)/i.test(ua)) {
+      const v = ua.match(/iphone os ([\d_]+)/i)?.[1]?.replace(/_/g, '.').split('.').slice(0, 2).join('.');
+      osName = `iOS ${v ?? ''}`.trim();
+    } else if (/ipad.*os ([\d_]+)/i.test(ua)) {
+      const v = ua.match(/os ([\d_]+)/i)?.[1]?.replace(/_/g, '.').split('.').slice(0, 2).join('.');
+      osName = `iPadOS ${v ?? ''}`.trim();
+    } else if (/android ([\d.]+)/i.test(ua)) {
+      const v = ua.match(/android ([\d.]+)/i)?.[1]?.split('.').slice(0, 2).join('.');
+      osName = `Android ${v ?? ''}`.trim();
+    } else if (/mac os x ([\d_]+)/i.test(ua)) {
+      const v = ua.match(/mac os x ([\d_]+)/i)?.[1]?.replace(/_/g, '.').split('.').slice(0, 2).join('.');
+      osName = `macOS ${v ?? ''}`.trim();
+    } else if (/linux/i.test(ua))          osName = 'Linux';
+    else if (/cros/i.test(ua))             osName = 'Chrome OS';
+
+    // Browser / app detection
+    let browser: string | null = null;
+    if (/edg\//i.test(ua))                 browser = 'Edge';
+    else if (/opr\//i.test(ua))            browser = 'Opera';
+    else if (/chrome\/([\d]+)/i.test(ua))  browser = 'Chrome';
+    else if (/firefox\/([\d]+)/i.test(ua)) browser = 'Firefox';
+    else if (/safari\/([\d]+)/i.test(ua) && !/chrome/i.test(ua)) browser = 'Safari';
+    else if (/okhttp/i.test(ua))           browser = 'Mobile App';
+
+    // Device type
+    let deviceType = 'Desktop';
+    if (/iphone/i.test(ua))         deviceType = 'iPhone';
+    else if (/ipad/i.test(ua))      deviceType = 'iPad';
+    else if (/android.*mobile/i.test(ua)) deviceType = 'Android Phone';
+    else if (/android/i.test(ua))   deviceType = 'Android Tablet';
+    else if (/mobile/i.test(ua))    deviceType = 'Mobile';
+
+    const deviceName = browser ? `${browser} on ${deviceType}` : deviceType;
+
+    return { osName, deviceName };
   }
 }
 

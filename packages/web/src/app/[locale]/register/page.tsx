@@ -10,17 +10,21 @@ import { z } from 'zod';
 import { Eye, EyeOff, Home, Star, Users, MapPin } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/lib/api';
-import { useAuthStore } from '@/store/auth.store';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
 
 const schema = z
   .object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(PASSWORD_REGEX, 'Must include uppercase, lowercase, number & special character'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -34,19 +38,21 @@ export default function RegisterPage() {
   const t = useTranslations('auth');
   const locale = useLocale();
   const router = useRouter();
-  const login = useAuthStore((s) => s.login);
   const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const registerMutation = useMutation({
     mutationFn: authApi.register,
-    onSuccess: (data) => {
-      login(data.user, data.accessToken, data.refreshToken);
-      toast.success('Welcome to Oikivo!');
-      router.push(`/${locale}`);
+    onSuccess: () => {
+      toast.success(t('registerSuccess'));
+      router.push(`/${locale}/login?registered=1`);
     },
-    onError: () => toast.error(t('registerError')),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      const display = Array.isArray(msg) ? msg[0] : (msg ?? t('registerError'));
+      toast.error(display);
+    },
   });
 
   const onSubmit = (data: FormData) => {

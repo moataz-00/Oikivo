@@ -1,15 +1,14 @@
-import { ComingSoon } from '@/components/ui/ComingSoon';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Consultations — Oikivo',
+  description: 'Book a consultation with expert consultants on Oikivo.',
+};
 
 export default function ConsultationsLayout({
-  children: _children,
+  children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <ComingSoon
-      title="Consultations - Coming Soon"
-      description="Consultations are coming soon on the Oikivo website."
-      backLabel="Back to Home"
-    />
-  );
+  return <>{children}</>;
 }

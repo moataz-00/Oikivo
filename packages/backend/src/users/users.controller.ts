@@ -25,6 +25,8 @@ import { join } from 'path';
 import { extname } from 'path';
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { validateMagicBytes } from '../common/utils/magic-bytes.util';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RequestHostActivationDto } from './dto/request-host-activation.dto';
@@ -98,6 +100,7 @@ export class UsersController {
   @Post('me/avatar')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { ttl: 3600000, limit: 10 } })
   @ApiOperation({ summary: 'Upload avatar' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -123,6 +126,8 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
+    // SEC-02: Validate magic bytes to prevent MIME-type spoofing
+    validateMagicBytes(file.path, ['jpeg', 'png', 'webp']);
     const avatarUrl = `/uploads/avatars/${file.filename}`;
     return this.usersService.updateAvatar(user.id, avatarUrl);
   }
@@ -130,6 +135,7 @@ export class UsersController {
   @Post('me/verify-id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { ttl: 3600000, limit: 5 } })
   @ApiOperation({ summary: 'Submit government ID document for verification' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -155,6 +161,8 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
+    // SEC-02: Validate magic bytes to prevent MIME-type spoofing
+    validateMagicBytes(file.path, ['jpeg', 'png', 'webp', 'pdf']);
     const docUrl = `/uploads/id-documents/${file.filename}`;
     return this.usersService.submitIdDocument(user.id, docUrl);
   }

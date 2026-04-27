@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import type { Amenity } from '@/types';
@@ -53,22 +54,46 @@ export function AmenitiesGrid({ amenities }: AmenitiesGridProps) {
     {} as Record<string, Amenity[]>
   );
 
+  const cardVariants = {
+    hidden: { opacity: 0, y: 14, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } },
+  };
+
   return (
-    <section>
-      <h2 className="text-xl font-semibold text-neutral-900 mb-5">{t('amenities')}</h2>
+    <motion.section
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.55, ease: 'easeOut' }}
+    >
+      {/* Section header */}
+      <div className="flex items-center gap-2.5 mb-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-sm">
+          <Sparkles className="h-4 w-4 text-white" />
+        </div>
+        <h2 className="text-xl font-semibold text-neutral-900">{t('amenities')}</h2>
+      </div>
 
       {/* Card grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <motion.div
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+      >
         {visibleAmenities.map((amenity) => (
-          <div
+          <motion.div
             key={amenity.id}
-            className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 transition-colors hover:border-neutral-300"
+            variants={cardVariants}
+            whileHover={{ y: -2, scale: 1.03 }}
+            className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 transition-colors hover:border-amber-200 hover:bg-amber-50/30"
           >
             <span className="text-xl shrink-0">{getEmoji(amenity.icon)}</span>
             <span className="text-sm font-medium text-neutral-800 leading-tight">{getAmenityName(amenity)}</span>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {amenities.length > 10 && (
         <Button
@@ -112,6 +137,6 @@ export function AmenitiesGrid({ amenities }: AmenitiesGridProps) {
           })}
         </div>
       </Modal>
-    </section>
+    </motion.section>
   );
 }

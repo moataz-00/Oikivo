@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, ParseIntPipe,
-  BadRequestException, UseInterceptors, UploadedFiles,
+  BadRequestException, UseInterceptors, UploadedFiles, Res, NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -8,6 +8,8 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
+import type { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { DisputesService } from './disputes.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -49,6 +51,7 @@ export class DisputesController {
   constructor(private readonly disputesService: DisputesService) {}
 
   @Post()
+  @Throttle({ default: { ttl: 3600000, limit: 2 } })
   @ApiOperation({ summary: 'Open a dispute for a completed or cancelled booking' })
   create(@CurrentUser() user: UserEntity, @Body() dto: CreateDisputeDto) {
     return this.disputesService.create(user.id, dto);
@@ -60,6 +63,21 @@ export class DisputesController {
     return this.disputesService.getMyDisputes(user.id);
   }
 
+  @Get('host')
+  @ApiOperation({ summary: 'Get disputes for my hosted bookings' })
+  getHostDisputes(@CurrentUser() user: UserEntity) {
+    return this.disputesService.getHostDisputes(user.id);
+  }
+
+  @Get('u/:uuid')
+  @ApiOperation({ summary: 'Get a single dispute by UUID (secure URL)' })
+  findByUuid(
+    @Param('uuid') uuid: string,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.disputesService.findByUuid(uuid, user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a single dispute by ID' })
   findOne(
@@ -67,6 +85,27 @@ export class DisputesController {
     @CurrentUser() user: UserEntity,
   ) {
     return this.disputesService.findOne(id, user.id);
+  }
+
+  @Get(':id/evidence/:filename')
+  @ApiOperation({ summary: 'Serve a dispute evidence file (authenticated)' })
+  async serveEvidence(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('filename') filename: string,
+    @CurrentUser() user: UserEntity,
+    @Res() res: Response,
+  ) {
+    // Verify user has access to this dispute (throws ForbiddenException if not)
+    await this.disputesService.findOne(id, user.id);
+
+    // Sanitise filename — strip path traversal characters
+    const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '');
+    if (!safe || safe !== filename) throw new NotFoundException('File not found');
+
+    const filePath = join(process.cwd(), 'uploads', 'disputes', String(id), safe);
+    if (!existsSync(filePath)) throw new NotFoundException('File not found');
+
+    res.sendFile(filePath);
   }
 
   @Patch(':id/update')

@@ -67,6 +67,23 @@ export class WishlistsService {
     return wishlist;
   }
 
+  async findOneByUuid(uuid: string, userId: number): Promise<WishlistEntity> {
+    const wishlist = await this.wishlistsRepo.findOne({
+      where: { uuid },
+      relations: ['items', 'items.property', 'items.property.photos', 'items.property.host'],
+    });
+    if (!wishlist) throw new NotFoundException('Wishlist not found');
+    if (wishlist.userId !== userId && wishlist.visibility !== 'public') {
+      throw new ForbiddenException('Not authorized to view this wishlist');
+    }
+    if (wishlist.items) {
+      wishlist.items = wishlist.items.filter(
+        (item) => item.property && item.property.status === 'published' && item.property.isActive,
+      );
+    }
+    return wishlist;
+  }
+
   async update(id: number, userId: number, dto: Partial<CreateWishlistDto>): Promise<WishlistEntity> {
     const wishlist = await this.wishlistsRepo.findOne({ where: { id } });
     if (!wishlist) throw new NotFoundException('Wishlist not found');
@@ -125,6 +142,12 @@ export class WishlistsService {
       relations: ['items', 'items.property', 'items.property.photos'],
     });
     if (!wishlist) throw new NotFoundException('Wishlist not found');
+    // Filter out unpublished/archived properties (same as findOne)
+    if (wishlist.items) {
+      wishlist.items = wishlist.items.filter(
+        (item) => item.property && item.property.status === 'published' && item.property.isActive,
+      );
+    }
     return wishlist;
   }
 

@@ -19,6 +19,8 @@ import { AdminLogInterceptor } from './admin-log.interceptor';
 import { AdminGuard } from './admin.guard';
 import { AdminIpAllowlistGuard } from './admin-ip-allowlist.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { UserEntity } from '../entities/user.entity';
 import { DisputesService } from '../disputes/disputes.service';
 import { ICalSyncService } from '../availability/ical-sync.service';
 
@@ -147,10 +149,21 @@ export class AdminController {
     return this.adminService.getBookings(parseInt(page) || 1, parseInt(limit) || 20, status, search);
   }
 
+  @Patch('bookings/:id/mark-proof-viewed')
+  @ApiOperation({ summary: 'Mark payment proof as viewed by admin' })
+  markProofViewed(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.adminService.markProofViewed(id);
+  }
+
   @Post('bookings/:id/confirm-payment')
   @ApiOperation({ summary: 'Mark booking payment as paid (admin only)' })
-  confirmPayment(@Param('id', ParseIntPipe) id: number) {
-    return this.adminService.confirmPayment(id);
+  confirmPayment(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() admin: UserEntity,
+  ) {
+    return this.adminService.confirmPayment(id, admin.id);
   }
 
   @Post('bookings/:id/decline-payment')
@@ -158,8 +171,9 @@ export class AdminController {
   declinePayment(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { reason?: string },
+    @CurrentUser() admin: UserEntity,
   ) {
-    return this.adminService.declinePayment(id, body.reason);
+    return this.adminService.declinePayment(id, body.reason, admin.id);
   }
 
   @Get('payments/instapay-refunds-pending')

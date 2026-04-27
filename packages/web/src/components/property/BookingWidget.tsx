@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInDays, subDays } from 'date-fns';
 import { Star, Minus, Plus, ChevronDown, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Separator } from '@/components/ui/Separator';
 import { Spinner } from '@/components/ui/Spinner';
@@ -17,6 +18,7 @@ import { getBookingErrorMessage } from '@/lib/booking-errors';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrency } from '@/hooks/useCurrency';
 import { PaymentMethodModal } from '@/components/payment/PaymentMethodModal';
+import { PaymentMethodBanner } from '@/components/payment/PaymentMethodBanner';
 import type { Property } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -132,21 +134,31 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
 
   return (
     <>
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-lg sticky top-24">
+    <motion.div
+      initial={{ opacity: 0, y: 28, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
+      className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-xl sticky top-24"
+    >
       {/* Price header */}
-      <div className="flex items-end justify-between mb-5">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+        className="flex items-end justify-between mb-5"
+      >
         <div>
           <span className="text-xl font-semibold text-neutral-900">{formatPrice(property.price, property.currency ?? 'EGP')}</span>
           <span className="text-neutral-500 text-base"> / {tProp('night')}</span>
         </div>
         {avgRatingText !== null && (
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-neutral-900 text-neutral-900" />
-            <span className="text-sm font-medium">{avgRatingText}</span>
-            <span className="text-sm text-neutral-500">({property.reviewCount} {tProp('reviews')})</span>
+          <div className="flex items-center gap-1.5 rounded-full bg-neutral-900 px-2.5 py-1">
+            <Star className="h-3.5 w-3.5 fill-white text-white" />
+            <span className="text-xs font-semibold text-white">{avgRatingText}</span>
+            <span className="text-xs text-neutral-400">({property.reviewCount})</span>
           </div>
         )}
-      </div>
+      </motion.div>
 
       <>
       <div className={cn(
@@ -179,19 +191,28 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
         </button>
 
         {/* Night count row — shown when both dates selected */}
-        {checkIn && checkOut && nights > 0 && (
-          <div className="px-3 py-1.5 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between">
-            <p className="text-xs font-medium text-indigo-700">
-              {t('nightCount', { count: nights })}
-            </p>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDateSelect({}); }}
-              className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
+        <AnimatePresence>
+          {checkIn && checkOut && nights > 0 && (
+            <motion.div
+              key="night-count"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="px-3 py-1.5 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between"
             >
-              {t('clearDates')}
-            </button>
-          </div>
-        )}
+              <p className="text-xs font-medium text-indigo-700">
+                {t('nightCount', { count: nights })}
+              </p>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDateSelect({}); }}
+                className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
+              >
+                {t('clearDates')}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Guests */}
         <button
@@ -211,61 +232,91 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       </div>
 
       {/* Date picker popup */}
-      {showDatePicker && (
-        <div className="mb-3 overflow-hidden">
-          <DateRangePicker
-            propertyId={property.id}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            onSelect={handleDateSelect}
-            minNights={property.minNights}
-            maxNights={property.maxNights ?? undefined}
-            numberOfMonths={1}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {showDatePicker && (
+          <motion.div
+            key="date-picker"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+            className="mb-3 overflow-hidden"
+          >
+            <DateRangePicker
+              propertyId={property.id}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onSelect={handleDateSelect}
+              minNights={property.minNights}
+              maxNights={property.maxNights ?? undefined}
+              numberOfMonths={1}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Guest picker */}
-      {showGuestPicker && (
-        <div className="mb-3 rounded-xl border border-neutral-200 p-4 space-y-4">
-          {[
-            { label: t('adults'), desc: t('ages13Plus'), value: adults, onChange: setAdults, min: 1 },
-            { label: t('children'), desc: t('ages2to12'), value: children, onChange: setChildren, min: 0 },
-          ].map(({ label, desc, value, onChange, min }) => (
-            <div key={label} className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-neutral-900">{label}</p>
-                <p className="text-xs text-neutral-500">{desc}</p>
+      <AnimatePresence>
+        {showGuestPicker && (
+          <motion.div
+            key="guest-picker"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+            className="mb-3 rounded-xl border border-neutral-200 p-4 space-y-4 overflow-hidden"
+          >
+            {[
+              { label: t('adults'), desc: t('ages13Plus'), value: adults, onChange: setAdults, min: 1 },
+              { label: t('children'), desc: t('ages2to12'), value: children, onChange: setChildren, min: 0 },
+            ].map(({ label, desc, value, onChange, min }) => (
+              <div key={label} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-neutral-900">{label}</p>
+                  <p className="text-xs text-neutral-500">{desc}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => onChange(Math.max(min, value - 1))}
+                    disabled={value <= min}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 disabled:opacity-30 hover:border-neutral-900 transition-colors"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </motion.button>
+                  <span className="w-4 text-center text-sm font-medium">{value}</span>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => onChange(Math.min(property.maxGuests, value + 1))}
+                    disabled={totalGuests >= property.maxGuests}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 disabled:opacity-30 hover:border-neutral-900 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </motion.button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => onChange(Math.max(min, value - 1))}
-                  disabled={value <= min}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 disabled:opacity-30 hover:border-neutral-900 transition-colors"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <span className="w-4 text-center text-sm font-medium">{value}</span>
-                <button
-                  onClick={() => onChange(Math.min(property.maxGuests, value + 1))}
-                  disabled={totalGuests >= property.maxGuests}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 disabled:opacity-30 hover:border-neutral-900 transition-colors"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-          <p className="text-xs text-neutral-500">
-            {t('maxGuests', { count: property.maxGuests })}
-          </p>
-        </div>
-      )}
+            ))}
+            <p className="text-xs text-neutral-500">
+              {t('maxGuests', { count: property.maxGuests })}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </>
 
       {/* GW1: Price breakdown shown BEFORE reserve button so guest sees total */}
-      {nights > 0 && (
-        <div className="mt-3 space-y-3">
+      <AnimatePresence>
+        {nights > 0 && (
+          <motion.div
+            key="price-breakdown"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.32, ease: 'easeOut' }}
+            className="mt-3 space-y-3 overflow-hidden"
+          >
           <Separator />
           {priceLoading ? (
             <div className="flex justify-center py-4">
@@ -332,8 +383,12 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
               )}
             </>
           )}
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* UX-02: Payment method notice */}
+      <PaymentMethodBanner compact className="mb-3" />
 
       {/* Reserve button */}
       <Button
@@ -346,7 +401,9 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
         {property.instantBook ? tProp('instantBook') : tProp('requestToBook')}
       </Button>
 
-      <p className="mt-3 text-center text-sm text-neutral-500">{t('youWontBeChargedYet')}</p>
+      {!property.instantBook && (
+        <p className="mt-3 text-center text-sm text-neutral-500">{t('youWontBeChargedYet')}</p>
+      )}
 
       {/* Cancellation policy note */}
       {(() => {
@@ -382,7 +439,7 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       }
 
       {/* Nightly price breakdown — moved above reserve button (GW1) */}
-    </div>
+    </motion.div>
 
     {pendingBooking && (
       <PaymentMethodModal

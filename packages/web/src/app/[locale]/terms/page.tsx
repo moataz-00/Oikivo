@@ -204,7 +204,7 @@ export default function TermsPage() {
                 </div>
                 <p>
                   We may update these Terms at any time. We will notify you of significant changes via email or a notice on our platform. Continued use after the effective date constitutes acceptance. Questions?{' '}
-                  <a href="mailto:legal@journeystay.com" className="text-brand hover:underline">legal@journeystay.com</a>
+                  <a href="mailto:oikivo.support@gmail.com" className="text-brand hover:underline">oikivo.support@gmail.com</a>
                 </p>
               </section>
 

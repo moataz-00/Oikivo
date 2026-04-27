@@ -78,7 +78,7 @@ export class PropertyEntity {
   @Column({
     name: 'booking_mode',
     type: 'enum',
-    enum: ['instant_book', 'approve_first_three'],
+    enum: ['instant_book', 'approve_first_three', 'always_approve'],
     default: 'instant_book',
   })
   bookingMode: string;
@@ -220,6 +220,10 @@ export class PropertyEntity {
   @Column({ name: 'impression_count', type: 'int', unsigned: true, default: 0 })
   impressionCount: number;
 
+  /** Highest wizard step the host has saved (0 = legacy/unknown → all verify checks apply) */
+  @Column({ name: 'wizard_last_step', type: 'int', default: 0 })
+  wizardLastStep: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
@@ -228,6 +232,12 @@ export class PropertyEntity {
 
   @Column({ name: 'archived_at', type: 'timestamp', nullable: true, default: null })
   archivedAt: Date | null;
+
+  @Column({ name: 'is_featured', type: 'tinyint', default: 0 })
+  isFeatured: boolean;
+
+  @Column({ name: 'geo_point', type: 'point', spatialFeatureType: 'Point', srid: 4326, select: false })
+  geoPoint: string;
 
   @OneToMany(() => PropertyPhotoEntity, (p) => p.property, { cascade: true, orphanedRowAction: 'delete' })
   photos: PropertyPhotoEntity[];
@@ -240,7 +250,7 @@ export class PropertyEntity {
   })
   amenities: AmenityEntity[];
 
-  @OneToMany(() => HouseRuleEntity, (r) => r.property, { cascade: true, orphanedRowAction: 'delete' })
+  @OneToMany(() => HouseRuleEntity, (r) => r.property)
   houseRules: HouseRuleEntity[];
 
   @OneToMany(() => BookingEntity, (b) => b.property)

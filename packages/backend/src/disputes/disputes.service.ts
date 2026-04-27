@@ -11,7 +11,9 @@ import { Repository, DataSource } from 'typeorm';
 import { DisputeEntity } from '../entities/dispute.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { EarningEntity } from '../entities/earning.entity';
+import { CoHostEntity } from '../entities/cohost.entity';
 import { BookingsService } from '../bookings/bookings.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { unlinkSync } from 'fs';
 import { join } from 'path';
@@ -30,6 +32,9 @@ export class DisputesService {
     @InjectDataSource()
     private dataSource: DataSource,
     private bookingsService: BookingsService,
+    @InjectRepository(CoHostEntity)
+    private cohostRepo: Repository<CoHostEntity>,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(userId: number, dto: CreateDisputeDto): Promise<DisputeEntity> {
@@ -72,7 +77,31 @@ export class DisputesService {
       status: 'open',
     });
 
-    return this.disputesRepo.save(dispute);
+    const saved = await this.disputesRepo.save(dispute);
+
+    // WF-05: Notify accepted co-hosts of the property about the new dispute
+    try {
+      const cohosts = await this.cohostRepo.find({
+        where: { propertyId: booking.property.id, role: 'co_host' as any, status: 'accepted' as any },
+      });
+      await Promise.allSettled(
+        cohosts.map((ch) =>
+          this.notificationsService.create(
+            ch.cohostId,
+            'dispute_opened',
+            'A dispute was opened on your listing',
+            'تم فتح نزاع على قائمتك',
+            `A dispute has been opened for booking #${booking.id} on "${booking.property.title}".`,
+            `تم فتح نزاع للحجز رقم #${booking.id} على "${booking.property.title}".`,
+            { bookingId: booking.id, disputeId: saved.id },
+          ),
+        ),
+      );
+    } catch (e) {
+      this.logger.warn(`[WF-05] Could not notify co-hosts: ${(e as Error).message}`);
+    }
+
+    return saved;
   }
 
   async getMyDisputes(userId: number): Promise<DisputeEntity[]> {
@@ -83,14 +112,44 @@ export class DisputesService {
     });
   }
 
+  async getHostDisputes(hostId: number): Promise<DisputeEntity[]> {
+    return this.disputesRepo
+      .createQueryBuilder('d')
+      .innerJoinAndSelect('d.booking', 'b')
+      .leftJoinAndSelect('b.property', 'p')
+      .leftJoinAndSelect('d.raisedBy', 'u')
+      .where('b.hostId = :hostId', { hostId })
+      .orderBy('d.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findOne(id: number, userId: number): Promise<DisputeEntity> {
     const dispute = await this.disputesRepo.findOne({
       where: { id },
-      relations: ['booking', 'booking.property', 'raisedBy'],
+      relations: ['booking', 'booking.property', 'booking.property.photos', 'raisedBy'],
     });
     if (!dispute) throw new NotFoundException('Dispute not found');
 
     // Only the raiser, the other party, or an admin can view
+    const booking = dispute.booking as BookingEntity;
+    if (
+      dispute.raisedById !== userId &&
+      booking.guestId !== userId &&
+      booking.hostId !== userId
+    ) {
+      throw new ForbiddenException('You do not have access to this dispute');
+    }
+
+    return dispute;
+  }
+
+  async findByUuid(uuid: string, userId: number): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({
+      where: { uuid },
+      relations: ['booking', 'booking.property', 'booking.property.photos', 'raisedBy'],
+    });
+    if (!dispute) throw new NotFoundException('Dispute not found');
+
     const booking = dispute.booking as BookingEntity;
     if (
       dispute.raisedById !== userId &&

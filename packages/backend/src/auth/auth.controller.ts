@@ -72,7 +72,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const ip = ((req.headers['x-forwarded-for'] as string) || req.ip || '').split(',')[0].trim();
-    const result = await this.authService.login(dto, ip);
+    const ua = (req.headers['user-agent'] as string) || undefined;
+    const result = await this.authService.login(dto, ip, ua);
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
     return result;
   }

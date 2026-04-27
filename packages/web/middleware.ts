@@ -1,13 +1,3 @@
-import createMiddleware from 'next-intl/middleware';
-import { defineRouting } from 'next-intl/routing';
-
-export const routing = defineRouting({
-  locales: ['en', 'ar'],
-  defaultLocale: 'en',
-});
-
-export default createMiddleware(routing);
-
-export const config = {
-  matcher: ['/((?!api|_next|.*\..*).*)'],
-};
+// Next.js uses src/middleware.ts for this project (src-directory layout).
+// This file is intentionally left as a no-op to avoid conflicts.
+export { default, config } from './src/middleware';

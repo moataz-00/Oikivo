@@ -176,13 +176,15 @@ function mapListingPayloadToBackend(payload: Partial<CreateListingPayload>) {
   return {
     title: payload.title,
     description: payload.description,
-    type: payload.type,
     spaceType: payload.spaceType,
     propertyKind: payload.kind,
     pricePerNight: payload.price,
     weekendPrice: payload.weekendPrice,
     weeklyDiscount: payload.weeklyDiscount,
     monthlyDiscount: payload.monthlyDiscount,
+    newListingPromotionEnabled: payload.newListingPromotionEnabled,
+    lastMinuteDiscountPercent: payload.lastMinuteDiscountPercent,
+    bookingMode: payload.bookingMode,
     cleaningFee: payload.cleaningFee,
     securityDeposit: payload.securityDeposit,
     minNights: payload.minNights,
@@ -206,6 +208,7 @@ function mapListingPayloadToBackend(payload: Partial<CreateListingPayload>) {
     allowsChildren: payload.allowsChildren,
     categoryId: payload.categoryId,
     cancellationPolicy: payload.cancellationPolicy,
+    wizardLastStep: payload.wizardLastStep,
   };
 }
 
@@ -365,6 +368,10 @@ export const usersApi = {
 
 // ─── Properties ──────────────────────────────────────────────────────────────
 export const propertiesApi = {
+  /** Returns only the UUIDs from the input that still exist (for pruning recently-viewed). */
+  validateUuids: (uuids: string[]) =>
+    apiClient.post<string[]>('/properties/validate-uuids', { uuids }).then((r) => r.data),
+
   getProperty: (id: number) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiClient.get<any>(`/properties/${id}`).then((r) => normalizeProperty(r.data)),
@@ -409,15 +416,18 @@ export const propertiesApi = {
       .patch<any>(`/properties/${id}`, mapListingPayloadToBackend(payload))
       .then((r) => normalizeProperty(r.data)),
 
-  publishListing: (id: number) =>
+  publishListing: (uuid: string) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiClient.post<any>(`/properties/${id}/publish`).then((r) => normalizeProperty(r.data)),
+    apiClient.post<any>(`/properties/${uuid}/publish`).then((r) => normalizeProperty(r.data)),
 
-  verifyListing: (id: number) =>
-    apiClient.get(`/properties/${id}/verify`).then((r) => r.data),
+  verifyListing: (uuid: string) =>
+    apiClient.get(`/properties/${uuid}/verify`).then((r) => r.data),
 
   bulkAction: (ids: number[], action: 'publish' | 'archive' | 'delete') =>
     apiClient.post<{ succeeded: number[]; failed: number[] }>('/properties/bulk-action', { ids, action }).then((r) => r.data),
+
+  bulkCheckBookings: (ids: number[]) =>
+    apiClient.post<{ id: number; title: string; bookingCount: number }[]>('/properties/bulk-check-bookings', { ids }).then((r) => r.data),
 
   unpublishListing: (id: number) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -485,8 +495,11 @@ export const bookingsApi = {
 
   getHostReservations: (status?: string) =>
     apiClient
-      .get<Booking[]>('/bookings/host/reservations', { params: { status } })
-      .then((r) => (r.data ?? []).map(normalizeBooking)),
+      .get<any>('/bookings/host/reservations', { params: { status } })
+      .then((r) => {
+        const list: Booking[] = Array.isArray(r.data) ? r.data : (r.data?.data ?? []);
+        return list.map(normalizeBooking);
+      }),
 
   getHostCalendar: (month: string) =>
     apiClient
@@ -552,11 +565,32 @@ export const reviewsApi = {
   updateReview: (id: number, payload: Partial<CreateReviewPayload>) =>
     apiClient.patch<Review>(`/reviews/${id}`, payload).then((r) => r.data),
 
+  uploadReviewPhotos: async (reviewId: number, files: File[]): Promise<void> => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    await apiClient.post(`/reviews/${reviewId}/photos`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   deleteReview: (id: number) =>
     apiClient.delete(`/reviews/${id}`).then((r) => r.data),
 
   getReviewStats: (propertyId: number) =>
     apiClient.get<ReviewStats>(`/reviews/property/${propertyId}/stats`).then((r) => r.data),
+
+  /** Get completed bookings where host hasn't written a guest review yet */
+  getPendingGuestReviews: () =>
+    apiClient.get<any[]>('/reviews/host/pending-guest-reviews').then((r) => r.data),
+
+  /** Get all host→guest reviews written by the current host */
+  getHostGuestReviews: (page = 1, limit = 20) =>
+    apiClient
+      .get<{ data: Review[]; total: number; page: number; totalPages: number }>(
+        '/reviews/host/guest-reviews',
+        { params: { page, limit } },
+      )
+      .then((r) => r.data),
 };
 
 // ─── Wishlists ────────────────────────────────────────────────────────────────
@@ -564,9 +598,12 @@ function normalizeWishlist(raw: any): Wishlist {
   const items: any[] = raw.items ?? [];
   return {
     ...raw,
+    uuid: raw.uuid ?? null,
     properties: items.map((item: any) => normalizeProperty(item.property ?? item)),
     count: items.length,
     coverImage: raw.coverPhoto ?? raw.coverImage ?? null,
+    shareToken: raw.shareToken ?? raw.share_token ?? null,
+    visibility: raw.visibility ?? 'private',
   } as Wishlist;
 }
 
@@ -576,6 +613,9 @@ export const wishlistsApi = {
 
   getWishlist: (id: number) =>
     apiClient.get<any>(`/wishlists/${id}`).then((r) => normalizeWishlist(r.data)),
+
+  getWishlistByUuid: (uuid: string) =>
+    apiClient.get<any>(`/wishlists/u/${uuid}`).then((r) => normalizeWishlist(r.data)),
 
   createWishlist: (name: string) =>
     apiClient.post<Wishlist>('/wishlists', { name }).then((r) => r.data),
@@ -593,6 +633,15 @@ export const wishlistsApi = {
     apiClient
       .get<{ isWishlisted: boolean; wishlistId?: number }>(`/wishlists/check/${propertyId}`)
       .then((r) => r.data),
+
+  getWishlistByToken: (token: string) =>
+    apiClient.get<any>(`/wishlists/share/${token}`).then((r) => normalizeWishlist(r.data)),
+
+  renameWishlist: (id: number, name: string) =>
+    apiClient.patch<any>(`/wishlists/${id}`, { name }).then((r) => normalizeWishlist(r.data)),
+
+  rotateShareToken: (id: number) =>
+    apiClient.post<{ shareToken: string }>(`/wishlists/${id}/rotate-token`).then((r) => r.data),
 };
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
@@ -708,7 +757,7 @@ export const amenitiesApi = {
 export const availabilityApi = {
   getCalendar: (propertyId: number, year: number, month: number) =>
     apiClient
-      .get<{ days: Array<{ date: string; isBlocked: boolean; isBooked: boolean; price: number; priceOverride: number | null }> }>(`/availability/${propertyId}`, {
+      .get<{ days: Array<{ date: string; isBlocked: boolean; isBooked: boolean; price: number; priceOverride: number | null; source: string }> }>(`/availability/${propertyId}`, {
         params: { year, month },
       })
       .then((r) =>
@@ -716,6 +765,8 @@ export const availabilityApi = {
           date: d.date,
           status: d.isBooked ? 'booked' : d.isBlocked ? 'blocked' : 'available',
           price: d.price,
+          priceOverride: d.priceOverride,
+          source: d.source,
         }))
       ),
 
@@ -728,6 +779,12 @@ export const availabilityApi = {
 
   unblockDates: (propertyId: number, dates: string[]) =>
     apiClient.post(`/availability/${propertyId}/block`, { dates, isBlocked: false }).then((r) => r.data),
+
+  setPriceDates: (propertyId: number, dates: string[], pricePerNight: number) =>
+    apiClient.post(`/availability/${propertyId}/set-price`, { dates, pricePerNight }).then((r) => r.data),
+
+  resetPriceDates: (propertyId: number, dates: string[]) =>
+    apiClient.post(`/availability/${propertyId}/reset-price`, { dates }).then((r) => r.data),
 
   setSeasonalPricing: (
     propertyId: number,
@@ -776,23 +833,6 @@ export const notificationsApi = {
 };
 
 // ─── Search ───────────────────────────────────────────────────────────────────
-export const searchApi = {
-  search: (params: SearchPropertiesParams) =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiClient.get<any>('/search', { params }).then((r) => ({
-      ...r.data,
-      data: (r.data.data ?? []).map(normalizeProperty),
-    }) as PaginatedProperties),
-
-  nearbyProperties: (lat: number, lng: number, radius = 10) =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiClient.get<any[]>('/search/nearby', { params: { lat, lng, radius } })
-      .then((r) => r.data.map(normalizeProperty)),
-
-  popularCities: () =>
-    apiClient.get<PopularCity[]>('/search/popular-cities').then((r) => r.data),
-};
-
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export const adminApi = {
@@ -896,8 +936,14 @@ export const disputesApi = {
   getMyDisputes: () =>
     apiClient.get('/disputes').then((r) => r.data),
 
+  getHostDisputes: () =>
+    apiClient.get('/disputes/host').then((r) => r.data),
+
   getById: (id: number) =>
     apiClient.get(`/disputes/${id}`).then((r) => r.data),
+
+  getByUuid: (uuid: string) =>
+    apiClient.get(`/disputes/u/${uuid}`).then((r) => r.data),
 
   appendUpdate: (id: number, message: string) =>
     apiClient.patch(`/disputes/${id}/update`, { message }).then((r) => r.data),
@@ -1304,11 +1350,16 @@ export const savedSearchesApi = {
 
 export const priceAlertsApi = {
   getMyAlerts: () =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiClient.get<any[]>('/price-alerts').then((r) => r.data),
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   create: (propertyId: number, targetPrice: number) =>
     apiClient.post<any>('/price-alerts', { propertyId, targetPrice }).then((r) => r.data),
 
   delete: (id: number) =>
     apiClient.delete<{ message: string }>(`/price-alerts/${id}`).then((r) => r.data),
+
+  deleteByProperty: (propertyId: number) =>
+    apiClient.delete<{ message: string }>(`/price-alerts/property/${propertyId}`).then((r) => r.data),
 };

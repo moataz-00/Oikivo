@@ -13,6 +13,8 @@ import { UserEntity } from '../entities/user.entity';
 import { PriceAlertEntity } from '../entities/price-alert.entity';
 import { PasswordResetEntity } from '../entities/password-reset.entity';
 import { VerificationTokenEntity } from '../entities/verification-token.entity';
+import { AvailabilityEntity } from '../entities/availability.entity';
+import { ReviewEntity } from '../entities/review.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MailModule } from '../mail/mail.module';
 import { PayoutsModule } from '../payouts/payouts.module';
@@ -32,6 +34,8 @@ import { PayoutsModule } from '../payouts/payouts.module';
       PriceAlertEntity,
       PasswordResetEntity,
       VerificationTokenEntity,
+      AvailabilityEntity,
+      ReviewEntity,
     ]),
     NotificationsModule,
     MailModule,

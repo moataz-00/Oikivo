@@ -40,6 +40,7 @@ export interface AuthResponse {
 export interface LoginPayload {
   email: string;
   password: string;
+  totpCode?: string;
 }
 
 export interface RegisterPayload {
@@ -71,7 +72,7 @@ export interface Amenity {
 
 // ─── Property ────────────────────────────────────────────────────────────────
 export type PropertyType = 'short_term_rental' | 'hotel' | 'for_sale';
-export type SpaceType = 'entire_place' | 'private_room' | 'shared_room';
+export type SpaceType = 'entire_place' | 'private_room' | 'shared_room' | 'hotel_room' | 'hotel_suite';
 export type PropertyStatus = 'draft' | 'published' | 'archived' | 'pending_review';
 export type PropertyKind =
   | 'apartment'
@@ -226,6 +227,10 @@ export interface CreateListingPayload {
   allowsSmoking?: boolean;
   allowsParties?: boolean;
   allowsChildren?: boolean;
+  bookingMode?: string;
+  newListingPromotionEnabled?: boolean;
+  lastMinuteDiscountPercent?: number;
+  wizardLastStep?: number;
 }
 
 // ─── Booking ─────────────────────────────────────────────────────────────────
@@ -285,8 +290,14 @@ export interface Review {
   overallRating?: number;
   comment: string;
   hostReply?: string | null;
+  hostRepliedAt?: string | null;
   reviewer: User;
+  /** Populated for host→guest reviews */
+  reviewedUser?: User | null;
   property?: Property;
+  bookingId?: number;
+  reviewerRole?: 'guest' | 'host';
+  photos?: string[] | null;
   createdAt: string;
   // Detailed sub-ratings
   cleanlinessRating?: number;
@@ -308,6 +319,8 @@ export interface CreateReviewPayload {
   checkinRating?: number;
   comment?: string;
   photos?: string[];
+  /** Defaults to 'guest'. Pass 'host' when host reviews a guest. */
+  reviewerRole?: 'guest' | 'host';
 }
 
 export interface ReviewStats {
@@ -325,7 +338,10 @@ export interface ReviewStats {
 // ─── Wishlist ─────────────────────────────────────────────────────────────────
 export interface Wishlist {
   id: number;
+  uuid: string;
   name: string;
+  visibility: 'private' | 'public';
+  shareToken?: string | null;
   user: User;
   properties: Property[];
   coverImage?: string | null;
@@ -384,6 +400,8 @@ export interface CalendarDay {
   date: string;
   status: DayStatus;
   price?: number;
+  priceOverride?: number | null;
+  source?: string;  // 'host' | 'ical' | 'booking'
   booking?: Partial<Booking>;
 }
 

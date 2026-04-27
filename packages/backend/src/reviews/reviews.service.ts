@@ -28,37 +28,56 @@ export class ReviewsService {
   ) {}
 
   async create(reviewerId: number, dto: CreateReviewDto): Promise<ReviewEntity> {
+    const role = dto.reviewerRole ?? 'guest';
+
     const booking = await this.bookingsRepo.findOne({
       where: { id: dto.bookingId },
       relations: ['property'],
     });
 
     if (!booking) throw new NotFoundException('Booking not found');
-    if (booking.guestId !== reviewerId) {
-      throw new ForbiddenException('You can only review your own bookings');
-    }
     if (booking.status !== 'completed') {
       throw new BadRequestException('You can only review completed bookings');
     }
 
-    // G2: Enforce 14-day review window after checkout
-    const checkOutDate = new Date(booking.checkOut);
-    const reviewDeadline = new Date(checkOutDate);
-    reviewDeadline.setDate(reviewDeadline.getDate() + 14);
-    if (new Date() > reviewDeadline) {
-      throw new BadRequestException(
-        'The review window has closed. Reviews must be submitted within 14 days of checkout.',
-      );
+    if (role === 'host') {
+      // Host reviewing guest
+      if (booking.property.hostId !== reviewerId) {
+        throw new ForbiddenException('You can only review guests of your own properties');
+      }
+    } else {
+      // Guest reviewing property
+      if (booking.guestId !== reviewerId) {
+        throw new ForbiddenException('You can only review your own bookings');
+      }
+
+      // G2: Enforce 14-day review window after checkout
+      const checkOutDate = new Date(booking.checkOut);
+      const reviewDeadline = new Date(checkOutDate);
+      reviewDeadline.setDate(reviewDeadline.getDate() + 14);
+      if (new Date() > reviewDeadline) {
+        throw new BadRequestException(
+          'The review window has closed. Reviews must be submitted within 14 days of checkout.',
+        );
+      }
     }
 
     const existing = await this.reviewsRepo.findOne({
-      where: { bookingId: dto.bookingId },
+      where: { bookingId: dto.bookingId, reviewerRole: role },
     });
-    if (existing) throw new ConflictException('You have already reviewed this booking');
+    if (existing) {
+      throw new ConflictException(
+        role === 'host'
+          ? 'You have already reviewed this guest for this booking'
+          : 'You have already reviewed this booking',
+      );
+    }
 
     const review = this.reviewsRepo.create({
       bookingId: dto.bookingId,
       reviewerId,
+      reviewerRole: role,
+      reviewedUserId: role === 'host' ? booking.guestId : null,
       propertyId: booking.propertyId,
       overallRating: dto.overallRating,
       cleanlinessRating: dto.cleanlinessRating,
@@ -73,19 +92,32 @@ export class ReviewsService {
 
     const saved = await this.reviewsRepo.save(review);
 
-    // Update property avg_rating and review_count
-    await this.updatePropertyRating(booking.propertyId);
+    if (role === 'guest') {
+      // Update property avg_rating and review_count
+      await this.updatePropertyRating(booking.propertyId);
 
-    // Notify host
-    await this.notificationsService.create(
-      booking.property.hostId,
-      'new_review',
-      'New Review Received',
-      'تقييم جديد',
-      `You received a new ${dto.overallRating}-star review`,
-      `لقد حصلت على تقييم جديد ${dto.overallRating} نجوم`,
-      { reviewId: saved.id, propertyId: booking.propertyId },
-    );
+      // Notify host
+      await this.notificationsService.create(
+        booking.property.hostId,
+        'new_review',
+        'New Review Received',
+        'تقييم جديد',
+        `You received a new ${dto.overallRating}-star review`,
+        `لقد حصلت على تقييم جديد ${dto.overallRating} نجوم`,
+        { reviewId: saved.id, propertyId: booking.propertyId },
+      );
+    } else {
+      // Notify guest that host reviewed them
+      await this.notificationsService.create(
+        booking.guestId,
+        'new_review',
+        'New Guest Review',
+        'تقييم جديد من المضيف',
+        `Your host left you a ${dto.overallRating}-star review`,
+        `تركك المضيف تقييمًا ${dto.overallRating} نجوم`,
+        { reviewId: saved.id, bookingId: booking.id },
+      );
+    }
 
     return saved;
   }
@@ -262,6 +294,46 @@ export class ReviewsService {
     
     // Recalculate property rating excluding soft-deleted reviews
     await this.updatePropertyRating(propertyId);
+  }
+
+  /** Returns completed bookings for host's properties that still need a host→guest review */
+  async getBookingsAwaitingHostReview(hostId: number) {
+    const bookings = await this.bookingsRepo
+      .createQueryBuilder('booking')
+      .innerJoin('booking.property', 'property', 'property.hostId = :hostId', { hostId })
+      .leftJoinAndSelect('booking.guest', 'guest')
+      .leftJoinAndSelect('booking.property', 'bookingProperty')
+      .leftJoin(
+        'reviews',
+        'hr',
+        'hr.booking_id = booking.id AND hr.reviewer_role = :role',
+        { role: 'host' },
+      )
+      .where('booking.status = :status', { status: 'completed' })
+      .andWhere('hr.id IS NULL')
+      .orderBy('booking.checkOut', 'DESC')
+      .getMany();
+
+    return bookings;
+  }
+
+  /** Returns all host→guest reviews written by this host */
+  async getHostGuestReviews(hostId: number, page = 1, limit = 20) {
+    const take = Math.min(limit, 50);
+    const skip = (page - 1) * take;
+    const [reviews, total] = await this.reviewsRepo
+      .createQueryBuilder('review')
+      .leftJoinAndSelect('review.reviewedUser', 'reviewedUser')
+      .leftJoinAndSelect('review.property', 'property')
+      .where('review.reviewerId = :hostId', { hostId })
+      .andWhere('review.reviewerRole = :role', { role: 'host' })
+      .andWhere('review.isDeleted = :isDeleted', { isDeleted: false })
+      .orderBy('review.createdAt', 'DESC')
+      .skip(skip)
+      .take(take)
+      .getManyAndCount();
+
+    return { data: reviews, total, page, totalPages: Math.ceil(total / take) };
   }
 
   private async updatePropertyRating(propertyId: number) {

@@ -346,7 +346,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ─── Maintenance Mode ─────────────────────────────────────────── */}
-      <MaintenanceModeSection settings={settings as any[]} update={update} />
+      <MaintenanceModeSection settings={settings as any[]} />
 
       {/* ─── Payment Gateway Config ───────────────────────────────────── */}
       <PaymentGatewaySection settings={settings as any[]} update={update} />
@@ -373,10 +373,48 @@ function Row({
   );
 }
 
-function MaintenanceModeSection({ settings, update }: { settings: any[]; update: any }) {
-  const isEnabled = (settings ?? []).find((s: any) => s.key === 'maintenance_mode')?.value === 'true';
+function MaintenanceModeSection({ settings }: { settings: any[] }) {
+  const qc = useQueryClient();
+
+  // Derive the source-of-truth from the settings array
+  const dbEnabled = (settings ?? []).find((s: any) => s.key === 'maintenance_mode')?.value === 'true';
   const currentMsg = (settings ?? []).find((s: any) => s.key === 'maintenance_message')?.value ?? '';
+
+  // Local state so the toggle reacts immediately (optimistic) and persists across
+  // shared-mutation pending states of other settings saves
+  const [isEnabled, setIsEnabled] = useState(dbEnabled);
   const [msg, setMsg] = useState(currentMsg || 'Platform is under maintenance. Please try again later.');
+
+  // Sync from DB whenever settings load / change
+  useEffect(() => { setIsEnabled(dbEnabled); }, [dbEnabled]);
+  useEffect(() => { if (currentMsg) setMsg(currentMsg); }, [currentMsg]);
+
+  // Own mutation — has its own isPending, not shared with fee saves
+  const toggleMutation = useMutation({
+    mutationFn: (value: string) => adminApi.updateSetting('maintenance_mode', value),
+    onMutate: (value) => {
+      // Optimistic update — flip immediately
+      setIsEnabled(value === 'true');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-settings'] });
+      toast.success('Maintenance mode updated');
+    },
+    onError: () => {
+      // Roll back optimistic update
+      setIsEnabled(dbEnabled);
+      toast.error('Failed to update maintenance mode');
+    },
+  });
+
+  const msgMutation = useMutation({
+    mutationFn: (value: string) => adminApi.updateSetting('maintenance_message', value),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-settings'] });
+      toast.success('Message saved');
+    },
+    onError: () => toast.error('Failed to save message'),
+  });
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
@@ -391,17 +429,16 @@ function MaintenanceModeSection({ settings, update }: { settings: any[]; update:
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">When enabled, the platform shows a maintenance page to users</p>
           </div>
           <button
-            onClick={() => update.mutate({ key: 'maintenance_mode', value: isEnabled ? 'false' : 'true' })}
-            disabled={update.isPending}
+            onClick={() => toggleMutation.mutate(isEnabled ? 'false' : 'true')}
+            disabled={toggleMutation.isPending}
             className={cn(
               'relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ease-in-out cursor-pointer disabled:opacity-50',
               isEnabled ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-700',
             )}
           >
             <span className={cn(
-              'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200',
+              'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 mt-0.5',
               isEnabled ? 'translate-x-5' : 'translate-x-0.5',
-              'mt-0.5',
             )} />
           </button>
         </div>
@@ -419,11 +456,11 @@ function MaintenanceModeSection({ settings, update }: { settings: any[]; update:
               className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
-              onClick={() => update.mutate({ key: 'maintenance_message', value: msg })}
-              disabled={update.isPending}
+              onClick={() => msgMutation.mutate(msg)}
+              disabled={msgMutation.isPending}
               className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              <Save className="h-3.5 w-3.5" /> Save
+              <Save className="h-3.5 w-3.5" /> {msgMutation.isPending ? 'Saving…' : 'Save'}
             </button>
           </div>
         </div>

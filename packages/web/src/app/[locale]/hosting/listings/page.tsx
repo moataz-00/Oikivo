@@ -6,13 +6,13 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, BadgeCheck, Archive, Home, Compass, Edit, Globe, CheckSquare, Square, X, CheckCheck, Trash2 } from 'lucide-react';
+import { Plus, BadgeCheck, Archive, Home, Compass, Edit, Globe, CheckSquare, Square, X, CheckCheck, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { propertiesApi, experiencesApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { ListingCard } from '@/components/hosting/ListingCard';
 import { Spinner, FullPageSpinner } from '@/components/ui/Spinner';
 import { toast } from '@/components/ui/Toast';
-import type { Experience } from '@/types';
+import type { Experience, Property } from '@/types';
 
 const stagger = {
   hidden: {},
@@ -75,6 +75,16 @@ export default function HostListingsPage() {
   const { isLoggedIn, isHost, hasHydrated } = useAuth();
   const [activeTab, setActiveTab] = useState<'properties' | 'experiences'>('properties');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkPublishModal, setBulkPublishModal] = useState<{
+    ready: Property[];
+    notReady: Array<{ property: Property; issues: string[] }>;
+  } | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{
+    blocked: { id: number; title: string; bookingCount: number }[];
+    safeIds: number[];
+  } | null>(null);
+  const [isCheckingBookings, setIsCheckingBookings] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const queryClient = useQueryClient();
 
   const toggleSelect = (id: number) =>
@@ -89,12 +99,47 @@ export default function HostListingsPage() {
     onSuccess: (res, { action }) => {
       queryClient.invalidateQueries({ queryKey: ['host-listings'] });
       queryClient.invalidateQueries({ queryKey: ['archived-listings'] });
-      const verb = action === 'publish' ? 'published' : action === 'archive' ? 'archived' : 'deleted';
-      toast.success(`${res.succeeded.length} listing${res.succeeded.length !== 1 ? 's' : ''} ${verb}${res.failed.length > 0 ? ` (${res.failed.length} failed)` : ''}`);
+      const verb = action === 'publish' ? 'submitted for review' : action === 'archive' ? 'archived' : 'deleted';
+      if (res.succeeded.length > 0) {
+        toast.success(`${res.succeeded.length} listing${res.succeeded.length !== 1 ? 's' : ''} ${verb}.`);
+      }
+      if (res.failed.length > 0) {
+        toast.error(`${res.failed.length} listing${res.failed.length !== 1 ? 's' : ''} could not be processed.`);
+      }
       clearSelection();
     },
     onError: () => toast.error('Bulk action failed. Please try again.'),
   });
+
+  // Pre-delete check: detect properties with active bookings before attempting deletion
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    setIsCheckingBookings(true);
+    try {
+      const blocked = await propertiesApi.bulkCheckBookings(ids);
+      const blockedIds = new Set(blocked.map((b) => b.id));
+      const safeIds = ids.filter((id) => !blockedIds.has(id));
+      if (blocked.length > 0) {
+        // Show modal warning about blocked properties
+        setDeleteModal({ blocked, safeIds });
+      } else {
+        // All safe — proceed directly
+        runBulkAction({ ids, action: 'delete' });
+      }
+    } catch {
+      toast.error('Could not check booking status. Please try again.');
+    } finally {
+      setIsCheckingBookings(false);
+    }
+  };
+
+  const confirmDeleteSafe = () => {
+    if (!deleteModal) return;
+    setDeleteModal(null);
+    if (deleteModal.safeIds.length > 0) {
+      runBulkAction({ ids: deleteModal.safeIds, action: 'delete' });
+    }
+  };
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -109,12 +154,56 @@ export default function HostListingsPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const handleBulkPublish = async () => {
+    const ids = Array.from(selectedIds);
+    const selected = (listings ?? []).filter((l) => ids.includes(l.id));
+    setIsVerifying(true);
+    try {
+      const results = await Promise.all(
+        selected.map(async (listing) => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const verify = await propertiesApi.verifyListing(listing.uuid);
+            return { listing, canPublish: verify.canPublish, checks: verify.checks };
+          } catch {
+            return { listing, canPublish: false, checks: [] as any[] };
+          }
+        }),
+      );
+      const ready = results.filter((r) => r.canPublish).map((r) => r.listing);
+      const notReady = results
+        .filter((r) => !r.canPublish)
+        .map((r) => ({
+          property: r.listing,
+          issues: r.checks
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((c: any) => c.status === 'fail' && c.message)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((c: any) => c.message as string),
+        }));
+      setBulkPublishModal({ ready, notReady });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const confirmBulkPublish = () => {
+    if (!bulkPublishModal || bulkPublishModal.ready.length === 0) return;
+    runBulkAction({ ids: bulkPublishModal.ready.map((p) => p.id), action: 'publish' });
+    setBulkPublishModal(null);
+  };
+
   const { data: listings, isLoading } = useQuery({
     queryKey: ['host-listings'],
     queryFn: propertiesApi.getHostListings,
     enabled: isLoggedIn && isHost,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Derived: are any selected listings already live (published / pending_review)?
+  const selectedLiveCount = (listings ?? []).filter(
+    (l) => selectedIds.has(l.id) && (l.status === 'published' || l.status === 'pending_review'),
+  ).length;
 
   const { data: experiences, isLoading: expLoading } = useQuery({
     queryKey: ['host-experiences'],
@@ -136,6 +225,7 @@ export default function HostListingsPage() {
   ];
 
   return (
+    <>
     <div className="relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_5%,rgba(79,70,229,0.09),transparent_35%),radial-gradient(circle_at_90%_0%,rgba(14,116,144,0.07),transparent_32%)]" />
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-10">
@@ -163,7 +253,7 @@ export default function HostListingsPage() {
               </Link>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                 <Link
-                  href={activeTab === 'properties' ? `/${locale}/hosting/listings/new` : `/${locale}/hosting/experiences/new`}
+                  href={activeTab === 'properties' ? `/${locale}/hosting/listings/new?fresh=1` : `/${locale}/hosting/experiences/new`}
                   className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm">
                   <Plus className="h-4 w-4" />
                   {activeTab === 'properties' ? t('newListing') : 'New Experience'}
@@ -245,7 +335,7 @@ export default function HostListingsPage() {
               <h2 className="text-xl font-semibold text-neutral-900">{t('noListings')}</h2>
               <p className="text-neutral-500 max-w-xs text-sm">{t('noListingsDesc')}</p>
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                <Link href={`/${locale}/hosting/listings/new`}
+                <Link href={`/${locale}/hosting/listings/new?fresh=1`}
                   className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors">
                   ✨ {t('getStarted')}
                 </Link>
@@ -281,7 +371,7 @@ export default function HostListingsPage() {
               <motion.div variants={stagger} initial="hidden" animate="show"
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listings.map((listing) => (
-                  <motion.div key={listing.id} variants={fadeUp} className="relative">
+                  <motion.div key={listing.id} variants={fadeUp} className="group relative">
                     {/* Checkbox overlay */}
                     <button
                       onClick={() => toggleSelect(listing.id)}
@@ -294,7 +384,7 @@ export default function HostListingsPage() {
                         ? <CheckSquare className="h-4 w-4" />
                         : <Square className="h-4 w-4" />}
                     </button>
-                    <div className={`group transition-all rounded-2xl ${
+                    <div className={`transition-all rounded-2xl ${
                       selectedIds.has(listing.id) ? 'ring-2 ring-indigo-500 ring-offset-1' : ''
                     }`}>
                       <ListingCard property={listing} />
@@ -315,12 +405,20 @@ export default function HostListingsPage() {
                       {selectedIds.size} selected
                     </span>
                     <div className="w-px h-4 bg-neutral-700" />
-                    <button
-                      disabled={isBulking}
-                      onClick={() => runBulkAction({ ids: Array.from(selectedIds), action: 'publish' })}
-                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-3 py-1.5 text-xs font-semibold transition-colors">
-                      <Globe className="h-3.5 w-3.5" /> Publish all
-                    </button>
+                    <div className="relative group/submit">
+                      <button
+                        disabled={isBulking || isVerifying || selectedLiveCount > 0}
+                        onClick={handleBulkPublish}
+                        className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-semibold transition-colors">
+                        {isVerifying ? <Spinner size="sm" /> : <Globe className="h-3.5 w-3.5" />}
+                        {isVerifying ? 'Checking...' : 'Submit all'}
+                      </button>
+                      {selectedLiveCount > 0 && (
+                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl bg-neutral-800 px-3 py-2 text-xs text-neutral-200 shadow-lg opacity-0 group-hover/submit:opacity-100 transition-opacity text-center">
+                          {selectedLiveCount} selected listing{selectedLiveCount !== 1 ? 's are' : ' is'} already live or under review
+                        </div>
+                      )}
+                    </div>
                     <button
                       disabled={isBulking}
                       onClick={() => runBulkAction({ ids: Array.from(selectedIds), action: 'archive' })}
@@ -328,14 +426,11 @@ export default function HostListingsPage() {
                       <Archive className="h-3.5 w-3.5" /> Archive all
                     </button>
                     <button
-                      disabled={isBulking}
-                      onClick={() => {
-                        if (window.confirm(`Delete ${selectedIds.size} listing${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`)) {
-                          runBulkAction({ ids: Array.from(selectedIds), action: 'delete' });
-                        }
-                      }}
+                      disabled={isBulking || isCheckingBookings}
+                      onClick={handleBulkDelete}
                       className="flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 px-3 py-1.5 text-xs font-semibold transition-colors">
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                      {isCheckingBookings ? <Spinner size="sm" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      {isCheckingBookings ? 'Checking...' : 'Delete'}
                     </button>
                     <button onClick={clearSelection} className="ml-1 rounded-lg p-1.5 hover:bg-neutral-700 transition-colors">
                       <X className="h-4 w-4 text-neutral-400" />
@@ -374,5 +469,194 @@ export default function HostListingsPage() {
         )}
       </div>
     </div>
+
+    {/* ── Bulk Publish Readiness Modal ── */}
+    <AnimatePresence>
+      {bulkPublishModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setBulkPublishModal(null)}
+        >
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl max-h-[80vh] flex flex-col"
+          >
+            <h2 className="text-lg font-bold text-neutral-900 mb-1">Submit for Review</h2>
+            <p className="text-sm text-neutral-500 mb-5">
+              {bulkPublishModal.ready.length > 0
+                ? `${bulkPublishModal.ready.length} listing${bulkPublishModal.ready.length !== 1 ? 's' : ''} ready to submit.`
+                : 'None of the selected listings are ready to submit.'}
+              {bulkPublishModal.notReady.length > 0 &&
+                ` ${bulkPublishModal.notReady.length} need${bulkPublishModal.notReady.length === 1 ? 's' : ''} attention.`}
+            </p>
+
+            <div className="overflow-y-auto flex-1 space-y-4">
+              {bulkPublishModal.ready.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                    Ready ({bulkPublishModal.ready.length})
+                  </p>
+                  <ul className="space-y-1.5">
+                    {bulkPublishModal.ready.map((p) => (
+                      <li key={p.id} className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800 font-medium">
+                        <CheckSquare className="h-4 w-4 shrink-0 text-emerald-500" />
+                        {p.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {bulkPublishModal.notReady.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                    Needs attention ({bulkPublishModal.notReady.length})
+                  </p>
+                  <ul className="space-y-2">
+                    {bulkPublishModal.notReady.map(({ property: p, issues }) => (
+                      <li key={p.id} className="rounded-xl bg-amber-50 px-3 py-2.5">
+                        <p className="text-sm font-semibold text-amber-900 mb-1">{p.title}</p>
+                        <ul className="space-y-0.5">
+                          {issues.slice(0, 4).map((issue, i) => (
+                            <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                              <span className="mt-0.5 shrink-0">•</span>{issue}
+                            </li>
+                          ))}
+                          {issues.length > 4 && (
+                            <li className="text-xs text-amber-500">+{issues.length - 4} more issues</li>
+                          )}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setBulkPublishModal(null)}
+                className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                Cancel
+              </button>
+              {bulkPublishModal.ready.length > 0 && (
+                <button
+                  onClick={confirmBulkPublish}
+                  disabled={isBulking}
+                  className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 py-2.5 text-sm font-semibold text-white transition-colors"
+                >
+                  {isBulking
+                    ? 'Submitting...'
+                    : `Submit ${bulkPublishModal.ready.length} listing${bulkPublishModal.ready.length !== 1 ? 's' : ''}`}
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* ── Bulk Delete Warning Modal ── */}
+    <AnimatePresence>
+      {deleteModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setDeleteModal(null)}
+        >
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-neutral-900">Cannot delete all listings</h2>
+                <p className="text-sm text-neutral-500">Some listings have active guest bookings</p>
+              </div>
+            </div>
+
+            {/* Blocked listings */}
+            <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 p-4">
+              <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Cannot delete ({deleteModal.blocked.length})
+              </p>
+              <ul className="space-y-1.5">
+                {deleteModal.blocked.map((item) => (
+                  <li key={item.id} className="flex items-center justify-between rounded-xl bg-white border border-red-100 px-3 py-2">
+                    <span className="text-sm font-medium text-neutral-900 truncate">{item.title}</span>
+                    <span className="ml-3 shrink-0 text-xs text-red-600 font-semibold">
+                      {item.bookingCount} active booking{item.bookingCount !== 1 ? 's' : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Safe listings */}
+            {deleteModal.safeIds.length > 0 ? (
+              <div className="mb-5 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                <p className="text-xs font-semibold text-neutral-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Will be deleted ({deleteModal.safeIds.length})
+                </p>
+                <ul className="space-y-1.5">
+                  {(listings ?? [])
+                    .filter((l) => deleteModal.safeIds.includes(l.id))
+                    .map((l) => (
+                      <li key={l.id} className="flex items-center gap-2 rounded-xl bg-white border border-neutral-200 px-3 py-2 text-sm text-neutral-700">
+                        <X className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                        {l.title}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="mb-5 text-sm text-neutral-500 text-center">No listings can be deleted at this time.</p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal(null)}
+                className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                Cancel
+              </button>
+              {deleteModal.safeIds.length > 0 && (
+                <button
+                  onClick={confirmDeleteSafe}
+                  disabled={isBulking}
+                  className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 py-2.5 text-sm font-semibold text-white transition-colors"
+                >
+                  {isBulking
+                    ? 'Deleting...'
+                    : `Delete ${deleteModal.safeIds.length} listing${deleteModal.safeIds.length !== 1 ? 's' : ''}`}
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }

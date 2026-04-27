@@ -12,7 +12,7 @@ import { PropertyCard } from '@/components/property/PropertyCard';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/Motion';
 import { propertiesApi } from '@/lib/api';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
-import { cn } from '@/lib/utils';
+import { cn, getImageUrl } from '@/lib/utils';
 
 
 const SECTIONS = [
@@ -301,11 +301,13 @@ export default function HomePage() {
                   key={item.id}
                   href={`/${locale}/rooms/${item.uuid}`}
                   className="flex-shrink-0 w-56 group"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100">
                     {item.image ? (
                       <img
-                        src={item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_API_URL ?? ''}/uploads/properties/${item.image}`}
+                        src={getImageUrl(item.image)}
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -383,7 +385,7 @@ export default function HomePage() {
             {[
               { stat: '150K+', desc: t('staysBooked') },
               { stat: '4.8★', desc: t('averageRatingStat') },
-              { stat: '0%', desc: t('hostCommissionStat') },
+              { stat: '5%', desc: t('hostCommissionStat') },
               { stat: '48+', desc: t('citiesCovered') },
             ].map(({ stat, desc }) => (
               <div key={desc}>
@@ -457,7 +459,7 @@ export default function HomePage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { icon: '💸', stat: '0%', desc: t('hostCommissionStat'), highlight: true },
+                  { icon: '💸', stat: '5%', desc: t('hostCommissionStat'), highlight: true },
                   { icon: '⚡', stat: '24h', desc: t('fastPayouts'), highlight: false },
                   { icon: '🛡️', stat: '100%', desc: t('hostProtection'), highlight: false },
                   { icon: '📱', stat: '24/7', desc: t('support'), highlight: false },

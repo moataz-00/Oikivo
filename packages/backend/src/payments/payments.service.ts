@@ -21,13 +21,15 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe: Stripe;
+  private readonly stripe: Stripe | null;
+  private readonly stripeEnabled: boolean;
   private readonly logger = new Logger(PaymentsService.name);
 
   // ─── OPay config ───────────────────────────────────────────────────────────
   private readonly opayBaseUrl: string;
   private readonly opayMerchantId: string;
-  private readonly opayPrivateKey: string;
+  private readonly opayPrivateKey: string;   // secret key — for HMAC signing (status/refund/close)
+  private readonly opayPublicKey: string;    // public key — for cashier create
 
   constructor(
     @InjectRepository(BookingEntity)
@@ -48,26 +50,34 @@ export class PaymentsService {
     // FIX BUG-GC2: Fail fast in production if Stripe key is missing
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
     const nodeEnv = this.config.get<string>('NODE_ENV', 'development');
-    if (!secretKey && nodeEnv === 'production') {
-      throw new Error('STRIPE_SECRET_KEY is required in production mode');
+    const stripeEnabled = this.config.get<string>('STRIPE_ENABLED', 'false') === 'true';
+    this.stripeEnabled = stripeEnabled;
+    if (!stripeEnabled) {
+      this.logger.warn('Stripe is disabled (STRIPE_ENABLED != true). Set STRIPE_ENABLED=true in .env to enable Stripe payments.');
+      this.stripe = null;
+    } else {
+      if (!secretKey && nodeEnv === 'production') {
+        throw new Error('STRIPE_SECRET_KEY is required in production mode when STRIPE_ENABLED=true');
+      }
+      if (!secretKey) {
+        this.logger.warn('STRIPE_SECRET_KEY is not set — Stripe payments disabled.');
+      }
+      this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
+        apiVersion: '2024-04-10' as any,
+      });
     }
-    if (!secretKey) {
-      this.logger.warn('STRIPE_SECRET_KEY is not set — Stripe payments disabled.');
-    }
-    this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
-      apiVersion: '2024-04-10' as any,
-    });
 
     // OPay initialisation
     this.opayMerchantId = this.config.get<string>('OPAY_MERCHANT_ID') ?? '';
     this.opayPrivateKey = this.config.get<string>('OPAY_PRIVATE_KEY') ?? '';
+    this.opayPublicKey  = this.config.get<string>('OPAY_PUBLIC_KEY')  ?? '';
     const opayEnv = this.config.get<string>('OPAY_ENV', 'sandbox');
     this.opayBaseUrl =
       opayEnv === 'production'
         ? 'https://api.opaycheckout.com'
         : 'https://sandboxapi.opaycheckout.com';
-    if (!this.opayMerchantId || !this.opayPrivateKey) {
-      this.logger.warn('OPAY_MERCHANT_ID or OPAY_PRIVATE_KEY not set — OPay payments disabled.');
+    if (!this.opayMerchantId || !this.opayPrivateKey || !this.opayPublicKey) {
+      this.logger.warn('OPAY_MERCHANT_ID, OPAY_PRIVATE_KEY or OPAY_PUBLIC_KEY not set — OPay payments disabled.');
     }
     // SEC: Fail fast in production if BACKEND_URL is not HTTPS
     const backendUrlCheck = this.config.get<string>('BACKEND_URL', '');
@@ -77,6 +87,14 @@ export class PaymentsService {
   }
 
   // ─── Create PaymentIntent ──────────────────────────────────────────────────
+
+  /** SEC-06: Guard — throws if Stripe is disabled via STRIPE_ENABLED env flag */
+  private requireStripe(): Stripe {
+    if (!this.stripe) {
+      throw new BadRequestException('Stripe payments are disabled on this server. Please use an alternative payment method.');
+    }
+    return this.stripe;
+  }
 
   async createPaymentIntent(
     userId: number,
@@ -103,7 +121,7 @@ export class PaymentsService {
     // FIX BUG-GC3: Prevent duplicate PaymentIntents - return existing if already created
     if (booking.stripePaymentIntentId) {
       try {
-        const existingIntent = await this.stripe.paymentIntents.retrieve(booking.stripePaymentIntentId);
+        const existingIntent = await this.requireStripe().paymentIntents.retrieve(booking.stripePaymentIntentId);
         if (existingIntent && existingIntent.status !== 'canceled') {
           return {
             clientSecret: existingIntent.client_secret!,
@@ -119,7 +137,7 @@ export class PaymentsService {
     const currency = (booking.currency ?? 'EGP').toLowerCase();
     const amountInSmallestUnit = this.toSmallestUnit(Number(booking.totalAmount), currency);
 
-    const intent = await this.stripe.paymentIntents.create({
+    const intent = await this.requireStripe().paymentIntents.create({
       amount: amountInSmallestUnit,
       currency,
       metadata: { bookingId: String(bookingId), bookingType: 'stay', userId: String(userId) },
@@ -150,7 +168,7 @@ export class PaymentsService {
     const currency = 'EGP'.toLowerCase(); // experience bookings default to EGP
     const amountInSmallestUnit = this.toSmallestUnit(Number(booking.totalAmount), currency);
 
-    const intent = await this.stripe.paymentIntents.create({
+    const intent = await this.requireStripe().paymentIntents.create({
       amount: amountInSmallestUnit,
       currency,
       metadata: { bookingId: String(bookingId), bookingType: 'experience', userId: String(userId) },
@@ -193,7 +211,7 @@ export class PaymentsService {
       throw new BadRequestException('Booking has not been paid via Stripe');
     }
 
-    const refund = await this.stripe.refunds.create({
+    const refund = await this.requireStripe().refunds.create({
       payment_intent: booking.stripePaymentIntentId,
       amount: booking.refundAmount
         ? this.toSmallestUnit(Number(booking.refundAmount), (booking.currency ?? 'EGP').toLowerCase())
@@ -245,7 +263,7 @@ export class PaymentsService {
       throw new BadRequestException('Booking has not been paid via Stripe');
     }
 
-    const refund = await this.stripe.refunds.create({
+    const refund = await this.requireStripe().refunds.create({
       payment_intent: booking.stripePaymentIntentId,
     });
 
@@ -264,7 +282,7 @@ export class PaymentsService {
 
     let event: Stripe.Event;
     try {
-      event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      event = this.requireStripe().webhooks.constructEvent(payload, signature, webhookSecret);
     } catch (err) {
       throw new BadRequestException(`Webhook signature verification failed: ${(err as Error).message}`);
     }
@@ -500,13 +518,22 @@ export class PaymentsService {
     return crypto.timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
   }
 
-  /** Low-level POST to any OPay endpoint. Returns parsed JSON response. */
-  private opayRequest<T>(path: string, body: object): Promise<T> {
+  /** Low-level POST to any OPay endpoint. Returns parsed JSON response.
+   * @param auth 'public'  → uses plain public key in Authorization (cashier create)
+   *             'hmac'    → uses HMAC-SHA512 signature (status, refund, close)
+   */
+  private opayRequest<T>(path: string, body: object, auth: 'public' | 'hmac' = 'hmac'): Promise<T> {
     return new Promise((resolve, reject) => {
-      const bodyStr = JSON.stringify(body);
-      const signature = this.generateOpaySignature(body);
-      const fullUrl = new URL(`${this.opayBaseUrl}${path}`);
+      // Sort keys alphabetically — required by OPay spec for HMAC; harmless for public-key calls
+      const sorted = this.sortObjectKeys(body);
+      const bodyStr = JSON.stringify(sorted);
 
+      // Choose the correct Authorization value based on the endpoint type
+      const authValue = auth === 'public'
+        ? this.opayPublicKey
+        : this.generateOpaySignature(body);
+
+      const fullUrl = new URL(`${this.opayBaseUrl}${path}`);
       const options: https.RequestOptions = {
         hostname: fullUrl.hostname,
         port: 443,
@@ -514,7 +541,7 @@ export class PaymentsService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${signature}`,
+          'Authorization': `Bearer ${authValue}`,
           'MerchantId': this.opayMerchantId,
           'Content-Length': Buffer.byteLength(bodyStr),
         },
@@ -614,7 +641,7 @@ export class PaymentsService {
       code: string;
       message: string;
       data?: { reference: string; orderNo: string; status: string; cashierUrl?: string };
-    }>('/api/v1/international/cashier/create', body);
+    }>('/api/v1/international/cashier/create', body, 'public');
 
     this.logger.log(`OPay checkout response for booking #${bookingId}: code=${resp.code} status=${resp.data?.status ?? 'N/A'} orderNo=${resp.data?.orderNo ?? 'N/A'}`);
 

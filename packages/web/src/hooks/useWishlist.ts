@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { wishlistsApi } from '@/lib/api';
 import { useAuth } from './useAuth';
+import type { Wishlist } from '@/types';
 
 export function useWishlists() {
   const { isLoggedIn } = useAuth();
@@ -11,18 +12,27 @@ export function useWishlists() {
     queryKey: ['wishlists'],
     queryFn: wishlistsApi.getWishlists,
     enabled: isLoggedIn,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     refetchOnWindowFocus: false,
   });
 }
 
-export function useWishlist(id: number) {
+export function useWishlistByToken(token: string) {
+  return useQuery({
+    queryKey: ['wishlists', 'share', token],
+    queryFn: () => wishlistsApi.getWishlistByToken(token),
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useWishlist(uuid: string) {
   const { isLoggedIn } = useAuth();
 
   return useQuery({
-    queryKey: ['wishlists', id],
-    queryFn: () => wishlistsApi.getWishlist(id),
-    enabled: isLoggedIn && !!id,
+    queryKey: ['wishlists', uuid],
+    queryFn: () => wishlistsApi.getWishlistByUuid(uuid),
+    enabled: isLoggedIn && !!uuid,
   });
 }
 
@@ -44,8 +54,45 @@ export function useCreateWishlist() {
 
   return useMutation({
     mutationFn: (name: string) => wishlistsApi.createWishlist(name),
-    onSuccess: () => {
+    onSuccess: (newWishlist) => {
+      // Optimistically prepend the new list so it appears immediately
+      queryClient.setQueryData<Wishlist[]>(['wishlists'], (old) =>
+        old ? [{ ...newWishlist, count: 0, properties: [] }, ...old] : [{ ...newWishlist, count: 0, properties: [] }],
+      );
       queryClient.invalidateQueries({ queryKey: ['wishlists'] });
+    },
+  });
+}
+
+export function useRenameWishlist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) => wishlistsApi.renameWishlist(id, name),
+    onSuccess: (updated) => {
+      // Update list cache entry
+      queryClient.setQueryData<Wishlist[]>(['wishlists'], (old) =>
+        old?.map((w) => (w.id === updated.id ? { ...w, name: updated.name } : w)) ?? old,
+      );
+      // Update detail cache entry (keyed by UUID)
+      if (updated.uuid) {
+        queryClient.setQueryData<Wishlist>(['wishlists', updated.uuid], (old) =>
+          old ? { ...old, name: updated.name } : old,
+        );
+      }
+    },
+  });
+}
+
+export function useRotateShareToken() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number; uuid: string }) => wishlistsApi.rotateShareToken(id),
+    onSuccess: (data, { uuid }) => {
+      queryClient.setQueryData<Wishlist>(['wishlists', uuid], (old) =>
+        old ? { ...old, shareToken: data.shareToken } : old,
+      );
     },
   });
 }
@@ -105,7 +152,20 @@ export function useDeleteWishlist() {
 
   return useMutation({
     mutationFn: (id: number) => wishlistsApi.deleteWishlist(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['wishlists'] });
+      const previous = queryClient.getQueryData<Wishlist[]>(['wishlists']);
+      queryClient.setQueryData<Wishlist[]>(['wishlists'], (old) =>
+        old?.filter((w) => w.id !== id) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['wishlists'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['wishlists'] });
     },
   });

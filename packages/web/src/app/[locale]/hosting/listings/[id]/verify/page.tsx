@@ -29,16 +29,16 @@ export default function VerifyListingPage() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('hosting');
-  const id = Number(params.id);
+  const uuid = params.id as string;
 
   const { data, isLoading, refetch } = useQuery<VerifyResponse>({
-    queryKey: ['verify-listing', id],
-    queryFn: () => propertiesApi.verifyListing(id),
-    enabled: !!id,
+    queryKey: ['verify-listing', uuid],
+    queryFn: () => propertiesApi.verifyListing(uuid),
+    enabled: !!uuid,
   });
 
   const publishMutation = useMutation({
-    mutationFn: () => propertiesApi.publishListing(id),
+    mutationFn: () => propertiesApi.publishListing(uuid),
     onSuccess: () => {
       toast.success('Your listing is now live!');
       router.push(`/${locale}/hosting/listings`);
@@ -54,13 +54,13 @@ export default function VerifyListingPage() {
     switch (key) {
       case 'photos':
       case 'cover_photo':
-        return `/${locale}/hosting/listings/${id}/edit#photos`;
+        return `/${locale}/hosting/listings/${uuid}/edit#photos`;
       case 'host_photo':
       case 'host_phone':
       case 'host_email':
         return `/${locale}/profile`;
       default:
-        return `/${locale}/hosting/listings/${id}/edit`;
+        return `/${locale}/hosting/listings/${uuid}/edit`;
     }
   };
 
@@ -89,7 +89,7 @@ export default function VerifyListingPage() {
         <div className="mx-auto max-w-2xl px-4 py-10">
           {/* Header */}
           <Link
-            href={`/${locale}/hosting/listings/${id}/edit`}
+            href={`/${locale}/hosting/listings/${uuid}/edit`}
             className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />

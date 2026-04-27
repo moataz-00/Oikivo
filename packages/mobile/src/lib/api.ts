@@ -26,6 +26,16 @@ import {
   ConsultationDeliveryMode,
 } from '../types';
 
+// ─── iCal channel type ───────────────────────────────────────────────────────
+export interface ICalChannel {
+  id: number;
+  propertyId: number;
+  name: string;
+  url: string;
+  lastSyncAt?: string | null;
+  createdAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -601,6 +611,25 @@ export const availabilityApi = {
       pricePerNight: data.pricePerNight,
     });
   },
+
+  // iCal channel management (UX-07 / P1-08)
+  getChannels: async (propertyId: number): Promise<ICalChannel[]> => {
+    const res = await api.get<ICalChannel[]>(`/availability/${propertyId}/channels`);
+    return res.data;
+  },
+
+  addChannel: async (propertyId: number, name: string, url: string): Promise<ICalChannel> => {
+    const res = await api.post<ICalChannel>(`/availability/${propertyId}/channels`, { name, url });
+    return res.data;
+  },
+
+  removeChannel: async (propertyId: number, sourceId: number): Promise<void> => {
+    await api.delete(`/availability/${propertyId}/channels/${sourceId}`);
+  },
+
+  syncChannel: async (propertyId: number, sourceId: number): Promise<void> => {
+    await api.post(`/availability/${propertyId}/channels/${sourceId}/sync`);
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -657,6 +686,49 @@ export const priceApi = {
     const res = await api.get<PriceBreakdown>('/bookings/price-breakdown', {
       params,
     });
+    return res.data;
+  },
+};
+
+export interface CoHostInvite {
+  id: number;
+  propertyId: number;
+  property?: { id: number; title: string };
+  role: string;
+  status: 'pending' | 'accepted' | 'declined';
+  invitedAt: string;
+  respondedAt?: string | null;
+  inviter?: { id: number; firstName: string; lastName: string; email: string };
+}
+
+export const cohostsApi = {
+  // Host: list co-hosts for a property
+  getCohosts: async (propertyId: number): Promise<CoHostInvite[]> => {
+    const res = await api.get(`/cohosts?propertyId=${propertyId}`);
+    return res.data;
+  },
+  // Host: invite a co-host
+  invite: async (propertyId: number, email: string, role: string): Promise<CoHostInvite> => {
+    const res = await api.post('/cohosts', { propertyId, email, role });
+    return res.data;
+  },
+  // Host: remove co-host
+  remove: async (cohostId: number): Promise<void> => {
+    await api.delete(`/cohosts/${cohostId}`);
+  },
+  // Host: reinvite
+  reinvite: async (cohostId: number): Promise<CoHostInvite> => {
+    const res = await api.patch(`/cohosts/${cohostId}/reinvite`);
+    return res.data;
+  },
+  // Co-host: list my incoming invites
+  getMyInvites: async (): Promise<CoHostInvite[]> => {
+    const res = await api.get('/cohosts/my-invites');
+    return res.data;
+  },
+  // Co-host: respond to invite
+  respond: async (cohostId: number, accept: boolean): Promise<CoHostInvite> => {
+    const res = await api.patch(`/cohosts/${cohostId}/respond`, { status: accept ? 'accepted' : 'declined' });
     return res.data;
   },
 };

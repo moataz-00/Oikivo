@@ -27,6 +27,14 @@ export class UserSessionEntity {
   @Column({ name: 'user_agent', length: 500, nullable: true })
   userAgent: string | null;
 
+  /** Parsed OS name from user-agent (e.g. "Windows 10", "macOS", "Android 14", "iOS 17") */
+  @Column({ name: 'os_name', length: 100, nullable: true })
+  osName: string | null;
+
+  /** Parsed device/browser label (e.g. "Chrome on Desktop", "Safari on iPhone") */
+  @Column({ name: 'device_name', length: 150, nullable: true })
+  deviceName: string | null;
+
   @Column({ name: 'expires_at', type: 'timestamp' })
   expiresAt: Date;
 

@@ -23,6 +23,7 @@ import {
   DollarSign,
   Star,
   BarChart2,
+  Users,
 } from 'lucide-react-native';
 import { bookingsApi, payoutsApi, hostMetricsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -435,6 +436,24 @@ export default function HostingDashboardScreen() {
               </Text>
               <Text className="text-sm text-gray-500">
                 Holiday Home License (MoTA)
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/hosting/cohosts')}
+            activeOpacity={0.8}
+            className="flex-row items-center bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-full bg-violet-50 items-center justify-center">
+              <Users size={20} color="#7c3aed" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="text-base font-semibold text-gray-900">
+                Co-Hosts
+              </Text>
+              <Text className="text-sm text-gray-500">
+                Manage co-host invitations
               </Text>
             </View>
           </TouchableOpacity>

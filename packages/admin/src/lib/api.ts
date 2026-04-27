@@ -52,11 +52,25 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    // Try to refresh the token once on 401 before redirecting to login
     if (err.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
-      window.location.href = '/login';
+      const originalRequest = err.config;
+      // Avoid infinite loop — don't retry the refresh endpoint itself
+      if (!originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
+        originalRequest._retry = true;
+        try {
+          await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+          return apiClient(originalRequest);
+        } catch {
+          // Refresh failed — clear session and send to login
+          localStorage.removeItem('admin_user');
+          window.location.href = '/login';
+        }
+      } else {
+        localStorage.removeItem('admin_user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(err);
   },
@@ -141,6 +155,9 @@ export const adminApi = {
 
   adminRefund: (id: number, amount: number, reason: string) =>
     apiClient.post(`/admin/bookings/${id}/admin-refund`, { amount, reason }).then((r) => r.data),
+
+  markProofViewed: (id: number) =>
+    apiClient.patch(`/admin/bookings/${id}/mark-proof-viewed`).then((r) => r.data),
 
   confirmPayment: (id: number) =>
     apiClient.post(`/admin/bookings/${id}/confirm-payment`).then((r) => r.data),

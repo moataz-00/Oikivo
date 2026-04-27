@@ -8,15 +8,16 @@ import { format, isToday, isYesterday, parseISO, isThisWeek } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, MessageSquare, Search, ArrowLeft, ImageIcon, X,
-  Check, CheckCheck, ZoomIn, Loader2, Wifi, Phone, Video,
+  Check, CheckCheck, ZoomIn, Loader2, Wifi,
   ChevronRight, Plus, Trash2,
 } from 'lucide-react';
 import { messagesApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocket } from '@/hooks/useSocket';
 import { Avatar } from '@/components/ui/Avatar';
+import AuthenticatedImage from '@/components/ui/AuthenticatedImage';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { cn, getImageUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import type { Message, Conversation } from '@/types';
 
 // ─── Quick replies ────────────────────────────────────────────────────────────
@@ -111,10 +112,11 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingEmitRef = useRef(0);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const msgContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activeConvIdRef = useRef<number | null>(null);
+  const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Auth guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -161,6 +163,14 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
           ['messages', msg.conversationId],
           (old) => (old ? [...old, msg] : [msg]),
         );
+        // Scroll to bottom only if already near the bottom
+        const el = msgContainerRef.current;
+        if (el) {
+          const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+          if (nearBottom) {
+            setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }), 50);
+          }
+        }
       }
       // Refresh conversation list (updates last message preview + unread badge)
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
@@ -211,12 +221,15 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
     setTimeout(() => queryClient.invalidateQueries({ queryKey: ['conversations'] }), 1_000);
   }, [activeConvId, queryClient]);
 
-  // ── Auto-scroll ─────────────────────────────────────────────────────────────
+  // ── Auto-scroll (scroll the container, not the outer page) ─────────────────
   useEffect(() => {
-    if (messages?.length) {
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
-    }
-  }, [messages]);
+    if (!activeConvId) return;
+    // Only scroll to bottom when switching to a new conversation
+    setTimeout(() => {
+      const el = msgContainerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 80);
+  }, [activeConvId]);
 
   // ── Mutations ───────────────────────────────────────────────────────────────
   const sendMutation = useMutation({
@@ -225,6 +238,11 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
       queryClient.invalidateQueries({ queryKey: ['messages', activeConvId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       setMessage('');
+      // Scroll to bottom after sending (within the chat container only)
+      setTimeout(() => {
+        const el = msgContainerRef.current;
+        if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      }, 120);
     },
   });
 
@@ -428,7 +446,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                   {/* Avatar with unread indicator */}
                   <div className="relative shrink-0">
                     <Avatar
-                      src={other?.avatar}
+                      src={(other as any)?.avatarUrl ?? other?.avatar}
                       firstName={other?.firstName}
                       lastName={other?.lastName}
                       size="md"
@@ -507,15 +525,13 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
               <ArrowLeft className="h-4.5 w-4.5" />
             </button>
 
-            {/* Avatar with online dot */}
             <div className="relative shrink-0">
               <Avatar
-                src={otherPerson?.avatar}
+                src={otherPerson?.avatarUrl ?? otherPerson?.avatar}
                 firstName={otherPerson?.firstName}
                 lastName={otherPerson?.lastName}
                 size="md"
               />
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-white" />
             </div>
 
             <div className="flex-1 min-w-0">
@@ -534,19 +550,12 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
               )}
             </div>
 
-            {/* Action icons */}
-            <div className="flex items-center gap-1 shrink-0">
-              <button className="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Call (coming soon)">
-                <Phone className="h-4 w-4" />
-              </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors" title="Video (coming soon)">
-                <Video className="h-4 w-4" />
-              </button>
-            </div>
+
           </div>
 
           {/* Messages Area */}
           <div
+            ref={msgContainerRef}
             className="flex-1 overflow-y-auto px-4 py-5 space-y-1"
             style={{
               backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 0)',
@@ -613,7 +622,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                               <div className="w-7 h-7 shrink-0 mb-0.5">
                                 {isLastInSeq ? (
                                   <Avatar
-                                    src={msg.sender.avatar}
+                                    src={(msg.sender as any).avatarUrl ?? msg.sender.avatar}
                                     firstName={msg.sender.firstName}
                                     size="xs"
                                   />
@@ -639,9 +648,8 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                                       : 'rounded-2xl rounded-bl-sm',
                                   )}
                                 >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={getImageUrl(msg.imageUrl)}
+                                  <AuthenticatedImage
+                                    src={msg.imageUrl}
                                     alt="Sent image"
                                     className="block max-w-[280px] max-h-[220px] object-cover"
                                   />
@@ -722,7 +730,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <div ref={messagesEndRef} />
+
               </>
             )}
           </div>
@@ -865,10 +873,17 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
-                // G14: Emit typing indicator (throttled to 2s)
-                if (socket && activeConvId && Date.now() - lastTypingEmitRef.current > 2000) {
-                  socket.emit('typing', { conversationId: activeConvId, isTyping: true });
-                  lastTypingEmitRef.current = Date.now();
+                if (socket && activeConvId) {
+                  // Emit typing start (throttled to once every 2s)
+                  if (Date.now() - lastTypingEmitRef.current > 2000) {
+                    socket.emit('typing', { conversationId: activeConvId, isTyping: true });
+                    lastTypingEmitRef.current = Date.now();
+                  }
+                  // Emit typing stop after 3s of inactivity
+                  if (stopTypingTimeoutRef.current) clearTimeout(stopTypingTimeoutRef.current);
+                  stopTypingTimeoutRef.current = setTimeout(() => {
+                    socket.emit('typing', { conversationId: activeConvId, isTyping: false });
+                  }, 3000);
                 }
               }}
               onKeyDown={handleKeyDown}
@@ -959,9 +974,8 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
               className="relative max-w-[90vw] max-h-[90vh] cursor-default"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getImageUrl(lightboxUrl)}
+              <AuthenticatedImage
+                src={lightboxUrl}
                 alt="Full size"
                 className="max-w-full max-h-[88vh] object-contain rounded-2xl shadow-2xl"
               />

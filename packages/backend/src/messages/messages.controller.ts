@@ -22,6 +22,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { validateMagicBytes } from '../common/utils/magic-bytes.util';
 import { MessagesService } from './messages.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -98,6 +99,7 @@ export class MessagesController {
 
   /** Upload an image message to a conversation */
   @Post('conversations/:id/upload')
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @ApiOperation({ summary: 'Upload an image message' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -124,6 +126,8 @@ export class MessagesController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('No file provided');
+    // SEC-02: Validate magic bytes to prevent MIME-type spoofing
+    validateMagicBytes(file.path, ['jpeg', 'png', 'webp', 'gif']);
     const relativePath = `messages/${conversationId}/${file.filename}`;
     return this.messagesService.sendImageMessage(user.id, conversationId, relativePath);
   }

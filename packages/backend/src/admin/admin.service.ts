@@ -23,6 +23,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { MailService, tplPayoutProcessed } from '../mail/mail.service';
 import * as MailTpl from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
+import { localDateStr } from '../common/utils/date.util';
 
 const EMAIL_TEMPLATE_REGISTRY: Array<{
   slug: string;
@@ -254,6 +255,9 @@ export class AdminService {
       .createQueryBuilder('p')
       .leftJoinAndSelect('p.host', 'host')
       .leftJoinAndSelect('p.photos', 'photos')
+      .leftJoinAndSelect('p.amenities', 'amenities')
+      .leftJoinAndSelect('p.houseRules', 'houseRules')
+      .leftJoinAndSelect('p.category', 'category')
       .orderBy('p.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -296,12 +300,20 @@ export class AdminService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async confirmPayment(bookingId: number) {
-    return this.bookingsService.confirmPayment(bookingId, 0, true);
+  async markProofViewed(bookingId: number) {
+    const booking = await this.bookingsRepo.findOneOrFail({ where: { id: bookingId } });
+    if (!booking.proofViewedAt) {
+      await this.bookingsRepo.update(bookingId, { proofViewedAt: new Date() });
+    }
+    return { ok: true };
   }
 
-  async declinePayment(bookingId: number, reason?: string) {
-    return this.bookingsService.declinePayment(bookingId, 0, true, reason);
+  async confirmPayment(bookingId: number, adminId?: number) {
+    return this.bookingsService.confirmPayment(bookingId, adminId ?? 0, true);
+  }
+
+  async declinePayment(bookingId: number, reason?: string, adminId?: number) {
+    return this.bookingsService.declinePayment(bookingId, adminId ?? 0, true, reason);
   }
 
   async markInstapayRefunded(bookingId: number, reason?: string) {
@@ -363,7 +375,7 @@ export class AdminService {
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = localDateStr(now);
 
     // Period boundaries for the date-range filter (defaults to current month)
     const periodStart = from ? new Date(from) : startOfMonth;
@@ -744,7 +756,7 @@ export class AdminService {
 
   // ─── Badge Counts (lightweight nav indicators) ────────────────────────────
   async getBadgeCounts() {
-    const [pendingPayouts, openDisputes, pendingVerifications, pendingInstapayRefunds] = await Promise.all([
+    const [pendingPayouts, openDisputes, pendingVerifications, pendingInstapayRefunds, pendingModeration] = await Promise.all([
       this.payoutsRepo.count({ where: { status: 'pending' } }),
       this.dataSource
         .query(`SELECT COUNT(*) AS cnt FROM disputes WHERE status = 'open'`)
@@ -755,8 +767,11 @@ export class AdminService {
       this.dataSource
         .query(`SELECT COUNT(*) AS cnt FROM bookings WHERE status = 'cancelled' AND payment_method = 'instapay' AND payment_status = 'paid'`)
         .then((r: any[]) => parseInt(r[0].cnt, 10)),
+      this.dataSource
+        .query(`SELECT COUNT(*) AS cnt FROM properties WHERE status IN ('draft', 'pending_review')`)
+        .then((r: any[]) => parseInt(r[0].cnt, 10)),
     ]);
-    return { pendingPayouts, openDisputes, pendingVerifications, pendingInstapayRefunds };
+    return { pendingPayouts, openDisputes, pendingVerifications, pendingInstapayRefunds, pendingModeration };
   }
 
   // ─── System Health ─────────────────────────────────────────────────────────
@@ -924,7 +939,52 @@ export class AdminService {
   async deleteProperty(propertyId: number) {
     const property = await this.propertiesRepo.findOne({ where: { id: propertyId } });
     if (!property) throw new NotFoundException('Property not found');
-    await this.propertiesRepo.remove(property);
+
+    await this.dataSource.transaction(async (em) => {
+      // Delete booking children that have RESTRICT FK on booking_id
+      await em.query(
+        `DELETE pt FROM payment_transactions pt
+         INNER JOIN bookings b ON b.id = pt.booking_id
+         WHERE b.property_id = ?`,
+        [propertyId],
+      );
+      await em.query(
+        `DELETE pi FROM payout_items pi
+         INNER JOIN bookings b ON b.id = pi.booking_id
+         WHERE b.property_id = ?`,
+        [propertyId],
+      );
+      await em.query(
+        `DELETE bsh FROM booking_status_history bsh
+         INNER JOIN bookings b ON b.id = bsh.booking_id
+         WHERE b.property_id = ?`,
+        [propertyId],
+      );
+      await em.query(
+        `DELETE e FROM earnings e
+         INNER JOIN bookings b ON b.id = e.booking_id
+         WHERE b.property_id = ?`,
+        [propertyId],
+      );
+      await em.query(
+        `DELETE d FROM disputes d
+         INNER JOIN bookings b ON b.id = d.booking_id
+         WHERE b.property_id = ?`,
+        [propertyId],
+      );
+
+      // Delete bookings (reviews CASCADE via booking_id; conversations SET NULL)
+      await em.query(`DELETE FROM bookings WHERE property_id = ?`, [propertyId]);
+
+      // Delete price_alerts (plain column — no DB-level FK constraint)
+      await em.query(`DELETE FROM price_alerts WHERE property_id = ?`, [propertyId]);
+
+      // Delete the property — remaining refs all have ON DELETE CASCADE at DB level:
+      // wishlist_items, availability, house_rules, cohosts, ical_sources,
+      // property_amenity, property_price_history, property_photos, reviews (via property_id)
+      await em.query(`DELETE FROM properties WHERE id = ?`, [propertyId]);
+    });
+
     return { message: 'Property deleted' };
   }
 
@@ -1832,7 +1892,6 @@ export class AdminService {
       email: u.email,
       phone: u.phone,
       googleId: u.googleId ?? null,
-      appleId: u.appleId ?? null,
       isHost: u.isHost,
       isAdmin: u.isAdmin,
       isActive: u.isActive,

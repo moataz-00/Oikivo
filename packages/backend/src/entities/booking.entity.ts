@@ -12,7 +12,7 @@ export class BookingEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
 
-  @Column({ name: 'booking_uuid', length: 36, unique: true, nullable: true })
+  @Column({ name: 'booking_uuid', length: 36, unique: true, nullable: false })
   bookingUuid: string;
 
   /**
@@ -120,7 +120,7 @@ export class BookingEntity {
   @Column({
     name: 'payment_method',
     type: 'enum',
-    enum: ['instapay', 'cash', 'card', 'stripe', 'opay-card'],
+    enum: ['instapay', 'cash', 'card', 'opay-card'],
     nullable: true,
   })
   paymentMethod: string | null;
@@ -133,6 +133,9 @@ export class BookingEntity {
 
   @Column({ name: 'payment_proof_url', type: 'varchar', length: 500, nullable: true })
   paymentProofUrl: string | null;
+
+  @Column({ name: 'proof_viewed_at', type: 'datetime', nullable: true })
+  proofViewedAt: Date | null;
 
   @Column({ name: 'stripe_payment_intent_id', type: 'varchar', length: 255, nullable: true })
   stripePaymentIntentId: string | null;
@@ -189,6 +192,9 @@ export class BookingEntity {
 
   @Column({ name: 'confirmed_at', type: 'datetime', nullable: true, comment: 'Set when booking moves to confirmed (instant-book creation or host accept)' })
   confirmedAt: Date | null;
+
+  @Column({ name: 'completed_at', type: 'datetime', nullable: true, comment: 'Set when booking is marked completed (by scheduler or manually)' })
+  completedAt: Date | null;
 
   @Column({ name: 'payment_reminder_sent_at', type: 'datetime', nullable: true, comment: 'Timestamp of the +4h payment reminder email; prevents duplicate sends' })
   paymentReminderSentAt: Date | null;

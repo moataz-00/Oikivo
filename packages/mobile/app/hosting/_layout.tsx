@@ -12,6 +12,7 @@ export default function HostingLayout() {
       <Stack.Screen name="listing/[id]/edit" />
       <Stack.Screen name="listing/[id]/calendar" />
       <Stack.Screen name="regulations/egypt" />
+      <Stack.Screen name="cohosts" />
     </Stack>
   );
 }

@@ -23,12 +23,15 @@ import {
   Clock,
   Banknote,
   Tag,
+  FileText,
 } from 'lucide-react';
 import { PhotoGallery } from '@/components/property/PhotoGallery';
 import { BookingWidget } from '@/components/property/BookingWidget';
+import { PriceAlertButton } from '@/components/property/PriceAlertButton';
 import { DateRangePicker } from '@/components/property/DateRangePicker';
 import { ReviewCard } from '@/components/property/ReviewCard';
 import { StarRating } from '@/components/property/StarRating';
+import { PropertyDescription } from '@/components/property/PropertyDescription';
 import { AmenitiesGrid } from '@/components/property/AmenitiesGrid';
 import { AvailabilityCalendar } from '@/components/property/AvailabilityCalendar';
 import { Avatar } from '@/components/ui/Avatar';
@@ -42,6 +45,7 @@ import { propertiesApi, reviewsApi, messagesApi } from '@/lib/api';
 import { getAvatarUrl, formatDate, formatRating, toFiniteNumber } from '@/lib/utils';
 import { ContactHostModal } from '@/components/ui/ContactHostModal';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { useAuth } from '@/hooks/useAuth';
 import type { ReviewStats } from '@/types';
 import dynamic from 'next/dynamic';
 
@@ -56,6 +60,8 @@ export default function PropertyDetailPage() {
   const uuid = params.id as string;
   const t = useTranslations('property');
   const tCommon = useTranslations('common');
+
+  const { user } = useAuth();
 
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -102,10 +108,15 @@ export default function PropertyDetailPage() {
   });
 
   /* G16: Track recently viewed */
-  const { trackView } = useRecentlyViewed();
+  const { trackView, removeByUuid } = useRecentlyViewed();
   useEffect(() => {
     if (property) trackView(property);
   }, [property?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // If the property no longer exists, silently remove it from recently viewed
+  useEffect(() => {
+    if (error && uuid) removeByUuid(uuid);
+  }, [error, uuid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <FullPageSpinner />;
 
@@ -144,48 +155,63 @@ export default function PropertyDetailPage() {
       </Link>
 
       {/* Title */}
-      <div className="flex items-start justify-between gap-4 mb-4">
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+        className="flex items-start justify-between gap-4 mb-4"
+      >
         <h1 className="text-2xl font-semibold text-neutral-900 leading-snug flex-1">
           {property.title}
         </h1>
         <div className="flex items-center gap-2 shrink-0">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => setShareOpen(true)}
             className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors underline"
           >
             <Share2 className="h-4 w-4" />
             {t('shareWishlist')}
-          </button>
+          </motion.button>
+          {property && (
+            <PriceAlertButton
+              propertyId={property.id}
+              currentPrice={property.pricePerNight ?? null}
+              className="rounded-xl px-3 py-2 hover:bg-neutral-100"
+            />
+          )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Rating + location */}
-      <div className="flex flex-wrap items-center gap-3 mb-5 text-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut', delay: 0.1 }}
+        className="flex flex-wrap items-center gap-3 mb-5 text-sm"
+      >
         {avgRatingText !== null && (
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-neutral-900 text-neutral-900" />
-            <span className="font-semibold">{avgRatingText}</span>
-            <span className="text-neutral-500">·</span>
-            <button className="text-neutral-700 underline hover:text-neutral-900">
+          <div className="flex items-center gap-1.5 rounded-full bg-neutral-900 px-3 py-1 text-white">
+            <Star className="h-3.5 w-3.5 fill-white text-white" />
+            <span className="font-semibold text-xs">{avgRatingText}</span>
+            <span className="opacity-50">·</span>
+            <button className="text-xs opacity-90 underline hover:opacity-100">
               {property.reviewCount} {property.reviewCount === 1 ? t('review') : t('reviews')}
             </button>
           </div>
         )}
         {property.host?.isSuperhost && (
-          <>
-            <span className="text-neutral-400">·</span>
-            <div className="flex items-center gap-1">
-              <Award className="h-4 w-4 text-brand" />
-              <span className="font-medium">{t('superhost')}</span>
-            </div>
-          </>
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+            <Award className="h-3.5 w-3.5" />
+            {t('superhost')}
+          </span>
         )}
-        <span className="text-neutral-400">·</span>
-        <button className="flex items-center gap-1 text-neutral-700 underline hover:text-neutral-900">
-          <MapPin className="h-3.5 w-3.5" />
+        <button className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-600 hover:border-neutral-400 transition-colors">
+          <MapPin className="h-3 w-3" />
           {property.city}, {property.country}
         </button>
-      </div>
+      </motion.div>
 
       {/* Photo gallery */}
       <PhotoGallery images={property.images ?? []} title={property.title} />
@@ -238,12 +264,20 @@ export default function PropertyDetailPage() {
           )}
 
           {/* Description */}
-          <div>
-            <h2 className="text-xl font-semibold text-neutral-900 mb-3">{t('description')}</h2>
-            <p className="text-neutral-700 leading-relaxed whitespace-pre-line font-light">
-              {property.description}
-            </p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
+          >
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+                <FileText className="h-4 w-4 text-white" />
+              </div>
+              <h2 className="text-xl font-semibold text-neutral-900">{t('description')}</h2>
+            </div>
+            <PropertyDescription description={property.description} />
+          </motion.div>
 
           <Separator />
 
@@ -253,23 +287,40 @@ export default function PropertyDetailPage() {
           <Separator />
 
           {/* Date range picker — controlled, synced with booking widget */}
-          <div>
-              <div className="flex items-start justify-between gap-3 mb-1">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
+          >
+            {/* Section header */}
+            <div className="flex items-center justify-between gap-3 mb-1">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+                  <Calendar className="h-4 w-4 text-white" />
+                </div>
                 <h2 className="text-xl font-semibold text-neutral-900">
                   {t('minNightsStay', { count: property.minNights })}
                 </h2>
-                {checkIn && checkOut && (
-                  <button
-                    onClick={() => setShowMobileBooking(true)}
-                    className="shrink-0 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors lg:hidden"
-                  >
-                    {t('bookTheseDates')}
-                  </button>
-                )}
               </div>
-              <p className="text-sm text-neutral-500 mb-5">
-                {t('selectDatesHint')}
-              </p>
+              {checkIn && checkOut && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setShowMobileBooking(true)}
+                  className="shrink-0 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors lg:hidden"
+                >
+                  {t('bookTheseDates')}
+                </motion.button>
+              )}
+            </div>
+            <p className="text-sm text-neutral-500 mb-5 ml-[calc(2rem+10px)]">
+              {t('selectDatesHint')}
+            </p>
+            <div className="rounded-3xl border border-indigo-100 bg-white shadow-md ring-1 ring-indigo-50/60 p-4 overflow-hidden">
               <DateRangePicker
                 propertyId={property.id}
                 checkIn={checkIn}
@@ -280,16 +331,30 @@ export default function PropertyDetailPage() {
                 }}
                 minNights={property.minNights}
               />
-          </div>
+            </div>
+          </motion.div>
 
           <Separator />
 
           {/* Availability overview */}
-          <div>
-            <h2 className="text-xl font-semibold text-neutral-900 mb-1">{t('availability')}</h2>
-            <p className="text-sm text-neutral-500 mb-5">{t('availabilityDesc')}</p>
-            <AvailabilityCalendar propertyId={property.id} />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.55, ease: 'easeOut', delay: 0.05 }}
+          >
+            {/* Section header */}
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-sm">
+                <Clock className="h-4 w-4 text-white" />
+              </div>
+              <h2 className="text-xl font-semibold text-neutral-900">{t('availability')}</h2>
+            </div>
+            <p className="text-sm text-neutral-500 mb-5 ml-[calc(2rem+10px)]">{t('availabilityDesc')}</p>
+            <div className="rounded-3xl border border-emerald-100 bg-white shadow-md ring-1 ring-emerald-50/60 p-4 overflow-hidden">
+              <AvailabilityCalendar propertyId={property.id} />
+            </div>
+          </motion.div>
 
           {/* Reviews */}
           <div>
@@ -373,147 +438,284 @@ export default function PropertyDetailPage() {
           <Separator />
 
           {/* Map */}
-          <div>
-            <h2 className="text-xl font-semibold text-neutral-900 mb-4">{t('location')}</h2>
-            <div className="h-64 rounded-2xl overflow-hidden">
-              <MapView
-                properties={[property]}
-                center={{ lat: property.lat, lng: property.lng }}
-                zoom={14}
-              />
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
+          >
+            {/* Section header */}
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+                <MapPin className="h-4 w-4 text-white" />
+              </div>
+              <h2 className="text-xl font-semibold text-neutral-900">{t('location')}</h2>
             </div>
-            <p className="mt-3 text-sm text-neutral-500">{property.address}</p>
-          </div>
+
+            {/* Map card */}
+            <div className="relative rounded-3xl overflow-hidden border border-indigo-100 shadow-lg ring-1 ring-indigo-50">
+              {/* Animated overlay that fades out to reveal the map */}
+              <motion.div
+                initial={{ opacity: 1 }}
+                whileInView={{ opacity: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, delay: 0.3 }}
+                className="absolute inset-0 z-10 bg-gradient-to-br from-indigo-50 to-violet-50 pointer-events-none"
+              />
+              <div className="h-72">
+                <MapView
+                  properties={[property]}
+                  center={{ lat: property.lat, lng: property.lng }}
+                  zoom={14}
+                />
+              </div>
+            </div>
+
+            {/* Address + directions row */}
+            <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100">
+                  <MapPin className="h-3.5 w-3.5 text-indigo-600" />
+                </span>
+                <p className="text-sm text-neutral-600">{property.address}</p>
+              </div>
+              {property.lat && property.lng && (
+                <motion.a
+                  href={`https://www.google.com/maps/search/?api=1&query=${property.lat},${property.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors shrink-0"
+                >
+                  <MapPin className="h-3.5 w-3.5" />
+                  Get directions
+                </motion.a>
+              )}
+            </div>
+          </motion.div>
 
           <Separator />
 
           {/* Host card */}
           {property.host && (
-            <div>
-              <div className="flex items-center gap-4 mb-5">
-                <Link href={`/${locale}/profile/${property.host.profileUuid ?? property.host.id}`} className="rounded-full ring-2 ring-transparent hover:ring-brand transition-all">
-                  <Avatar
-                    src={property.host.avatarUrl ?? property.host.avatar}
-                    firstName={property.host.firstName}
-                    lastName={property.host.lastName}
-                    size="xl"
-                  />
-                </Link>
-                <div>
-                  <Link href={`/${locale}/profile/${property.host.profileUuid ?? property.host.id}`} className="hover:underline">
-                    <h2 className="text-xl font-semibold text-neutral-900">
-                      {t('hostedBy', { name: `${property.host.firstName} ${property.host.lastName}` })}
-                    </h2>
-                  </Link>
-                  <p className="text-sm text-neutral-500 mt-0.5">
-                    {property.host.joinedAt
-                      ? t('joinedIn', { year: new Date(property.host.joinedAt).getFullYear() })
-                      : null}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
+            >
+              {/* Section header */}
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-neutral-800 to-neutral-600 shadow-sm">
+                  <ShieldCheck className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-xl font-semibold text-neutral-900">{t('hostedBy', { name: `${property.host.firstName} ${property.host.lastName}` })}</h2>
+              </div>
+
+              <div className="rounded-3xl border border-neutral-200 bg-white shadow-md ring-1 ring-neutral-100/60 p-6">
+                {/* Avatar + name row */}
+                <div className="flex items-center gap-4 mb-5">
+                  <motion.div whileHover={{ scale: 1.05 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+                    <Link href={`/${locale}/profile/${property.host.profileUuid ?? property.host.id}`} className="block rounded-full ring-2 ring-transparent hover:ring-indigo-400 transition-all">
+                      <Avatar
+                        src={property.host.avatarUrl ?? property.host.avatar}
+                        firstName={property.host.firstName}
+                        lastName={property.host.lastName}
+                        size="xl"
+                      />
+                    </Link>
+                  </motion.div>
+                  <div>
+                    <Link href={`/${locale}/profile/${property.host.profileUuid ?? property.host.id}`} className="hover:underline">
+                      <p className="text-lg font-semibold text-neutral-900">
+                        {property.host.firstName} {property.host.lastName}
+                      </p>
+                    </Link>
+                    {property.host.joinedAt && (
+                      <p className="text-sm text-neutral-500 mt-0.5">
+                        {t('joinedIn', { year: new Date(property.host.joinedAt).getFullYear() })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Trust badges */}
+                <motion.div
+                  className="flex flex-wrap gap-2 mb-5"
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
+                >
+                  {property.host.reviewCount !== undefined && property.host.reviewCount > 0 && (
+                    <motion.span
+                      variants={{ hidden: { opacity: 0, scale: 0.88 }, visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 22 } } }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700"
+                    >
+                      <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                      {t('hostReviewCount', { count: property.host.reviewCount })}
+                    </motion.span>
+                  )}
+                  {property.host.isIdentityVerified && (
+                    <motion.span
+                      variants={{ hidden: { opacity: 0, scale: 0.88 }, visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 22 } } }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      {t('identityVerified')}
+                    </motion.span>
+                  )}
+                  {property.host.isSuperhost && (
+                    <motion.span
+                      variants={{ hidden: { opacity: 0, scale: 0.88 }, visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 22 } } }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700"
+                    >
+                      <Award className="h-3.5 w-3.5" />
+                      {t('superhost')}
+                    </motion.span>
+                  )}
+                </motion.div>
+
+                {/* Bio */}
+                {property.host.bio && (
+                  <p className="text-neutral-600 text-sm leading-relaxed mb-5 border-t border-neutral-100 pt-4">
+                    {property.host.bio}
                   </p>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3">
+                  {property.host.id !== user?.id && (
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setContactOpen(true)}
+                      className="rounded-xl bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors shadow-sm"
+                    >
+                      {t('contactHost')}
+                    </motion.button>
+                  )}
+                  <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                    <Link
+                      href={`/${locale}/profile/${property.host.profileUuid ?? property.host.id}`}
+                      className="inline-flex rounded-xl border border-neutral-200 px-6 py-2.5 text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:border-neutral-400 transition-colors"
+                    >
+                      {t('viewProfile')}
+                    </Link>
+                  </motion.div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-4 text-sm mb-5">
-                {property.host.reviewCount !== undefined && property.host.reviewCount > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-neutral-900 text-neutral-900" />
-                    <span>{t('hostReviewCount', { count: property.host.reviewCount })}</span>
-                  </div>
-                )}
-                {property.host.isIdentityVerified && (
-                  <div className="flex items-center gap-1">
-                    <ShieldCheck className="h-4 w-4 text-neutral-600" />
-                    <span>{t('identityVerified')}</span>
-                  </div>
-                )}
-                {property.host.isSuperhost && (
-                  <div className="flex items-center gap-1">
-                    <Award className="h-4 w-4 text-brand" />
-                    <span className="font-medium">{t('superhost')}</span>
-                  </div>
-                )}
-              </div>
-
-              {property.host.bio && (
-                <p className="text-neutral-700 font-light leading-relaxed mb-5">
-                  {property.host.bio}
-                </p>
+              {property.host.id !== user?.id && (
+                <ContactHostModal
+                  open={contactOpen}
+                  onOpenChange={setContactOpen}
+                  host={property.host}
+                  propertyId={property.id}
+                  listingTitle={property.title}
+                />
               )}
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setContactOpen(true)}
-                  className="rounded-xl border border-neutral-900 px-6 py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50 transition-colors"
-                >
-                  {t('contactHost')}
-                </button>
-                <Link
-                  href={`/${locale}/profile/${property.host.profileUuid ?? property.host.id}`}
-                  className="rounded-xl border border-neutral-200 px-6 py-3 text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:border-neutral-400 transition-colors"
-                >
-                  {t('viewProfile')}
-                </Link>
-              </div>
-              <ContactHostModal
-                open={contactOpen}
-                onOpenChange={setContactOpen}
-                host={property.host}
-                propertyId={property.id}
-                listingTitle={property.title}
-              />
-            </div>
+            </motion.div>
           )}
 
           {/* House rules */}
           {(property.houseRules || property.allowsSmoking !== undefined) && (
             <>
               <Separator />
-              <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-4">{t('houseRules')}</h2>
-
-                {/* Boolean rule indicators */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {property.allowsSmoking === false && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">🚭 {t('noSmoking')}</span>
-                  )}
-                  {property.allowsParties === false && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">🎉 {t('noParties')}</span>
-                  )}
-                  {property.allowsChildren && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">👶 {t('suitableForChildren')}</span>
-                  )}
-                </div>
-
-                {/* Text-based rules as chips */}
-                {property.houseRules && typeof property.houseRules === 'string' && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {property.houseRules.split('\n').filter(Boolean).map((rule: string) => (
-                      <span key={rule} className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700">
-                        {rule}
-                      </span>
-                    ))}
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.55, ease: 'easeOut' }}
+              >
+                {/* Section header */}
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 shadow-sm">
+                    <Tag className="h-4 w-4 text-white" />
                   </div>
-                )}
+                  <h2 className="text-xl font-semibold text-neutral-900">{t('houseRules')}</h2>
+                </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm text-neutral-700">
-                  {property.checkInTime && (
-                    <div>
-                      <p className="font-medium">
-                        {t('checkInLabel')}
-                      </p>
-                      <p className="text-neutral-500">{property.checkInTime}</p>
-                    </div>
+                <div className="rounded-3xl border border-rose-100 bg-white shadow-md ring-1 ring-rose-50/60 p-5 space-y-4">
+                  {/* Boolean rule indicators */}
+                  <motion.div
+                    className="flex flex-wrap gap-2"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } } }}
+                  >
+                    {property.allowsSmoking === false && (
+                      <motion.span
+                        variants={{ hidden: { opacity: 0, scale: 0.88 }, visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 320, damping: 22 } } }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm text-rose-700 font-medium"
+                      >🚭 {t('noSmoking')}</motion.span>
+                    )}
+                    {property.allowsParties === false && (
+                      <motion.span
+                        variants={{ hidden: { opacity: 0, scale: 0.88 }, visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 320, damping: 22 } } }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm text-orange-700 font-medium"
+                      >🎉 {t('noParties')}</motion.span>
+                    )}
+                    {property.allowsChildren && (
+                      <motion.span
+                        variants={{ hidden: { opacity: 0, scale: 0.88 }, visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 320, damping: 22 } } }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 font-medium"
+                      >👶 {t('suitableForChildren')}</motion.span>
+                    )}
+                  </motion.div>
+
+                  {/* Text-based rules as chips */}
+                  {property.houseRules && typeof property.houseRules === 'string' && (
+                    <motion.div
+                      className="flex flex-wrap gap-2"
+                      initial="hidden"
+                      whileInView="visible"
+                      viewport={{ once: true }}
+                      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+                    >
+                      {property.houseRules.split('\n').filter(Boolean).map((rule: string) => (
+                        <motion.span
+                          key={rule}
+                          variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } }}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm text-neutral-700"
+                        >
+                          {rule}
+                        </motion.span>
+                      ))}
+                    </motion.div>
                   )}
-                  {property.checkOutTime && (
-                    <div>
-                      <p className="font-medium">
-                        {t('checkOutLabel')}
-                      </p>
-                      <p className="text-neutral-500">{property.checkOutTime}</p>
+
+                  {/* Check-in / Check-out times */}
+                  {(property.checkInTime || property.checkOutTime) && (
+                    <div className="grid grid-cols-2 gap-3 pt-1 border-t border-neutral-100">
+                      {property.checkInTime && (
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100">
+                            <Clock className="h-3.5 w-3.5 text-indigo-600" />
+                          </span>
+                          <div>
+                            <p className="text-xs font-medium text-neutral-900">{t('checkInLabel')}</p>
+                            <p className="text-xs text-neutral-500">{property.checkInTime}</p>
+                          </div>
+                        </div>
+                      )}
+                      {property.checkOutTime && (
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100">
+                            <Clock className="h-3.5 w-3.5 text-amber-600" />
+                          </span>
+                          <div>
+                            <p className="text-xs font-medium text-neutral-900">{t('checkOutLabel')}</p>
+                            <p className="text-xs text-neutral-500">{property.checkOutTime}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             </>
           )}
 
@@ -539,28 +741,84 @@ export default function PropertyDetailPage() {
               },
             };
             const details = policyDetails[policy] ?? policyDetails.flexible;
+            const policyColor: Record<string, string> = {
+              flexible: 'from-emerald-500 to-teal-500',
+              moderate: 'from-amber-500 to-orange-500',
+              strict: 'from-red-500 to-rose-500',
+            };
+            const policyBadge: Record<string, string> = {
+              flexible: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+              moderate: 'bg-amber-50 text-amber-700 border-amber-200',
+              strict: 'bg-red-50 text-red-700 border-red-200',
+            };
+            const policyBorder: Record<string, string> = {
+              flexible: 'border-emerald-100 ring-emerald-50/60',
+              moderate: 'border-amber-100 ring-amber-50/60',
+              strict: 'border-red-100 ring-red-50/60',
+            };
             return (
               <>
                 <Separator />
-                <div>
-                  <h2 className="text-xl font-semibold text-neutral-900 mb-4">{t('cancellationPolicy')}</h2>
-                  <p className="text-lg font-medium text-neutral-900 mb-3">{policyLabel}</p>
-                  <ul className="space-y-2.5 text-sm text-neutral-600">
-                    <li className="flex items-start gap-2">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-                      {details.free}
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                      {details.partial}
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
-                      {details.none}
-                    </li>
-                  </ul>
-                  <p className="mt-3 text-xs text-neutral-400">{t('feesNonRefundable')}</p>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-60px' }}
+                  transition={{ duration: 0.55, ease: 'easeOut' }}
+                >
+                  {/* Section header */}
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br ${policyColor[policy] ?? policyColor.flexible} shadow-sm`}>
+                      <Banknote className="h-4 w-4 text-white" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-neutral-900">{t('cancellationPolicy')}</h2>
+                  </div>
+
+                  <div className={`rounded-3xl border bg-white shadow-md ring-1 p-5 ${policyBorder[policy] ?? policyBorder.flexible}`}>
+                    {/* Policy badge */}
+                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold mb-4 ${policyBadge[policy] ?? policyBadge.flexible}`}>
+                      {policyLabel}
+                    </span>
+
+                    {/* Policy tiers */}
+                    <motion.ul
+                      className="space-y-3"
+                      initial="hidden"
+                      whileInView="visible"
+                      viewport={{ once: true }}
+                      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
+                    >
+                      <motion.li
+                        variants={{ hidden: { opacity: 0, x: -12 }, visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } }}
+                        className="flex items-start gap-3 text-sm"
+                      >
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        </span>
+                        <span className="text-neutral-700">{details.free}</span>
+                      </motion.li>
+                      <motion.li
+                        variants={{ hidden: { opacity: 0, x: -12 }, visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } }}
+                        className="flex items-start gap-3 text-sm"
+                      >
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                        </span>
+                        <span className="text-neutral-700">{details.partial}</span>
+                      </motion.li>
+                      <motion.li
+                        variants={{ hidden: { opacity: 0, x: -12 }, visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } }}
+                        className="flex items-start gap-3 text-sm"
+                      >
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100">
+                          <span className="h-2 w-2 rounded-full bg-red-400" />
+                        </span>
+                        <span className="text-neutral-700">{details.none}</span>
+                      </motion.li>
+                    </motion.ul>
+
+                    <p className="mt-4 pt-3 border-t border-neutral-100 text-xs text-neutral-400">{t('feesNonRefundable')}</p>
+                  </div>
+                </motion.div>
               </>
             );
           })()}

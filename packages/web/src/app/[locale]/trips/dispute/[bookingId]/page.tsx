@@ -20,32 +20,42 @@ const CATEGORIES = [
 ] as const;
 
 export default function OpenDisputePage() {
-  const params   = useParams();
-  const router   = useRouter();
-  const locale   = useLocale();
-  const bookingId = Number(params.bookingId);
+  const params       = useParams();
+  const router       = useRouter();
+  const locale       = useLocale();
+  const bookingRef   = String(params.bookingId); // may be UUID or numeric id
 
   const [category, setCategory]     = useState('');
   const [title, setTitle]           = useState('');
   const [description, setDescription] = useState('');
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+
+  // Try UUID lookup first; fall back to numeric id if ref looks numeric
+  const isNumeric = /^\d+$/.test(bookingRef);
   const { data: booking, isLoading: bookingLoading } = useQuery({
-    queryKey: ['booking', bookingId],
-    queryFn: () => bookingsApi.getBooking(bookingId),
-    enabled: !!bookingId,
+    queryKey: ['booking-ref', bookingRef],
+    queryFn: () => isNumeric
+      ? bookingsApi.getBooking(Number(bookingRef))
+      : bookingsApi.getBookingByRef(bookingRef),
+    enabled: !!bookingRef,
   });
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const bookingId = booking?.id ?? Number(bookingRef);
       const dispute = await disputesApi.create({ bookingId, category, title, description });
       if (evidenceFiles.length > 0) {
         await disputesApi.uploadEvidence(dispute.id, evidenceFiles);
       }
       return dispute;
     },
-    onSuccess: () => {
+    onSuccess: (dispute) => {
       toast.success('Dispute opened. Our team will review it within 5 business days.');
-      router.push(`/${locale}/trips`);
+      if (dispute?.uuid) {
+        router.push(`/${locale}/trips/disputes/${dispute.uuid}`);
+      } else {
+        router.push(`/${locale}/trips`);
+      }
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? 'Failed to open dispute. Please try again.');

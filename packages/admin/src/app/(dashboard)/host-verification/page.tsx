@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, getUploadUrl } from '@/lib/api';
+import { AuthImage } from '@/lib/AuthImage';
 import {
   ShieldCheck,
   ShieldX,
@@ -11,7 +12,8 @@ import {
   XCircle,
   Clock,
   ImageOff,
-  ExternalLink,
+  ZoomIn,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -21,6 +23,7 @@ export default function HostVerificationPage() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [hostPage, setHostPage] = useState(1);
   const [showAllVerified, setShowAllVerified] = useState(false);
 
@@ -169,26 +172,24 @@ export default function HostVerificationPage() {
               {/* ID Document image */}
               <div>
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Submitted ID Document</p>
-                {selectedUser.idDocument ? (
-                  <div className="relative rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                    <img
-                      src={getUploadUrl(selectedUser.idDocument)}
+                {selectedUser.idDocumentUrl ? (
+                  <div className="relative rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group">
+                    <AuthImage
+                      src={selectedUser.idDocumentUrl}
+                      userId={selectedUser.id}
                       alt="ID Document"
-                      className="w-full object-contain max-h-52"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextSibling && ((e.target as HTMLImageElement).nextSibling as HTMLElement)?.classList?.remove('hidden'); }}
+                      className="w-full object-contain max-h-52 cursor-zoom-in"
+                      onClick={(url) => setLightboxUrl(url)}
                     />
-                    <div className="hidden flex-col items-center gap-2 py-8 text-center">
-                      <ImageOff className="h-7 w-7 text-gray-600" />
-                      <p className="text-gray-500 text-xs">Could not load image</p>
-                    </div>
-                    <a
-                      href={getUploadUrl(selectedUser.idDocument)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute top-2 right-2 rounded-lg bg-white/80 dark:bg-gray-900/80 border border-gray-300 dark:border-gray-700 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    {/* Hover overlay hint — only shown when image loaded */}
+                    <div
+                      onClick={() => {
+                        // blobUrl set inside AuthImage; we trigger open via the img's onClick above
+                      }}
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 transition-all"
                     >
-                      <ExternalLink className="h-3.5 w-3.5 text-gray-600 dark:text-gray-300" />
-                    </a>
+                      <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2 py-8 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
@@ -285,6 +286,27 @@ export default function HostVerificationPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox modal */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 transition-colors"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="ID Document — full view"
+            className="max-w-full max-h-[90vh] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 

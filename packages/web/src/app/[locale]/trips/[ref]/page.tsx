@@ -393,6 +393,8 @@ export default function BookingHistoryPage() {
           <Link
             href={`/${locale}/rooms/${booking.property?.uuid || booking.property?.id}`}
             className="flex-1 text-center rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
           >
             View property
           </Link>

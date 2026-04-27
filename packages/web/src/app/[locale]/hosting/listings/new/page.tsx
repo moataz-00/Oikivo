@@ -82,6 +82,11 @@ const SPACE_TYPES: { value: SpaceType; labelKey: string; descKey: string; icon: 
   { value: 'shared_room', labelKey: 'sharedRoom', descKey: 'sharedRoomDesc', icon: '🪴' },
 ];
 
+const HOTEL_SPACE_TYPES: { value: SpaceType; labelKey: string; descKey: string; icon: string }[] = [
+  { value: 'hotel_room', labelKey: 'hotelRoom', descKey: 'hotelRoomDesc', icon: '🛎️' },
+  { value: 'hotel_suite', labelKey: 'hotelSuite', descKey: 'hotelSuiteDesc', icon: '👑' },
+];
+
 const PROPERTY_KINDS: { value: PropertyKind; label: string; icon: string }[] = [
   { value: 'house', label: 'House', icon: '🏡' },
   { value: 'villa', label: 'Villa', icon: '🏖️' },
@@ -165,10 +170,66 @@ export default function NewListingPage() {
   const [kycAccepted, setKycAccepted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [showExitModal, setShowExitModal] = useState(false);
+  // True once we push the history sentinel (step >= 2); cleared on intentional exit
+  const wizardGuardRef = useRef(false);
+
+  // Push a history sentinel when the user moves past step 1 so the browser
+  // back button fires a popstate event instead of navigating away silently.
+  useEffect(() => {
+    if (step < 2 || wizardGuardRef.current) return;
+    wizardGuardRef.current = true;
+    window.history.pushState({ oikivoWizard: true }, '', window.location.href);
+  }, [step]);
+
+  // Intercept the browser back button (popstate) while the wizard guard is active.
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!wizardGuardRef.current) return;
+      // Re-push the sentinel to keep us on the same URL
+      window.history.pushState({ oikivoWizard: true }, '', window.location.href);
+      setShowExitModal(true);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Warn browser on tab close / refresh when wizard is active
+  useEffect(() => {
+    if (step < 2) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [step]);
+
+  const handleExitAttempt = () => {
+    if (step < 2 && !propertyIdRef.current && !propertyId) {
+      clearWizardState();
+      router.push(`/${locale}/hosting/listings`);
+      return;
+    }
+    setShowExitModal(true);
+  };
+
+  // Called by both modal buttons so navigation never re-triggers the guard
+  const releaseGuardAndLeave = (destination: string) => {
+    wizardGuardRef.current = false;
+    setShowExitModal(false);
+    clearWizardState();
+    router.push(destination);
+  };
 
   // Hydrate from sessionStorage on mount (survives route-param changes)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // ?fresh=1 → always start blank (user clicked "Create new listing")
+    if (searchParams.get('fresh') === '1') {
+      clearWizardState();
+      const url = new URL(window.location.href);
+      url.searchParams.delete('fresh');
+      window.history.replaceState(null, '', url.toString());
+      return;
+    }
     try {
       const raw = sessionStorage.getItem(WIZARD_KEY);
       if (!raw) return;
@@ -267,28 +328,37 @@ export default function NewListingPage() {
     }
   }, [step, locale, pathname, router]);
 
+  // Auto-reset spaceType to the correct default when kind changes
+  useEffect(() => {
+    if (kind === 'hotel') {
+      setSpaceType('hotel_room');
+    } else if (spaceType === 'hotel_room' || spaceType === 'hotel_suite') {
+      setSpaceType('entire_place');
+    }
+  }, [kind]);
+
   const createListing = useMutation({
     mutationFn: propertiesApi.createListing,
     onSuccess: (data) => {
       setPropertyId(data.id);
     },
-    onError: () => toast.error('Failed to save listing'),
+    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Failed to save listing'),
   });
 
   const updateListing = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Partial<CreateListingPayload> }) =>
       propertiesApi.updateListing(id, payload),
-    onError: () => toast.error('Failed to save'),
+    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Failed to save'),
   });
 
   const publishListing = useMutation({
-    mutationFn: (id: number) => propertiesApi.publishListing(id),
+    mutationFn: (id: number) => propertiesApi.publishListing(String(id)),
     onSuccess: () => {
       clearWizardState();
-      toast.success('Listing published! 🎉');
+      toast.success('Submitted for review! Our team will approve your listing shortly. 🎯');
       router.push(`/${locale}/hosting/listings`);
     },
-    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Failed to publish'),
+    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Failed to submit for review'),
   });
 
   const uploadImages = useMutation({
@@ -582,6 +652,7 @@ export default function NewListingPage() {
       allowsSmoking,
       allowsParties,
       allowsChildren,
+      wizardLastStep: step,
     };
   };
 
@@ -739,28 +810,37 @@ export default function NewListingPage() {
 
     // For subsequent saves (property already exists), save in background
     if (!isFirstSave) {
-      try {
-        const pid = await upsertListing();
-        if (step === 7 && photos.length > 0 && photosDirty) {
+      // Upload photos FIRST, independently of the listing save, so they're
+      // never lost even if the metadata update fails.
+      if (step === 7 && photos.length > 0 && photosDirty) {
+        const pid = propertyIdRef.current ?? propertyId;
+        if (pid) {
           const files = photos.map((p) => p.file).filter((f): f is File => f instanceof File);
           if (files.length > 0) {
-            await uploadImages.mutateAsync({ id: pid, files });
-            // Repopulate photos with server-backed URLs so they survive navigation
             try {
-              const updated = await propertiesApi.getProperty(pid);
-              if (updated.images?.length) {
-                setPhotos(
-                  updated.images.map((img: any) => ({
-                    id: String(img.id),
-                    file: null as unknown as File,
-                    preview: getImageUrl(img.url),
-                  }))
-                );
-              }
-            } catch { /* non-critical */ }
-            setPhotosDirty(false);
+              await uploadImages.mutateAsync({ id: pid, files });
+              // Repopulate photos with server-backed URLs so they survive navigation
+              try {
+                const updated = await propertiesApi.getProperty(pid);
+                if (updated.images?.length) {
+                  setPhotos(
+                    updated.images.map((img: any) => ({
+                      id: String(img.id),
+                      file: null as unknown as File,
+                      preview: getImageUrl(img.url),
+                    }))
+                  );
+                }
+              } catch { /* non-critical */ }
+              setPhotosDirty(false);
+            } catch { /* upload error already toasted */ }
           }
         }
+      }
+
+      // Background metadata save
+      try {
+        await upsertListing();
       } catch {
         // background save failed; toast already shown by mutation
       }
@@ -945,10 +1025,16 @@ export default function NewListingPage() {
           </div>
         );
 
-      case 2:
+      case 2: {
+        const displaySpaceTypes = kind === 'hotel' ? HOTEL_SPACE_TYPES : SPACE_TYPES;
         return (
           <div className="space-y-4">
-            {SPACE_TYPES.map(({ value, labelKey, descKey, icon }) => (
+            {kind === 'hotel' && (
+              <p className="text-sm text-indigo-600 font-medium bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2">
+                {t('hotelSpaceTypeNote' as any)}
+              </p>
+            )}
+            {displaySpaceTypes.map(({ value, labelKey, descKey, icon }) => (
               <HoverCard key={value}>
                 <button
                   onClick={() => setSpaceType(value)}
@@ -970,6 +1056,7 @@ export default function NewListingPage() {
             ))}
           </div>
         );
+      }
 
       case 3:
         return (
@@ -1698,6 +1785,27 @@ export default function NewListingPage() {
                 );
               })}
             </div>
+
+          {/* Fee breakdown note for weekend price */}
+          <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-4">
+            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-2">Fee breakdown (per weekend night)</p>
+            <div className="flex justify-between text-sm py-1">
+              <span className="text-neutral-500">Your weekend price</span>
+              <span className="text-neutral-700">EGP {weekendPrice}</span>
+            </div>
+            <div className="flex justify-between text-sm py-1 text-red-500">
+              <span>Platform commission (5%)</span>
+              <span>− EGP {Math.round(weekendPrice * 0.05)}</span>
+            </div>
+            <div className="flex justify-between text-sm py-1 border-t border-neutral-200 mt-1 pt-2 font-semibold">
+              <span className="text-neutral-900">You receive per night</span>
+              <span className="text-neutral-900">EGP {Math.round(weekendPrice * 0.95)}</span>
+            </div>
+            <div className="flex justify-between text-sm py-1 border-t border-neutral-200 mt-1 pt-2">
+              <span className="text-neutral-500">Guest pays (incl. 5% service fee)</span>
+              <span className="text-neutral-700 font-medium">EGP {Math.round(weekendPrice * 1.05)}</span>
+            </div>
+          </div>
           </div>
         );
       }
@@ -1854,6 +1962,14 @@ export default function NewListingPage() {
 
             <p className="text-xs text-neutral-400">Discounts help increase occupancy and attract more bookings.</p>
 
+            {/* Fee reminder */}
+            <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-4">
+              <p className="text-xs font-semibold text-indigo-700 uppercase tracking-widest mb-1">Pricing reminder</p>
+              <p className="text-xs text-indigo-600 leading-relaxed">
+                Oikivo takes a <strong>5% commission</strong> from your payout per booking. Guests are also charged a <strong>5% service fee</strong> on top of your listed price. For example, at your base price of <strong>EGP {price}/night</strong>, you receive <strong>EGP {Math.round(price * 0.95)}</strong> and the guest pays <strong>EGP {Math.round(price * 1.05)}</strong>.
+              </p>
+            </div>
+
             {/* Security deposit */}
             <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-5">
               <div className="flex items-start justify-between gap-4 mb-4">
@@ -1956,7 +2072,7 @@ export default function NewListingPage() {
                 <StepSummaryCard
                   icon="🏠"
                   label="Property Type"
-                  value={`${PROPERTY_KINDS.find((k) => k.value === kind)?.label || kind} • ${SPACE_TYPES.find((s) => s.value === spaceType)?.labelKey || spaceType}`}
+                  value={`${PROPERTY_KINDS.find((k) => k.value === kind)?.label || kind} • ${[...SPACE_TYPES, ...HOTEL_SPACE_TYPES].find((s) => s.value === spaceType)?.labelKey || spaceType}`}
                   onEdit={() => handleStepClick(1)}
                 />
 
@@ -2069,44 +2185,95 @@ export default function NewListingPage() {
   const direction: 'forward' | 'backward' = step > prevStep ? 'forward' : 'backward';
 
   return (
-    <div className="flex min-h-screen">
-      {/* Progress Tracker - Desktop Sidebar (in-flow, not fixed) */}
-      <ProgressTracker
-        steps={STEP_FLOW}
-        currentStep={step}
-        completedSteps={completedSteps}
-        onStepClick={handleStepClick}
-        className="hidden lg:block"
-      />
+    <div className="flex min-h-screen flex-col">
+      {/* ── Wizard top bar ─────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 shrink-0 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3 sm:px-6">
+        <span className="text-sm font-bold text-neutral-800 tracking-tight">Oikivo</span>
+        <button
+          onClick={handleExitAttempt}
+          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition-colors"
+        >
+          <X className="h-4 w-4" />
+          Exit
+        </button>
+      </header>
 
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Progress Bar */}
-        <MobileProgressBar
+      {/* ── Main layout ─────────────────────────────────────────────── */}
+      <div className="flex flex-1 min-h-0">
+        {/* Progress Tracker - Desktop Sidebar (in-flow, not fixed) */}
+        <ProgressTracker
           steps={STEP_FLOW}
           currentStep={step}
           completedSteps={completedSteps}
           onStepClick={handleStepClick}
+          className="hidden lg:block"
         />
 
-        {/* Main Wizard */}
-        <WizardStep
-          title={currentStepMeta.title}
-          description={currentStepMeta.description}
-          currentStep={step}
-          totalSteps={TOTAL_STEPS}
-          onBack={step > 1 ? handleBack : undefined}
-          onNext={handleNext}
-          onSaveDraft={saveDraft}
-          nextDisabled={isNextDisabled()}
-          isLastStep={step === TOTAL_STEPS}
-          isLoading={createListing.isPending || updateListing.isPending || publishListing.isPending || uploadImages.isPending}
-          direction={direction}
-          showProgressSidebar={true}
-        >
-          {renderStep()}
-        </WizardStep>
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Mobile Progress Bar */}
+          <MobileProgressBar
+            steps={STEP_FLOW}
+            currentStep={step}
+            completedSteps={completedSteps}
+            onStepClick={handleStepClick}
+          />
+
+          {/* Main Wizard */}
+          <WizardStep
+            title={currentStepMeta.title}
+            description={currentStepMeta.description}
+            currentStep={step}
+            totalSteps={TOTAL_STEPS}
+            onBack={step > 1 ? handleBack : undefined}
+            onNext={handleNext}
+            onSaveDraft={saveDraft}
+            nextLabel={step === TOTAL_STEPS ? '🎯 Submit for Review' : undefined}
+            nextDisabled={isNextDisabled()}
+            isLastStep={step === TOTAL_STEPS}
+            isLoading={createListing.isPending || updateListing.isPending || publishListing.isPending || uploadImages.isPending}
+            direction={direction}
+            showProgressSidebar={true}
+          >
+            {renderStep()}
+          </WizardStep>
+        </div>
       </div>
+
+      {/* ── Exit confirmation modal ──────────────────────────────────── */}
+      {showExitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-neutral-900">Leave without saving?</h2>
+            <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
+              Your progress won&apos;t be lost — save as draft to continue later from your listings page.
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                onClick={async () => {
+                  await saveDraft();
+                  releaseGuardAndLeave(`/${locale}/hosting/listings`);
+                }}
+                className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+              >
+                Save as draft &amp; leave
+              </button>
+              <button
+                onClick={() => releaseGuardAndLeave(`/${locale}/hosting/listings`)}
+                className="w-full rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                Discard &amp; leave
+              </button>
+              <button
+                onClick={() => setShowExitModal(false)}
+                className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+              >
+                Cancel — keep editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

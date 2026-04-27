@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
-  ManyToOne, OneToOne, JoinColumn,
+  ManyToOne, JoinColumn,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { PropertyEntity } from './property.entity';
@@ -11,10 +11,10 @@ export class ReviewEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
 
-  @Column({ name: 'booking_id', type: 'bigint', unsigned: true, unique: true })
+  @Column({ name: 'booking_id', type: 'bigint', unsigned: true })
   bookingId: number;
 
-  @OneToOne(() => BookingEntity, (b) => b.review, { onDelete: 'CASCADE' })
+  @ManyToOne(() => BookingEntity, (b) => b.review, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'booking_id' })
   booking: BookingEntity;
 
@@ -24,6 +24,18 @@ export class ReviewEntity {
   @ManyToOne(() => UserEntity, (u) => u.reviews, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'reviewer_id' })
   reviewer: UserEntity;
+
+  /** 'guest' = guest reviewing property; 'host' = host reviewing guest */
+  @Column({ name: 'reviewer_role', type: 'enum', enum: ['guest', 'host'], default: 'guest' })
+  reviewerRole: 'guest' | 'host';
+
+  /** Populated for host→guest reviews — the guest being reviewed */
+  @Column({ name: 'reviewed_user_id', type: 'bigint', unsigned: true, nullable: true })
+  reviewedUserId: number | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'reviewed_user_id' })
+  reviewedUser: UserEntity | null;
 
   @Column({ name: 'property_id', type: 'bigint', unsigned: true })
   propertyId: number;
@@ -74,6 +86,12 @@ export class ReviewEntity {
 
   @Column({ name: 'deleted_by', type: 'enum', enum: ['admin', 'guest', 'host'], nullable: true, select: false })
   deletedBy: string | null;
+
+  @Column({ name: 'is_flagged', type: 'tinyint', default: 0 })
+  isFlagged: boolean;
+
+  @Column({ name: 'admin_note', type: 'text', nullable: true })
+  adminNote: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

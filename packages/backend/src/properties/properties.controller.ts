@@ -17,6 +17,7 @@ import {
   ApiOperation,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PropertiesService } from './properties.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
@@ -28,6 +29,13 @@ import { UserEntity } from '../entities/user.entity';
 @Controller('properties')
 export class PropertiesController {
   constructor(private readonly propertiesService: PropertiesService) {}
+
+  @Post('validate-uuids')
+  @ApiOperation({ summary: 'Return which UUIDs from a given list still exist' })
+  validateUuids(@Body() body: { uuids: string[] }) {
+    const uuids = (body?.uuids ?? []).slice(0, 50); // cap at 50
+    return this.propertiesService.validateUuids(uuids);
+  }
 
   @Get('host/listings')
   @UseGuards(JwtAuthGuard)
@@ -71,6 +79,7 @@ export class PropertiesController {
   }
 
   @Get(':id')
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @ApiOperation({ summary: 'Get property by ID or UUID' })
   findOne(@Param('id') id: string) {
     if (id.includes('-')) {
@@ -111,16 +120,22 @@ export class PropertiesController {
   @Post(':id/publish')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Publish a draft listing' })
-  publish(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+  @ApiOperation({ summary: 'Publish a draft listing (accepts numeric ID or UUID)' })
+  async publish(@Param('id') rawId: string, @CurrentUser() user: UserEntity) {
+    const id = rawId.includes('-')
+      ? (await this.propertiesService.findByUuid(rawId)).id
+      : Number(rawId);
     return this.propertiesService.publish(id, user.id);
   }
 
   @Get(':id/verify')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Pre-publish verification checklist for a listing' })
-  verifyListing(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+  @ApiOperation({ summary: 'Pre-publish verification checklist (accepts numeric ID or UUID)' })
+  async verifyListing(@Param('id') rawId: string, @CurrentUser() user: UserEntity) {
+    const id = rawId.includes('-')
+      ? (await this.propertiesService.findByUuid(rawId)).id
+      : Number(rawId);
     return this.propertiesService.verifyListing(id, user.id);
   }
 
@@ -203,6 +218,17 @@ export class PropertiesController {
     @CurrentUser() user: UserEntity,
   ) {
     return this.propertiesService.getSmartPricingSuggestion(id, user.id);
+  }
+
+  @Post('bulk-check-bookings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Check which listings have active bookings before bulk delete' })
+  bulkCheckBookings(
+    @CurrentUser() user: UserEntity,
+    @Body() body: { ids: number[] },
+  ) {
+    return this.propertiesService.bulkCheckBookings(user.id, body.ids);
   }
 
   @Post('bulk-action')

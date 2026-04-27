@@ -11,6 +11,7 @@ import {
   MaxLength,
   ArrayMaxSize,
   Matches,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -91,4 +92,10 @@ export class CreateReviewDto {
   @IsUrl({}, { each: true })
   @Matches(/\.(jpg|jpeg|png|webp)([?#].*)?$/i, { each: true, message: 'Only jpg, jpeg, png, and webp image URLs are allowed' })
   photos?: string[];
+
+  /** 'guest' (default) = guest reviews property; 'host' = host reviews guest */
+  @ApiProperty({ required: false, enum: ['guest', 'host'], default: 'guest' })
+  @IsOptional()
+  @IsEnum(['guest', 'host'])
+  reviewerRole?: 'guest' | 'host';
 }

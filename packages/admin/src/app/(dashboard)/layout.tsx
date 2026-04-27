@@ -45,7 +45,7 @@ import { adminApi } from '@/lib/api';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { cn } from '@/lib/utils';
 
-type BadgeKey = 'pendingPayouts' | 'openDisputes' | 'pendingVerifications' | 'pendingInstapayRefunds';
+type BadgeKey = 'pendingPayouts' | 'openDisputes' | 'pendingVerifications' | 'pendingInstapayRefunds' | 'pendingModeration';
 
 const NAV_SECTIONS = [
   {
@@ -96,7 +96,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/disputes', label: 'Disputes', icon: Scale, badge: 'openDisputes' as BadgeKey },
       { href: '/host-verification', label: 'Host Verification', icon: ShieldCheck, badge: 'pendingVerifications' as BadgeKey },
-      { href: '/content-moderation', label: 'Content Moderation', icon: ShieldAlert },
+      { href: '/content-moderation', label: 'Content Moderation', icon: ShieldAlert, badge: 'pendingModeration' as BadgeKey },
     ],
   },
   {
@@ -164,6 +164,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     openDisputes: badges?.openDisputes ?? 0,
     pendingVerifications: badges?.pendingVerifications ?? 0,
     pendingInstapayRefunds: badges?.pendingInstapayRefunds ?? 0,
+    pendingModeration: badges?.pendingModeration ?? 0,
   };
 
   if (!_hasHydrated || !user?.isAdmin) {

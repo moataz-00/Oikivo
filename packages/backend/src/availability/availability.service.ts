@@ -11,6 +11,7 @@ import { BookingEntity } from '../entities/booking.entity';
 import { PropertyEntity } from '../entities/property.entity';
 import { BlockDatesDto, SeasonalPricingDto } from './dto/block-dates.dto';
 import { BulkBlockDatesDto, BulkSeasonalPricingDto } from './dto/bulk-listing-availability.dto';
+import { localDateStr } from '../common/utils/date.util';
 
 @Injectable()
 export class AvailabilityService {
@@ -31,8 +32,13 @@ export class AvailabilityService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
+    // Use local-date formatting to avoid UTC-shift stripping the last day(s) of
+    // the month when the server timezone is UTC+N (e.g. Egypt UTC+2).
+    const fmtLocal = (d: Date): string =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const startStr = fmtLocal(startDate);
+    const endStr = fmtLocal(endDate);
 
     // Get availability overrides
     const availabilityRows = await this.availabilityRepo.find({
@@ -57,7 +63,7 @@ export class AvailabilityService {
       const ci = new Date(booking.checkIn);
       const co = new Date(booking.checkOut);
       for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
-        bookedDates.add(d.toISOString().split('T')[0]);
+        bookedDates.add(localDateStr(d));
       }
     }
 
@@ -74,7 +80,7 @@ export class AvailabilityService {
     const avMap = new Map(availabilityRows.map((a) => [a.date, a]));
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = fmtLocal(d);
       const avRow = avMap.get(dateStr);
       const dow = d.getDay(); // 5=Friday, 6=Saturday
       const isWeekend = dow === 5 || dow === 6;
@@ -109,6 +115,20 @@ export class AvailabilityService {
     if (!property) throw new NotFoundException('Property not found');
     if (property.hostId !== hostId) throw new ForbiddenException('Not your property');
 
+    // Guard: host cannot manually unblock iCal-sourced dates (they are managed by sync)
+    if (!dto.isBlocked && dto.dates.length > 0) {
+      const icalRows = await this.availabilityRepo.find({
+        where: { propertyId, date: In(dto.dates), source: 'ical' },
+        select: ['date'],
+      });
+      if (icalRows.length > 0) {
+        const blocked = icalRows.map((r) => r.date).join(', ');
+        throw new BadRequestException(
+          `Cannot unblock iCal-synced dates: ${blocked}. Remove the calendar feed or wait for the next sync.`,
+        );
+      }
+    }
+
     // FIX A2: Warn if blocking dates that overlap with confirmed/in_progress bookings
     const conflictingBookings: string[] = [];
     if (dto.isBlocked && dto.dates.length > 0) {
@@ -130,7 +150,7 @@ export class AvailabilityService {
         const ci = new Date(booking.checkIn);
         const co = new Date(booking.checkOut);
         for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
-          const ds = d.toISOString().split('T')[0];
+          const ds = localDateStr(d);
           if (dateSet.has(ds)) {
             conflictingBookings.push(`Booking #${booking.id} (${booking.checkIn} – ${booking.checkOut})`);
             break;
@@ -164,10 +184,10 @@ export class AvailabilityService {
       }
 
       await this.dataSource.query(
-        `INSERT INTO availability (propertyId, date, isBlocked, priceOverride, source)
+        `INSERT INTO property_availability (property_id, date, is_blocked, price_override, source)
          VALUES ${placeholders}
-         ON DUPLICATE KEY UPDATE isBlocked = VALUES(isBlocked),
-           priceOverride = COALESCE(VALUES(priceOverride), priceOverride),
+         ON DUPLICATE KEY UPDATE is_blocked = VALUES(is_blocked),
+           price_override = COALESCE(VALUES(price_override), price_override),
            source = VALUES(source)`,
         params,
       );
@@ -190,10 +210,13 @@ export class AvailabilityService {
     const end = new Date(dto.endDate);
     if (start > end) throw new BadRequestException('startDate must be before endDate');
 
+    const fmtLocal = (d: Date): string =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     // FIX A4: Bulk upsert instead of N separate queries
     const dates: string[] = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      dates.push(d.toISOString().split('T')[0]);
+      dates.push(fmtLocal(d));
     }
 
     if (dates.length > 0) {
@@ -204,9 +227,9 @@ export class AvailabilityService {
       }
 
       await this.dataSource.query(
-        `INSERT INTO availability (propertyId, date, isBlocked, priceOverride, source)
+        `INSERT INTO property_availability (property_id, date, is_blocked, price_override, source)
          VALUES ${placeholders}
-         ON DUPLICATE KEY UPDATE priceOverride = VALUES(priceOverride)`,
+         ON DUPLICATE KEY UPDATE price_override = VALUES(price_override)`,
         params,
       );
     }
@@ -219,6 +242,45 @@ export class AvailabilityService {
       pricePerNight: dto.pricePerNight,
       datesUpdated: dates.length,
     };
+  }
+
+  async setPriceDates(propertyId: number, hostId: number, dates: string[], pricePerNight: number) {
+    const property = await this.propertiesRepo.findOne({ where: { id: propertyId } });
+    if (!property) throw new NotFoundException('Property not found');
+    if (property.hostId !== hostId) throw new ForbiddenException('Not your property');
+
+    if (dates.length === 0) return { propertyId, datesUpdated: 0 };
+
+    const placeholders = dates.map(() => '(?, ?, 0, ?, ?)').join(', ');
+    const params: any[] = [];
+    for (const date of dates) {
+      params.push(propertyId, date, pricePerNight, 'host');
+    }
+
+    await this.dataSource.query(
+      `INSERT INTO property_availability (property_id, date, is_blocked, price_override, source)
+       VALUES ${placeholders}
+       ON DUPLICATE KEY UPDATE price_override = VALUES(price_override), source = VALUES(source)`,
+      params,
+    );
+
+    return { propertyId, datesUpdated: dates.length };
+  }
+
+  async resetPriceDates(propertyId: number, hostId: number, dates: string[]) {
+    const property = await this.propertiesRepo.findOne({ where: { id: propertyId } });
+    if (!property) throw new NotFoundException('Property not found');
+    if (property.hostId !== hostId) throw new ForbiddenException('Not your property');
+
+    if (dates.length === 0) return { propertyId, datesReset: 0 };
+
+    const placeholders = dates.map(() => '?').join(', ');
+    await this.dataSource.query(
+      `UPDATE property_availability SET price_override = NULL WHERE property_id = ? AND date IN (${placeholders})`,
+      [propertyId, ...dates],
+    );
+
+    return { propertyId, datesReset: dates.length };
   }
 
   async bulkBlockDates(hostId: number, dto: BulkBlockDatesDto) {
@@ -325,7 +387,7 @@ export class AvailabilityService {
       const ci = new Date(booking.checkIn);
       const co = new Date(booking.checkOut);
       for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
-        bookedDates.add(d.toISOString().split('T')[0]);
+        bookedDates.add(localDateStr(d));
       }
     }
 
@@ -340,7 +402,7 @@ export class AvailabilityService {
     const toDate = new Date(to);
 
     for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = localDateStr(d);
       if (!unavailableDates.has(dateStr)) {
         if (!rangeStart) rangeStart = dateStr;
       } else {
@@ -351,7 +413,7 @@ export class AvailabilityService {
       }
     }
     if (rangeStart) {
-      ranges.push({ from: rangeStart, to: toDate.toISOString().split('T')[0] });
+      ranges.push({ from: rangeStart, to: localDateStr(toDate) });
     }
 
     return ranges;

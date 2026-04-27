@@ -24,11 +24,11 @@ export class CreateListingDto {
   categoryId?: number;
 
   @ApiProperty({
-    enum: ['entire_place', 'private_room', 'shared_room'],
+    enum: ['entire_place', 'private_room', 'shared_room', 'hotel_room', 'hotel_suite'],
     default: 'entire_place',
   })
   @IsOptional()
-  @IsIn(['entire_place', 'private_room', 'shared_room'])
+  @IsIn(['entire_place', 'private_room', 'shared_room', 'hotel_room', 'hotel_suite'])
   spaceType?: string;
 
   @ApiProperty({ example: 'apartment' })
@@ -87,7 +87,7 @@ export class CreateListingDto {
     description: 'instant_book = guests book immediately; approve_first_three = host approves first 3 then switches to instant book',
   })
   @IsOptional()
-  @IsIn(['instant_book', 'approve_first_three'])
+  @IsIn(['instant_book', 'approve_first_three', 'always_approve'])
   bookingMode?: string;
 
   @ApiProperty({ example: 'EGP', default: 'EGP' })
@@ -264,4 +264,12 @@ export class CreateListingDto {
   @IsArray()
   @Type(() => Number)
   amenityIds?: number[];
+
+  @ApiProperty({ required: false, description: 'Highest wizard step saved (0 = legacy)', minimum: 0, maximum: 16 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(16)
+  wizardLastStep?: number;
 }

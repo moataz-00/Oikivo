@@ -278,7 +278,7 @@ export default function PaymentTermsPage() {
                 </div>
                 <p>
                   For payment-related inquiries, contact{' '}
-                  <a href="mailto:payments@journeystay.com" className="text-brand hover:underline">payments@journeystay.com</a>.
+                  <a href="mailto:oikivo.support@gmail.com" className="text-brand hover:underline">oikivo.support@gmail.com</a>.
                 </p>
               </section>
 

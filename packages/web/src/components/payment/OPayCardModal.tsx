@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Lock, AlertCircle, ArrowLeft, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { paymentsApi } from '@/lib/api';
 import { useCurrency } from '@/hooks/useCurrency';
 
@@ -15,7 +15,7 @@ interface OPayCardModalProps {
   bookingType?: 'stay' | 'experience';
   totalAmount: number;
   currency?: string;
-  onSuccess: (method: 'stripe' | 'instapay' | 'opay-card') => void;
+  onSuccess: (method: 'instapay' | 'opay-card') => void;
   onClose: () => void;
   /** Go back to payment method selection */
   onBack?: () => void;
@@ -35,13 +35,14 @@ export function OPayCardModal({
   const [errorMsg, setErrorMsg] = useState('');
   const { formatPrice } = useCurrency();
   const t = useTranslations('payment');
+  const locale = useLocale();
 
   const checkoutMutation = useMutation({
     mutationFn: () =>
       paymentsApi.opayCheckout({
         bookingId,
         bookingType,
-        returnUrl: `${window.location.origin}/en/trips?payment=success&bookingId=${bookingId}`,
+        returnUrl: `${window.location.origin}/${locale}/trips?payment=success&bookingId=${bookingId}`,
       }),
     onSuccess: (data) => {
       if (data.status === 'redirect' && data.cashierUrl) {

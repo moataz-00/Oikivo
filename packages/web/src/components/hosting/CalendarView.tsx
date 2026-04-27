@@ -13,7 +13,7 @@ import {
   subMonths,
   getDay,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { availabilityApi } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -60,15 +60,10 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
 
   const blockMutation = useMutation({
     mutationFn: (dates: string[]) =>
-      availabilityApi.blockDates({
-        propertyId,
-        dates,
-        ...(priceOverride && Number(priceOverride) > 0 ? { priceOverride: Number(priceOverride) } : {}),
-      }),
+      availabilityApi.blockDates({ propertyId, dates }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar', propertyId] });
       setSelectedDates([]);
-      setPriceOverride('');
       toast.success('Dates blocked');
     },
   });
@@ -83,6 +78,30 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
     },
   });
 
+  const setPriceMutation = useMutation({
+    mutationFn: ({ dates, price }: { dates: string[]; price: number }) =>
+      availabilityApi.setPriceDates(propertyId, dates, price),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['calendar', propertyId] });
+      setSelectedDates([]);
+      setPriceOverride('');
+      toast.success(`Custom price set for ${vars.dates.length} date${vars.dates.length !== 1 ? 's' : ''}`);
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Failed to set price'),
+  });
+
+  const resetPriceMutation = useMutation({
+    mutationFn: (dates: string[]) =>
+      availabilityApi.resetPriceDates(propertyId, dates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar', propertyId] });
+      setSelectedDates([]);
+      setPriceOverride('');
+      toast.success('Prices reset to default');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Failed to reset prices'),
+  });
+
   const calendarMap = new Map<string, CalendarDay>(
     calendarData?.map((d) => [d.date, d]) ?? []
   );
@@ -94,6 +113,12 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
   // Pad start of month (Sunday = 0)
   const startDow = getDay(monthStart);
   const paddingDays = Array.from({ length: startDow });
+
+  // Check if any selected date is iCal-managed
+  const hasIcalSelected = selectedDates.some((d) => {
+    const dayData = calendarMap.get(format(d, 'yyyy-MM-dd'));
+    return dayData?.source === 'ical';
+  });
 
   const toggleDate = (date: Date, status: DayStatus) => {
     if (status === 'booked') return;
@@ -123,6 +148,20 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
   const handleUnblock = () => {
     const dates = selectedDates.map((d) => format(d, 'yyyy-MM-dd'));
     unblockMutation.mutate(dates);
+  };
+
+  const handleSetPrice = () => {
+    if (!priceOverride || Number(priceOverride) <= 0) {
+      toast.error('Enter a valid price');
+      return;
+    }
+    const dates = selectedDates.map((d) => format(d, 'yyyy-MM-dd'));
+    setPriceMutation.mutate({ dates, price: Number(priceOverride) });
+  };
+
+  const handleResetPrice = () => {
+    const dates = selectedDates.map((d) => format(d, 'yyyy-MM-dd'));
+    resetPriceMutation.mutate(dates);
   };
 
   return (
@@ -214,11 +253,16 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
                     {format(date, 'd')}
                   </span>
 
-                  {dayData?.price && status === 'available' && (
-                    <span className="text-xs text-neutral-500 mt-0.5">
+                  {/* Custom price override — show in amber on any status */}
+                  {dayData?.priceOverride != null ? (
+                    <span className="text-xs mt-0.5 font-medium text-amber-600">
+                      {formatPrice(dayData.price!)}
+                    </span>
+                  ) : dayData?.price && status === 'available' ? (
+                    <span className="text-xs mt-0.5 text-neutral-400">
                       {formatPrice(dayData.price)}
                     </span>
-                  )}
+                  ) : null}
 
                   {status === 'booked' && dayData?.booking && (
                     <span className="text-xs text-red-600 mt-0.5 truncate w-full leading-tight">
@@ -234,6 +278,11 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
                       )}
                     />
                   )}
+
+                  {/* iCal lock indicator */}
+                  {dayData?.source === 'ical' && (
+                    <Lock className="absolute bottom-1 right-1.5 h-2.5 w-2.5 text-neutral-400" />
+                  )}
                 </button>
               );
             })}
@@ -243,9 +292,9 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
 
       {/* Bulk actions when dates selected */}
       {selectedDates.length > 0 && (
-        <div className="border-t border-indigo-100 px-6 py-4 space-y-3 bg-indigo-50/60">
+        <div className="border-t border-indigo-100 px-6 py-4 space-y-4 bg-indigo-50/60">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-neutral-700">
+            <p className="text-sm font-medium text-neutral-700">
               {selectedDates.length} date{selectedDates.length > 1 ? 's' : ''} selected
             </p>
             <button
@@ -255,36 +304,68 @@ export function CalendarView({ propertyId }: CalendarViewProps) {
               Clear
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-neutral-600 shrink-0">Custom price (EGP)</label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              placeholder="Leave blank to keep default"
-              value={priceOverride}
-              onChange={(e) => setPriceOverride(e.target.value)}
-              className="flex-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
+
+          {/* Custom price section */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 space-y-2">
+            <p className="text-xs font-semibold text-amber-700">Custom Price</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Price per night (EGP)"
+                value={priceOverride}
+                onChange={(e) => setPriceOverride(e.target.value)}
+                className="flex-1 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <Button
+                size="sm"
+                onClick={handleSetPrice}
+                isLoading={setPriceMutation.isPending}
+                className="bg-amber-500 hover:bg-amber-600 text-white shrink-0"
+              >
+                Set price
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleResetPrice}
+                isLoading={resetPriceMutation.isPending}
+                className="shrink-0"
+              >
+                Reset
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleUnblock}
-              isLoading={unblockMutation.isPending}
-            >
-              {t('unblockDates')}
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleBlock}
-              isLoading={blockMutation.isPending}
-            >
-              {priceOverride && Number(priceOverride) > 0
-                ? `Block & set EGP ${priceOverride}`
-                : t('blockDates')}
-            </Button>
+
+          {/* Availability section */}
+          <div className="rounded-xl border border-indigo-200 bg-white p-3 space-y-2">
+            <p className="text-xs font-semibold text-indigo-700">Availability</p>
+            {hasIcalSelected && (
+              <p className="text-xs text-amber-700 flex items-center gap-1">
+                <Lock className="h-3 w-3" />
+                Some dates are synced from an external calendar and cannot be unblocked manually.
+              </p>
+            )}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleUnblock}
+                isLoading={unblockMutation.isPending}
+                disabled={hasIcalSelected}
+                title={hasIcalSelected ? 'Cannot unblock iCal-synced dates' : undefined}
+              >
+                {t('unblockDates')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleBlock}
+                isLoading={blockMutation.isPending}
+              >
+                {t('blockDates')}
+              </Button>
+            </div>
           </div>
         </div>
       )}

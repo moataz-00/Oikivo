@@ -42,3 +42,24 @@ export class SeasonalPricingDto {
   @IsString()
   label?: string;
 }
+
+export class SetPriceDatesDto {
+  @ApiProperty({ type: [String], example: ['2026-04-01', '2026-04-02'] })
+  @IsArray()
+  @IsDateString({}, { each: true })
+  dates: string[];
+
+  @ApiProperty({ example: 350, description: 'Custom price per night for these dates (max 100,000)' })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1, { message: 'Price must be at least 1' })
+  @Max(100000, { message: 'Price cannot exceed 100,000' })
+  pricePerNight: number;
+}
+
+export class ResetPriceDatesDto {
+  @ApiProperty({ type: [String], example: ['2026-04-01', '2026-04-02'] })
+  @IsArray()
+  @IsDateString({}, { each: true })
+  dates: string[];
+}

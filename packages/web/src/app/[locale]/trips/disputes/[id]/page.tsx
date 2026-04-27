@@ -1,15 +1,17 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import {
   ArrowLeft, Loader2, CheckCircle2, Clock, Search, XCircle, AlertCircle,
-  CalendarDays, Users, Home,
+  CalendarDays, Users, Home, ImageIcon,
 } from 'lucide-react';
 import { disputesApi } from '@/lib/api';
 import { FadeIn } from '@/components/ui/Motion';
+import { getImageUrl } from '@/lib/utils';
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; icon: React.ElementType }> = {
   open:         { label: 'Open',         bg: 'bg-amber-50 border-amber-200',  text: 'text-amber-700', icon: AlertCircle  },
@@ -61,14 +63,21 @@ function StatusTimeline({ status }: { status: string }) {
 }
 
 export default function DisputeDetailPage() {
-  const params    = useParams();
-  const locale    = useLocale();
-  const disputeId = Number(params.id);
+  const params      = useParams();
+  const locale      = useLocale();
+  const disputeUuid = String(params.id);
+  // Backward-compat: old disputes created before migration_056 may not have a uuid yet,
+  // so the link falls back to the numeric id. Handle both cases.
+  const isNumericId = /^\d+$/.test(disputeUuid);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const { data: dispute, isLoading, isError } = useQuery({
-    queryKey: ['dispute', disputeId],
-    queryFn:  () => disputesApi.getById(disputeId),
-    enabled:  !isNaN(disputeId),
+    queryKey: ['dispute', disputeUuid],
+    queryFn:  () =>
+      isNumericId
+        ? disputesApi.getById(Number(disputeUuid))
+        : disputesApi.getByUuid(disputeUuid),
+    enabled:  !!disputeUuid,
   });
 
   if (isLoading) {
@@ -93,6 +102,12 @@ export default function DisputeDetailPage() {
     day: '2-digit', month: 'long', year: 'numeric',
   });
   const booking = dispute.booking;
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+  const evidenceUrls: string[] = (dispute.evidence ?? []).map((path: string) => {
+    const filename = path.split('/').pop() ?? '';
+    return `${apiBase}/disputes/${dispute.id}/evidence/${encodeURIComponent(filename)}`;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -137,6 +152,16 @@ export default function DisputeDetailPage() {
           {booking && (
             <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Related booking</h2>
+              {(() => {
+                const coverImage = booking.property?.photos?.find((img: any) => img.isCover) ?? booking.property?.photos?.[0];
+                return coverImage ? (
+                  <img
+                    src={getImageUrl(coverImage.url)}
+                    alt={booking.property?.title ?? 'Property'}
+                    className="w-full h-36 object-cover rounded-xl mb-3"
+                  />
+                ) : null;
+              })()}
               <div className="space-y-2 text-sm text-gray-700">
                 {booking.property?.title && (
                   <div className="flex items-center gap-2">
@@ -160,6 +185,30 @@ export default function DisputeDetailPage() {
                     <span>{booking.guestsCount} guest{booking.guestsCount !== 1 ? 's' : ''}</span>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Evidence */}
+          {evidenceUrls.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
+              <h2 className="text-sm font-semibold text-gray-700 mb-3">Evidence submitted</h2>
+              <div className="grid grid-cols-2 gap-2">
+                {evidenceUrls.map((src, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setLightboxIdx(idx)}
+                    className="block w-full overflow-hidden rounded-lg border border-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  >
+                    <img
+                      src={src}
+                      alt={`Evidence ${idx + 1}`}
+                      className="w-full h-28 object-cover hover:opacity-90 transition-opacity"
+                      onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                    />
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -189,6 +238,55 @@ export default function DisputeDetailPage() {
           )}
         </FadeIn>
       </div>
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setLightboxIdx(null)}
+        >
+          {/* Close */}
+          <button
+            className="absolute top-4 right-4 text-white text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition"
+            onClick={() => setLightboxIdx(null)}
+          >
+            &times;
+          </button>
+
+          {/* Prev */}
+          {lightboxIdx > 0 && (
+            <button
+              className="absolute left-4 text-white text-4xl font-bold w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition"
+              onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }}
+            >
+              &#8249;
+            </button>
+          )}
+
+          {/* Image */}
+          <img
+            src={evidenceUrls[lightboxIdx]}
+            alt={`Evidence ${lightboxIdx + 1}`}
+            className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Next */}
+          {lightboxIdx < evidenceUrls.length - 1 && (
+            <button
+              className="absolute right-4 text-white text-4xl font-bold w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition"
+              onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }}
+            >
+              &#8250;
+            </button>
+          )}
+
+          {/* Counter */}
+          <p className="absolute bottom-4 text-white text-sm opacity-60">
+            {lightboxIdx + 1} / {evidenceUrls.length}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

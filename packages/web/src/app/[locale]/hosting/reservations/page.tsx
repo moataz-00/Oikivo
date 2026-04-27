@@ -7,9 +7,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, MessageSquare, CalendarClock, Home, Compass, ShieldCheck } from 'lucide-react';
+import { Check, X, MessageSquare, CalendarClock, Home, Compass, ShieldCheck, Send } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { bookingsApi, experienceBookingsApi } from '@/lib/api';
+import { bookingsApi, experienceBookingsApi, messagesApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -123,10 +123,12 @@ function ReservationCard({
   booking,
   onConfirm,
   onDecline,
+  onMsgGuest,
 }: {
   booking: Booking;
   onConfirm: (id: number) => void;
   onDecline: (id: number) => void;
+  onMsgGuest: (guestId: number, guestName: string, propertyId?: number) => void;
 }) {
   const locale = useLocale();
   const t = useTranslations('hosting');
@@ -158,7 +160,7 @@ function ReservationCard({
           </div>
 
           <div className="flex items-center gap-3 mb-4">
-            <Avatar src={booking.guest.avatar} firstName={booking.guest.firstName} lastName={booking.guest.lastName} size="sm" />
+            <Avatar src={booking.guest.avatarUrl ?? booking.guest.avatar} firstName={booking.guest.firstName} lastName={booking.guest.lastName} size="sm" />
             <div>
               <p className="text-sm font-medium text-neutral-900">
                 {booking.guest.firstName} {booking.guest.lastName}
@@ -166,7 +168,7 @@ function ReservationCard({
               {(booking.guest.isEmailVerified || booking.guest.isPhoneVerified || (booking.guest as any).isIdVerified) && (
                 <div className="flex items-center gap-1 flex-wrap mt-0.5">
                   {booking.guest.isEmailVerified && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">✉️ Email</span>
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">✉️ {(booking.guest as any).email ?? 'Email verified'}</span>
                   )}
                   {booking.guest.isPhoneVerified && (
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">📱 Phone</span>
@@ -193,11 +195,14 @@ function ReservationCard({
                 </Button>
               </>
             )}
-            <Link href={`/${locale}/hosting/inbox`}
-              className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors">
+            <button
+              type="button"
+              onClick={() => onMsgGuest(booking.guest.id, `${booking.guest.firstName} ${booking.guest.lastName}`, booking.property?.id)}
+              className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+            >
               <MessageSquare className="h-3.5 w-3.5" />
               💬 Message guest
-            </Link>
+            </button>
 
             {/* Security deposit actions */}
             {booking.status === 'completed' && booking.depositStatus === 'held' && (
@@ -228,10 +233,12 @@ function ExperienceReservationCard({
   booking,
   onConfirm,
   onDecline,
+  onMsgGuest,
 }: {
   booking: ExperienceBooking;
   onConfirm: (id: number) => void;
   onDecline: (id: number) => void;
+  onMsgGuest: (guestId: number, guestName: string, propertyId?: number) => void;
 }) {
   const locale = useLocale();
   const coverPhoto = booking.experience.photos?.find((p) => p.isCover) ?? booking.experience.photos?.[0];
@@ -263,7 +270,7 @@ function ExperienceReservationCard({
           </div>
 
           <div className="flex items-center gap-3 mb-4">
-            <Avatar src={booking.guest.avatar} firstName={booking.guest.firstName} lastName={booking.guest.lastName} size="sm" />
+            <Avatar src={booking.guest.avatarUrl ?? booking.guest.avatar} firstName={booking.guest.firstName} lastName={booking.guest.lastName} size="sm" />
             <div>
               <p className="text-sm font-medium text-neutral-900">
                 {booking.guest.firstName} {booking.guest.lastName}
@@ -298,11 +305,14 @@ function ExperienceReservationCard({
                 </Button>
               </>
             )}
-            <Link href={`/${locale}/hosting/inbox`}
-              className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors">
+            <button
+              type="button"
+              onClick={() => onMsgGuest(booking.guest.id, `${booking.guest.firstName} ${booking.guest.lastName}`, (booking.experience as any)?.id)}
+              className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+            >
               <MessageSquare className="h-3.5 w-3.5" />
               💬 Message guest
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -317,6 +327,19 @@ export default function ReservationsPage() {
   const { isLoggedIn, isHost, hasHydrated } = useAuth();
   const queryClient = useQueryClient();
   const [activeListingType, setActiveListingType] = useState<'properties' | 'experiences'>('properties');
+  const [msgModal, setMsgModal] = useState<{ guestId: number; guestName: string; propertyId?: number } | null>(null);
+  const [msgText, setMsgText] = useState('');
+
+  const sendMsgMutation = useMutation({
+    mutationFn: ({ guestId, body, propertyId }: { guestId: number; body: string; propertyId?: number }) =>
+      messagesApi.startConversation(guestId, body, propertyId),
+    onSuccess: () => {
+      toast.success('Message sent!');
+      setMsgModal(null);
+      setMsgText('');
+    },
+    onError: () => toast.error('Failed to send message'),
+  });
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -397,6 +420,7 @@ export default function ReservationsPage() {
   ];
 
   return (
+    <>
     <div className="relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(79,70,229,0.09),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(245,158,11,0.07),transparent_35%)]" />
       <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-10">
@@ -492,7 +516,8 @@ export default function ReservationsPage() {
                         {bookings.map((booking) => (
                           <ReservationCard key={booking.id} booking={booking}
                             onConfirm={(id) => confirmMutation.mutate(id)}
-                            onDecline={(id) => declineMutation.mutate(id)} />
+                            onDecline={(id) => declineMutation.mutate(id)}
+                            onMsgGuest={(guestId, guestName, propertyId) => setMsgModal({ guestId, guestName, propertyId })} />
                         ))}
                       </motion.div>
                     )}
@@ -548,7 +573,8 @@ export default function ReservationsPage() {
                         {bookings.map((booking) => (
                           <ExperienceReservationCard key={booking.id} booking={booking}
                             onConfirm={(id) => confirmExpMutation.mutate(id)}
-                            onDecline={(id) => declineExpMutation.mutate(id)} />
+                            onDecline={(id) => declineExpMutation.mutate(id)}
+                            onMsgGuest={(guestId, guestName, propertyId) => setMsgModal({ guestId, guestName, propertyId })} />
                         ))}
                       </motion.div>
                     )}
@@ -560,5 +586,62 @@ export default function ReservationsPage() {
         )}
       </div>
     </div>
+
+    {/* Message guest modal */}
+    <AnimatePresence>
+      {msgModal && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={() => { setMsgModal(null); setMsgText(''); }}
+        >
+          <motion.div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100">
+                  <MessageSquare className="h-4 w-4 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-900">Message guest</h3>
+                  <p className="text-xs text-neutral-500">{msgModal.guestName}</p>
+                </div>
+              </div>
+              <button onClick={() => { setMsgModal(null); setMsgText(''); }} className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <textarea
+              rows={4}
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              placeholder="Write your message to the guest…"
+              className="w-full rounded-xl border border-neutral-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4 justify-end">
+              <button
+                onClick={() => { setMsgModal(null); setMsgText(''); }}
+                className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => msgModal && msgText.trim() && sendMsgMutation.mutate({ guestId: msgModal.guestId, body: msgText.trim(), propertyId: msgModal.propertyId })}
+                disabled={!msgText.trim() || sendMsgMutation.isPending}
+                className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                <Send className="h-3.5 w-3.5" />
+                {sendMsgMutation.isPending ? 'Sending…' : 'Send message'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }

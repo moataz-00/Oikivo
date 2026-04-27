@@ -27,6 +27,30 @@ const SPACE_TYPES: { value: SpaceType; label: string; desc: string }[] = [
   { value: 'shared_room', label: 'Shared room', desc: 'Guests share a room' },
 ];
 
+const HOTEL_SPACE_TYPES: { value: SpaceType; label: string; desc: string }[] = [
+  { value: 'hotel_room', label: '🛎️ Hotel Room', desc: 'A standard hotel-style room' },
+  { value: 'hotel_suite', label: '👑 Hotel Suite', desc: 'A premium suite with extra amenities' },
+];
+
+const STANDOUT_OPTIONS = [
+  { label: 'Panoramic views', emoji: '🌅' },
+  { label: 'Private pool', emoji: '🏊' },
+  { label: 'Rooftop terrace', emoji: '🏙️' },
+  { label: 'Garden & outdoor space', emoji: '🌳' },
+  { label: 'Waterfront / beach access', emoji: '🏖️' },
+  { label: 'Smart home features', emoji: '🏠' },
+  { label: 'Luxury furnishings', emoji: '✨' },
+  { label: 'Private parking', emoji: '🅿️' },
+  { label: 'Pet-friendly', emoji: '🐕' },
+  { label: 'EV charger', emoji: '🔌' },
+  { label: 'Home cinema / projector', emoji: '🎬' },
+  { label: 'Game room', emoji: '🎮' },
+  { label: 'Hot tub / jacuzzi', emoji: '🛁' },
+  { label: 'Fireplace', emoji: '🔥' },
+  { label: '24/7 concierge', emoji: '🛎️' },
+  { label: 'Self check-in', emoji: '🔑' },
+];
+
 const PROPERTY_KINDS: { value: PropertyKind; label: string }[] = [
   { value: 'apartment', label: '🏢 Apartment' },
   { value: 'house', label: '🏠 House' },
@@ -36,7 +60,6 @@ const PROPERTY_KINDS: { value: PropertyKind; label: string }[] = [
   { value: 'chalet', label: '🏔️ Chalet' },
   { value: 'studio', label: '🎨 Studio' },
   { value: 'loft', label: '🏗️ Loft' },
-  { value: 'hotel_room', label: '🛏️ Hotel Room' },
   { value: 'bungalow', label: '🌴 Bungalow' },
   { value: 'cottage', label: '🌿 Cottage' },
   { value: 'townhouse', label: '🏘️ Townhouse' },
@@ -130,6 +153,7 @@ export default function EditListingPage() {
   const { isLoggedIn, isHost, hasHydrated } = useAuth();
   const uuid = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const kindInitRef = useRef(true);
 
   // Form state
   const [categoryId, setCategoryId] = useState<number>(0);
@@ -147,7 +171,8 @@ export default function EditListingPage() {
   const [monthlyDiscount, setMonthlyDiscount] = useState(0);
   const [newListingPromoEnabled, setNewListingPromoEnabled] = useState(false);
   const [lastMinuteDiscountPercent, setLastMinuteDiscountPercent] = useState(0);
-  const [bookingMode, setBookingMode] = useState<'instant_book' | 'approve_first_three'>('approve_first_three');
+  const [securityDeposit, setSecurityDeposit] = useState(0);
+  const [bookingMode, setBookingMode] = useState<'instant_book' | 'approve_first_three' | 'always_approve'>('approve_first_three');
   const [cleaningFee, setCleaningFee] = useState(0);
   const [minNights, setMinNights] = useState(1);
   const [maxNights, setMaxNights] = useState(365);
@@ -158,6 +183,7 @@ export default function EditListingPage() {
   const [allowsSmoking, setAllowsSmoking] = useState(false);
   const [allowsParties, setAllowsParties] = useState(false);
   const [allowsChildren, setAllowsChildren] = useState(true);
+  const [standoutNote, setStandoutNote] = useState('');
   const [houseRules, setHouseRules] = useState('');
   const [cancellationPolicy, setCancellationPolicy] = useState('flexible');
   const [address, setAddress] = useState('');
@@ -192,7 +218,16 @@ export default function EditListingPage() {
     if (!property) return;
     setCategoryId(property.category?.id ?? 0);
     setTitle(property.title ?? '');
-    setDescription(property.description ?? '');
+    // Parse standout note from description if embedded
+    const fullDesc = property.description ?? '';
+    const standoutMarker = '\n\nWhat makes this place unique:\n';
+    const markerIdx = fullDesc.indexOf(standoutMarker);
+    if (markerIdx !== -1) {
+      setDescription(fullDesc.slice(0, markerIdx));
+      setStandoutNote(fullDesc.slice(markerIdx + standoutMarker.length));
+    } else {
+      setDescription(fullDesc);
+    }
     setSpaceType(property.spaceType ?? 'entire_place');
     setKind(property.kind ?? 'apartment');
     setMaxGuests(property.maxGuests ?? 4);
@@ -205,8 +240,9 @@ export default function EditListingPage() {
     setMonthlyDiscount(property.monthlyDiscount ?? 0);
     setNewListingPromoEnabled(property.newListingPromotionEnabled ?? false);
     setLastMinuteDiscountPercent(property.lastMinuteDiscountPercent ?? 0);
-    setBookingMode((property.bookingMode ?? 'approve_first_three') as 'instant_book' | 'approve_first_three');
+    setBookingMode((property.bookingMode ?? 'approve_first_three') as 'instant_book' | 'approve_first_three' | 'always_approve');
     setCleaningFee(property.cleaningFee ?? 0);
+    setSecurityDeposit(property.securityDeposit ?? 0);
     setMinNights(property.minNights ?? 1);
     setMaxNights(property.maxNights ?? 365);
     setCheckInTime(property.checkInTime ?? '14:00');
@@ -226,6 +262,17 @@ export default function EditListingPage() {
     setSelectedAmenityIds((property.amenities ?? []).map((a: Amenity) => a.id));
   }, [property]);
 
+  // Auto-reset spaceType when kind changes to/from hotel
+  useEffect(() => {
+    if (kindInitRef.current) { kindInitRef.current = false; return; }
+    if (kind === 'hotel') {
+      if (spaceType !== 'hotel_room' && spaceType !== 'hotel_suite') setSpaceType('hotel_room');
+    } else if (spaceType === 'hotel_room' || spaceType === 'hotel_suite') {
+      setSpaceType('entire_place');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
+
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
@@ -240,13 +287,16 @@ export default function EditListingPage() {
   });
 
   const handleSave = () => {
+    const mergedDescription = standoutNote.trim()
+      ? `${description}${description ? '\n\n' : ''}What makes this place unique:\n${standoutNote}`
+      : description;
     updateMutation.mutate({
       title,
-      description,
+      description: mergedDescription,
       categoryId: categoryId || undefined,
       spaceType,
-      propertyKind: kind,
-      pricePerNight: price,
+      kind,
+      price,
       weekendPrice: weekendPrice ?? undefined,
       weeklyDiscount,
       monthlyDiscount,
@@ -254,6 +304,7 @@ export default function EditListingPage() {
       lastMinuteDiscountPercent,
       bookingMode,
       cleaningFee,
+      securityDeposit,
       minNights,
       maxNights,
       maxGuests,
@@ -263,18 +314,24 @@ export default function EditListingPage() {
       address,
       city,
       country,
-      latitude: lat ?? undefined,
-      longitude: lng ?? undefined,
+      lat: lat ?? undefined,
+      lng: lng ?? undefined,
       amenityIds: selectedAmenityIds,
-      checkInAfter: checkInTime,
-      checkOutBefore: checkOutTime,
+      checkInTime,
+      checkOutTime,
       instantBook,
-      allowsPets: allowPets,
+      allowPets,
       allowsSmoking,
       allowsParties,
       allowsChildren,
       cancellationPolicy,
-    });
+    } as any);
+    // House rules use a dedicated endpoint
+    if (property?.id) {
+      propertiesApi.updateHouseRules(property.id, houseRules).catch(() => {
+        toast.error('Failed to save house rules');
+      });
+    }
   };
 
   const toggleAmenity = (id: number) => {
@@ -473,6 +530,31 @@ export default function EditListingPage() {
               <label className="block text-sm font-medium text-neutral-700 mb-1">Description</label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
             </div>
+            {/* Standout highlights */}
+            <div>
+              <p className="text-sm font-medium text-neutral-700 mb-1">Highlight what makes it special <span className="text-neutral-400 font-normal">(optional)</span></p>
+              <p className="text-xs text-neutral-500 mb-3">Selected highlights are appended to your description when saved.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {STANDOUT_OPTIONS.map(({ label, emoji }) => {
+                  const selectedSet = new Set(standoutNote ? standoutNote.split('\n').filter(Boolean) : []);
+                  const selected = selectedSet.has(label);
+                  const toggle = () => {
+                    const next = new Set(selectedSet);
+                    next.has(label) ? next.delete(label) : next.add(label);
+                    setStandoutNote(Array.from(next).join('\n'));
+                  };
+                  return (
+                    <button key={label} type="button" onClick={toggle}
+                      className={cn('flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all',
+                        selected ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200 hover:border-neutral-400')}>
+                      <span className="text-lg">{emoji}</span>
+                      <span className="text-sm font-medium text-neutral-900 flex-1">{label}</span>
+                      {selected && <Check className="h-4 w-4 text-indigo-600 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -485,8 +567,13 @@ export default function EditListingPage() {
             {/* Space type */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">Space type</label>
+              {kind === 'hotel' && (
+                <p className="mb-2 text-xs text-indigo-600 font-medium bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2">
+                  Since you selected Hotel, choose the type of accommodation unit.
+                </p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {SPACE_TYPES.map((st) => {
+                {(kind === 'hotel' ? HOTEL_SPACE_TYPES : SPACE_TYPES).map((st) => {
                   const checked = spaceType === st.value;
                   return (
                     <button key={st.value} type="button" onClick={() => setSpaceType(st.value)}
@@ -624,6 +711,19 @@ export default function EditListingPage() {
               </div>
             </div>
 
+            {/* Security deposit */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">Security deposit</label>
+              <p className="text-xs text-neutral-500 mb-2">Charged only if damages occur. Returned after a clean checkout.</p>
+              <div className="flex items-center gap-4">
+                <input type="range" min={0} max={50000} step={500} value={securityDeposit}
+                  onChange={(e) => setSecurityDeposit(Number(e.target.value))} className="flex-1 accent-indigo-600" />
+                <span className="text-lg font-bold w-32 text-right">
+                  {securityDeposit === 0 ? 'None' : `EGP ${securityDeposit}`}
+                </span>
+              </div>
+            </div>
+
             {/* New listing promotion */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -728,8 +828,8 @@ export default function EditListingPage() {
             {/* Booking mode */}
             <div>
               <p className="text-sm font-medium text-neutral-700 mb-3">Booking style</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button type="button" onClick={() => setBookingMode('approve_first_three')}
+              <div className="grid grid-cols-1 gap-3">
+                <button type="button" onClick={() => { setBookingMode('approve_first_three'); setInstantBook(false); }}
                   className={cn('relative rounded-xl border-2 p-4 text-left transition-all', bookingMode === 'approve_first_three' ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200 hover:border-neutral-300')}>
                   {bookingMode === 'approve_first_three' && (
                     <span className="absolute top-3 right-3 text-indigo-600">
@@ -745,7 +845,22 @@ export default function EditListingPage() {
                     </div>
                   </div>
                 </button>
-                <button type="button" onClick={() => setBookingMode('instant_book')}
+                <button type="button" onClick={() => { setBookingMode('always_approve'); setInstantBook(false); }}
+                  className={cn('relative rounded-xl border-2 p-4 text-left transition-all', bookingMode === 'always_approve' ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200 hover:border-neutral-300')}>
+                  {bookingMode === 'always_approve' && (
+                    <span className="absolute top-3 right-3 text-indigo-600">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                    </span>
+                  )}
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">🔍</span>
+                    <div>
+                      <p className="font-semibold text-sm text-neutral-900">Always review guests</p>
+                      <p className="text-xs text-neutral-500 mt-1">You review and approve every booking request manually. You&apos;ll have 24 hours to respond.</p>
+                    </div>
+                  </div>
+                </button>
+                <button type="button" onClick={() => { setBookingMode('instant_book'); setInstantBook(true); }}
                   className={cn('relative rounded-xl border-2 p-4 text-left transition-all', bookingMode === 'instant_book' ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200 hover:border-neutral-300')}>
                   {bookingMode === 'instant_book' && (
                     <span className="absolute top-3 right-3 text-indigo-600">

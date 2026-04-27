@@ -23,6 +23,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Separator } from '@/components/ui/Separator';
 import { ContactHostModal } from '@/components/ui/ContactHostModal';
 import { formatRating } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function PublicProfilePage() {
   const params = useParams();
@@ -31,6 +32,7 @@ export default function PublicProfilePage() {
   const profileUuid = params.uuid as string;
 
   const [contactOpen, setContactOpen] = useState(false);
+  const { user } = useAuth();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile-uuid', profileUuid],
@@ -165,13 +167,15 @@ export default function PublicProfilePage() {
               </div>
 
               {/* Contact button */}
-              <button
-                onClick={() => setContactOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-5 py-3 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
-              >
-                <MessageSquare className="h-4 w-4" />
-                {t('contactHost', { name: profile.firstName })}
-              </button>
+              {profileUuid !== user?.profileUuid && (
+                <button
+                  onClick={() => setContactOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-5 py-3 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  {t('contactHost', { name: profile.firstName })}
+                </button>
+              )}
             </motion.div>
           </div>
 
@@ -267,17 +271,19 @@ export default function PublicProfilePage() {
         </div>
 
         {/* Contact Host Modal */}
-        <ContactHostModal
-          open={contactOpen}
-          onOpenChange={setContactOpen}
-          host={{
-            id: profile.id,
-            firstName: profile.firstName,
-            lastName: profile.lastName,
-            avatar: avatarSrc,
-            avatarUrl: avatarSrc,
-          }}
-        />
+        {profileUuid !== user?.profileUuid && (
+          <ContactHostModal
+            open={contactOpen}
+            onOpenChange={setContactOpen}
+            host={{
+              id: profile.id,
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              avatar: avatarSrc,
+              avatarUrl: avatarSrc,
+            }}
+          />
+        )}
       </div>
     </div>
   );

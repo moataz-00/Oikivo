@@ -22,6 +22,7 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
-    "@nestjs/schedule": "^6.1.1"
+    "@nestjs/schedule": "^6.1.1",
+    "firebase-admin": "^13.8.0"
   }
 }

@@ -19,6 +19,21 @@ const DANGER = '#dc2626';           // red-600
 // ─── Logo URL (served from the web frontend /public/) ─────────────────────────
 const LOGO_URL = (process.env.FRONTEND_URL?.split(',')?.[0]?.trim() ?? 'https://oikivo.com') + '/logo.png';
 
+// ─── Security: HTML-escape user-controlled content to prevent XSS ─────────────
+function htmlEscape(s: string): string {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Only allow http/https URLs; rejects javascript: and other dangerous schemes. */
+function safeUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  return '#';
+}
+
 // ─── Base layout ──────────────────────────────────────────────────────────────
 function layout(content: string): string {
   return `<!DOCTYPE html>
@@ -106,26 +121,30 @@ function currencyNote(currency: string): string {
 
 // ─── Template: Email Verification ─────────────────────────────────────────────
 export function tplEmailVerification(firstName: string, verifyUrl: string): string {
+  const fn = htmlEscape(firstName);
+  const url = safeUrl(verifyUrl);
   return layout(`
     ${heading('Verify your email address')}
     ${subHeading('One quick step to get started')}
-    ${paragraph(`Hi <strong>${firstName}</strong>, welcome to Oikivo! Please confirm your email address to activate your account and start exploring unique stays.`)}
-    ${btn('✅ Verify Email', verifyUrl)}
+    ${paragraph(`Hi <strong>${fn}</strong>, welcome to Oikivo! Please confirm your email address to activate your account and start exploring unique stays.`)}
+    ${btn('✅ Verify Email', url)}
     ${divider()}
     <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
       Link expires in <strong>24 hours</strong>. Or copy this URL:<br/>
-      <a href="${verifyUrl}" style="color:${PRIMARY};font-size:11px;word-break:break-all;">${verifyUrl}</a>
+      <a href="${url}" style="color:${PRIMARY};font-size:11px;word-break:break-all;">${htmlEscape(verifyUrl)}</a>
     </p>
   `);
 }
 
 // ─── Template: Password Reset ──────────────────────────────────────────────────
 export function tplPasswordReset(firstName: string, resetUrl: string): string {
+  const fn = htmlEscape(firstName);
+  const url = safeUrl(resetUrl);
   return layout(`
     ${heading('Reset your password')}
     ${subHeading('We received a request to reset your password')}
-    ${paragraph(`Hi <strong>${firstName}</strong>, click the button below to choose a new password. This link expires in <strong>1 hour</strong>.`)}
-    ${btn('🔑 Reset Password', resetUrl, ROSE)}
+    ${paragraph(`Hi <strong>${fn}</strong>, click the button below to choose a new password. This link expires in <strong>1 hour</strong>.`)}
+    ${btn('🔑 Reset Password', url, ROSE)}
     ${divider()}
     <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
       If you didn't request a password reset, you can safely ignore this email.
@@ -135,11 +154,13 @@ export function tplPasswordReset(firstName: string, resetUrl: string): string {
 
 // ─── Template: Welcome after registration ─────────────────────────────────────
 export function tplWelcome(firstName: string, loginUrl: string): string {
+  const fn = htmlEscape(firstName);
+  const url = safeUrl(loginUrl);
   return layout(`
-    ${heading(`Welcome to Oikivo, ${firstName}! 🎉`)}
+    ${heading(`Welcome to Oikivo, ${fn}! 🎉`)}
     ${subHeading('Your account is ready')}
     ${paragraph(`Your email has been verified and your Oikivo account is now fully active. Start exploring thousands of unique homes and experiences across the Middle East and beyond.`)}
-    ${btn('🏠 Explore Stays', loginUrl)}
+    ${btn('🏠 Explore Stays', url)}
     ${divider()}
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
@@ -165,13 +186,16 @@ export function tplWelcome(firstName: string, loginUrl: string): string {
 
 // ─── Template: Phone OTP ───────────────────────────────────────────────────────
 export function tplPhoneOtp(firstName: string, phone: string, code: string): string {
+  const fn = htmlEscape(firstName);
+  const ph = htmlEscape(phone);
+  const cd = htmlEscape(code);
   return layout(`
     ${heading('Phone verification code')}
-    ${subHeading(`To verify ${phone}`)}
-    ${paragraph(`Hi <strong>${firstName}</strong>, use the code below to verify your phone number.`)}
+    ${subHeading(`To verify ${ph}`)}
+    ${paragraph(`Hi <strong>${fn}</strong>, use the code below to verify your phone number.`)}
     <div style="text-align:center;margin:28px 0;">
       <div style="display:inline-block;background:${BG};border:2px dashed ${PRIMARY};border-radius:14px;padding:20px 40px;">
-        <span style="font-size:40px;font-weight:800;letter-spacing:10px;font-family:monospace;color:${PRIMARY};">${code}</span>
+        <span style="font-size:40px;font-weight:800;letter-spacing:10px;font-family:monospace;color:${PRIMARY};">${cd}</span>
       </div>
     </div>
     ${paragraph(`<span style="color:${MUTED};font-size:13px;">Expires in <strong>10 minutes</strong>. Do not share this code with anyone.</span>`)}
@@ -180,12 +204,15 @@ export function tplPhoneOtp(firstName: string, phone: string, code: string): str
 
 // ─── Template: Confirm Email Change ───────────────────────────────────────────
 export function tplConfirmEmailChange(firstName: string, newEmail: string, confirmUrl: string): string {
+  const fn = htmlEscape(firstName);
+  const em = htmlEscape(newEmail);
+  const url = safeUrl(confirmUrl);
   return layout(`
     ${heading('Confirm your new email')}
     ${subHeading('Action required')}
-    ${paragraph(`Hi <strong>${firstName}</strong>, you requested to change your email address to <strong>${newEmail}</strong>.`)}
+    ${paragraph(`Hi <strong>${fn}</strong>, you requested to change your email address to <strong>${em}</strong>.`)}
     ${paragraph('Click the button below to confirm this change:')}
-    ${btn('📧 Confirm Email Change', confirmUrl)}
+    ${btn('📧 Confirm Email Change', url)}
     ${divider()}
     <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
       This link expires in <strong>24 hours</strong>. If you did not request this, ignore this email.
@@ -205,22 +232,26 @@ export function tplBookingConfirmed(
   bookingRef: string,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(tripsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">🎉</span>
     </div>
     ${heading('Your booking is confirmed!')}
-    ${subHeading(`Booking reference: ${badge(bookingRef)}`)}
-    ${paragraph(`Hi <strong>${guestName}</strong>, your stay at <strong>${propertyTitle}</strong> has been confirmed. Here are your booking details:`)}
+    ${subHeading(`Booking reference: ${badge(br)}`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, your stay at <strong>${pt}</strong> has been confirmed. Here are your booking details:`)}
     ${infoTable(
-      infoRow('Property', propertyTitle) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Guests', String(guests)) +
       infoRow('Total paid', `${totalAmount} ${currency}`) +
       infoRow('Status', badge('Confirmed', SUCCESS))
     )}
-    ${btn('📅 View My Trips', tripsUrl)}
+    ${btn('📅 View My Trips', url)}
     ${currencyNote(currency)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Please contact your host directly for check-in instructions. Have a wonderful stay!</span>`)}
@@ -239,26 +270,30 @@ export function tplBookingAccepted(
   bookingRef: string,
   paymentUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(paymentUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">🎉</span>
     </div>
     ${heading('Your booking has been confirmed!')}
     ${subHeading('Complete your payment to lock in your stay')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, great news — your booking at <strong>${propertyTitle}</strong> has been confirmed. Please complete your payment within <strong>24 hours</strong> to secure your reservation.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, great news — your booking at <strong>${pt}</strong> has been confirmed. Please complete your payment within <strong>24 hours</strong> to secure your reservation.`)}
     ${infoTable(
-      infoRow('Property', propertyTitle) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Guests', String(guests)) +
       infoRow('Total due', `${totalAmount} ${currency}`) +
-      infoRow('Booking ref', bookingRef) +
+      infoRow('Booking ref', br) +
       infoRow('Status', badge('Awaiting Payment', WARNING))
     )}
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin:20px 0;">
       <p style="margin:0;font-size:13px;color:#92400e;">⚠️ <strong>Important:</strong> Your reservation will be automatically cancelled if payment is not received within 24 hours of this confirmation.</p>
     </div>
-    ${btn('💳 Pay Now', paymentUrl)}
+    ${btn('💳 Pay Now', url)}
     ${currencyNote(currency)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">You can pay via OPay or InstaPay from your Trips page. If you have any questions, please message your host directly.</span>`)}
@@ -275,24 +310,28 @@ export function tplPaymentReminder(
   currency: string,
   paymentUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(paymentUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">⏰</span>
     </div>
     ${heading('Reminder: Complete your payment')}
     ${subHeading('Your reservation is awaiting payment')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, this is a friendly reminder that your confirmed booking at <strong>${propertyTitle}</strong> (check-in: ${checkIn}) is still awaiting payment.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, this is a friendly reminder that your confirmed booking at <strong>${pt}</strong> (check-in: ${checkIn}) is still awaiting payment.`)}
     ${infoTable(
-      infoRow('Property', propertyTitle) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
-      infoRow('Booking ref', bookingRef) +
+      infoRow('Booking ref', br) +
       infoRow('Total due', `${totalAmount} ${currency}`) +
       infoRow('Status', badge('Payment Required', WARNING))
     )}
     <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:14px 18px;margin:20px 0;">
       <p style="margin:0;font-size:13px;color:#9f1239;">🚨 <strong>Action required:</strong> If payment is not completed within 20 hours, your booking will be automatically cancelled and the dates released.</p>
     </div>
-    ${btn('💳 Pay Now', paymentUrl, DANGER)}
+    ${btn('💳 Pay Now', url, DANGER)}
     ${currencyNote(currency)}
   `);
 }
@@ -310,8 +349,13 @@ export function tplBookingRequestReceived(
   reservationsUrl: string,
   specialRequests?: string,
 ): string {
-  const specialRequestsRow = specialRequests
-    ? infoRow('Special Requests', specialRequests)
+  const hn = htmlEscape(hostName);
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const sr = specialRequests ? htmlEscape(specialRequests) : undefined;
+  const url = safeUrl(reservationsUrl);
+  const specialRequestsRow = sr
+    ? infoRow('Special Requests', sr)
     : '';
 
   return layout(`
@@ -320,10 +364,10 @@ export function tplBookingRequestReceived(
     </div>
     ${heading('New booking request!')}
     ${subHeading('A guest wants to stay at your property')}
-    ${paragraph(`Hi <strong>${hostName}</strong>, <strong>${guestName}</strong> has requested a booking at <strong>${propertyTitle}</strong>. Review and respond within 24 hours.`)}
+    ${paragraph(`Hi <strong>${hn}</strong>, <strong>${gn}</strong> has requested a booking at <strong>${pt}</strong>. Review and respond within 24 hours.`)}
     ${infoTable(
-      infoRow('Guest', guestName) +
-      infoRow('Property', propertyTitle) +
+      infoRow('Guest', gn) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Guests', String(guests)) +
@@ -331,7 +375,7 @@ export function tplBookingRequestReceived(
       infoRow('Payout', `${totalAmount} ${currency}`) +
       infoRow('Status', badge('Pending Review', WARNING))
     )}
-    ${btn('✅ Review Booking', reservationsUrl, SUCCESS)}
+    ${btn('✅ Review Booking', url, SUCCESS)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Respond within 24 hours to maintain your response rate.</span>`)}
   `);
@@ -348,6 +392,9 @@ export function tplBookingCancelled(
   refundAmount?: string,
   refundCurrency?: string,
 ): string {
+  const un = htmlEscape(userName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
   const roleNote = role === 'guest'
     ? (refundAmount ? `A refund of <strong>${refundAmount} ${refundCurrency}</strong> will be processed within 5–10 business days.` : 'No refund applies based on the cancellation policy.')
     : 'The reservation has been cancelled. The guest has been notified.';
@@ -357,10 +404,10 @@ export function tplBookingCancelled(
       <span style="font-size:48px;">❌</span>
     </div>
     ${heading('Booking Cancelled')}
-    ${subHeading(`Reference: ${badge(bookingRef, DANGER)}`)}
-    ${paragraph(`Hi <strong>${userName}</strong>, the following booking has been cancelled:`)}
+    ${subHeading(`Reference: ${badge(br, DANGER)}`)}
+    ${paragraph(`Hi <strong>${un}</strong>, the following booking has been cancelled:`)}
     ${infoTable(
-      infoRow('Property', propertyTitle) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Status', badge('Cancelled', DANGER))
@@ -389,13 +436,17 @@ export function tplPaymentInvoice(
   paymentIntentId: string,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(tripsUrl);
   return layout(`
     <!-- Invoice header -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
       <tr>
         <td>
           <p style="margin:0;font-size:20px;font-weight:800;color:${TEXT};">Invoice</p>
-          <p style="margin:4px 0 0;font-size:13px;color:${MUTED};">Ref: <strong>${bookingRef}</strong></p>
+          <p style="margin:4px 0 0;font-size:13px;color:${MUTED};">Ref: <strong>${br}</strong></p>
           <p style="margin:2px 0 0;font-size:13px;color:${MUTED};">Date: ${invoiceDate}</p>
         </td>
         <td style="text-align:right;">
@@ -407,7 +458,7 @@ export function tplPaymentInvoice(
     </table>
     ${divider()}
 
-    ${paragraph(`Billed to: <strong>${guestName}</strong>`)}
+    ${paragraph(`Billed to: <strong>${gn}</strong>`)}
 
     <!-- Line items -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;">
@@ -420,7 +471,7 @@ export function tplPaymentInvoice(
       <tbody>
         <tr>
           <td style="padding:12px 14px;font-size:14px;color:${TEXT};border-bottom:1px solid ${BORDER};">
-            ${propertyTitle}<br/>
+            ${pt}<br/>
             <span style="font-size:12px;color:${MUTED};">${checkIn} → ${checkOut} · ${nights} night${nights !== 1 ? 's' : ''}</span>
           </td>
           <td style="padding:12px 14px;text-align:right;font-size:14px;color:${TEXT};border-bottom:1px solid ${BORDER};">${pricePerNight} ${currency} × ${nights}</td>
@@ -447,7 +498,7 @@ export function tplPaymentInvoice(
       infoRow('Transaction ID', `<code style="font-size:11px;background:${BG};padding:2px 6px;border-radius:4px;">${paymentIntentId}</code>`)
     )}
 
-    ${btn('📋 View My Trips', tripsUrl)}
+    ${btn('📋 View My Trips', url)}
     ${currencyNote(currency)}
   `);
 }
@@ -464,13 +515,16 @@ export function tplPayoutNotification(
   payoutRef: string,
   earningsUrl: string,
 ): string {
+  const hn = htmlEscape(hostName);
+  const pt = htmlEscape(propertyTitle);
+  const url = safeUrl(earningsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">💸</span>
     </div>
     ${heading('Payment sent to your account!')}
     ${subHeading('Your payout is on the way')}
-    ${paragraph(`Hi <strong>${hostName}</strong>, a payout has been initiated for a completed stay at <strong>${propertyTitle}</strong>.`)}
+    ${paragraph(`Hi <strong>${hn}</strong>, a payout has been initiated for a completed stay at <strong>${pt}</strong>.`)}
     <div style="text-align:center;margin:24px 0;">
       <div style="display:inline-block;background:linear-gradient(135deg,${SUCCESS}18,${SUCCESS}10);border:1px solid ${SUCCESS}40;border-radius:14px;padding:20px 40px;">
         <p style="margin:0;font-size:13px;color:${SUCCESS};font-weight:600;text-transform:uppercase;letter-spacing:1px;">Payout Amount</p>
@@ -479,12 +533,12 @@ export function tplPayoutNotification(
       </div>
     </div>
     ${infoTable(
-      infoRow('Property', propertyTitle) +
+      infoRow('Property', pt) +
       infoRow('Stay dates', `${checkIn} → ${checkOut}`) +
       infoRow('Payout date', payoutDate) +
       infoRow('Status', badge('Sent', SUCCESS))
     )}
-    ${btn('💰 View Earnings', earningsUrl, SUCCESS)}
+    ${btn('💰 View Earnings', url, SUCCESS)}
   `);
 }
 
@@ -499,13 +553,17 @@ export function tplRefundNotification(
   paymentMethod: string,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(tripsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">💳</span>
     </div>
     ${heading('Your refund is being processed')}
     ${subHeading('We\'re sorry to see you go')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, a refund has been initiated for your cancelled booking at <strong>${propertyTitle}</strong>.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, a refund has been initiated for your cancelled booking at <strong>${pt}</strong>.`)}
     <div style="text-align:center;margin:24px 0;">
       <div style="display:inline-block;background:${BG};border:2px solid ${PRIMARY};border-radius:14px;padding:20px 40px;">
         <p style="margin:0;font-size:13px;color:${MUTED};font-weight:600;text-transform:uppercase;letter-spacing:1px;">Refund Amount</p>
@@ -513,13 +571,13 @@ export function tplRefundNotification(
       </div>
     </div>
     ${infoTable(
-      infoRow('Booking ref', bookingRef) +
-      infoRow('Property', propertyTitle) +
+      infoRow('Booking ref', br) +
+      infoRow('Property', pt) +
       infoRow('Refund initiated', refundDate) +
       infoRow('Refund to', paymentMethod) +
       infoRow('Processing time', '5–10 business days')
     )}
-    ${btn('📅 View My Trips', tripsUrl)}
+    ${btn('📅 View My Trips', url)}
     ${currencyNote(currency)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Refunds may take 5–10 business days to appear in your account depending on your bank.</span>`)}
@@ -533,15 +591,19 @@ export function tplNewMessage(
   preview: string,
   inboxUrl: string,
 ): string {
+  const rn = htmlEscape(recipientName);
+  const sn = htmlEscape(senderName);
+  const pv = htmlEscape(preview);
+  const url = safeUrl(inboxUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">💬</span>
     </div>
     ${heading('You have a new message')}
-    ${subHeading(`From ${senderName}`)}
-    ${paragraph(`Hi <strong>${recipientName}</strong>, <strong>${senderName}</strong> sent you a message:`)}
-    <blockquote style="margin:0 0 20px;padding:16px 20px;background:${BG};border-left:4px solid ${PRIMARY};border-radius:0 10px 10px 0;font-size:14px;color:${TEXT};font-style:italic;">${preview}</blockquote>
-    ${btn('💬 Reply in Inbox', inboxUrl)}
+    ${subHeading(`From ${sn}`)}
+    ${paragraph(`Hi <strong>${rn}</strong>, <strong>${sn}</strong> sent you a message:`)}
+    <blockquote style="margin:0 0 20px;padding:16px 20px;background:${BG};border-left:4px solid ${PRIMARY};border-radius:0 10px 10px 0;font-size:14px;color:${TEXT};font-style:italic;">${pv}</blockquote>
+    ${btn('💬 Reply in Inbox', url)}
   `);
 }
 
@@ -550,8 +612,10 @@ export function tplHostActivation(
   hostName: string,
   dashboardUrl: string,
 ): string {
+  const hn = htmlEscape(hostName);
+  const url = safeUrl(dashboardUrl);
   return layout(`
-    ${heading(`You're now a Host, ${hostName}! 🏠`)}
+    ${heading(`You're now a Host, ${hn}! 🏠`)}
     ${subHeading('Your host account is active')}
     ${paragraph(`Welcome to the Oikivo host community! Your account is now fully activated. Start listing your properties and connecting with guests today.`)}
     ${infoTable(
@@ -559,7 +623,7 @@ export function tplHostActivation(
       infoRow('Payouts', 'Within 24 hours of check-in') +
       infoRow('Host Protection', 'Up to $1M coverage')
     )}
-    ${btn('🏠 Go to Your Dashboard', dashboardUrl)}
+    ${btn('🏠 Go to Your Dashboard', url)}
     ${divider()}
     <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
       Need help getting started? Contact us at <a href="mailto:oikivo.support@gmail.com" style="color:${PRIMARY};">oikivo.support@gmail.com</a>
@@ -578,16 +642,20 @@ export function tplInstapayPaymentConfirmed(
   currency: string,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(tripsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">✅</span>
     </div>
     ${heading('Payment Confirmed!')}
     ${subHeading('Your InstaPay transfer has been verified')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, great news! Your InstaPay payment for the following booking has been verified and confirmed by our team.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, great news! Your InstaPay payment for the following booking has been verified and confirmed by our team.`)}
     ${infoTable(
-      infoRow('Booking ref', bookingRef) +
-      infoRow('Property', propertyTitle) +
+      infoRow('Booking ref', br) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Total paid', `${totalAmount} ${currency}`) +
@@ -595,7 +663,7 @@ export function tplInstapayPaymentConfirmed(
       infoRow('Status', badge('Confirmed', SUCCESS))
     )}
     ${paragraph('Your stay is fully booked and confirmed. We look forward to welcoming you!')}
-    ${btn('📅 View My Trips', tripsUrl, SUCCESS)}
+    ${btn('📅 View My Trips', url, SUCCESS)}
     ${currencyNote(currency)}
   `);
 }
@@ -608,8 +676,12 @@ export function tplInstapayPaymentDeclined(
   reason: string | undefined,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const br = htmlEscape(bookingRef);
+  const pt = htmlEscape(propertyTitle);
+  const url = safeUrl(tripsUrl);
   const reasonNote = reason
-    ? `<blockquote style="margin:0 0 16px;padding:12px 16px;background:#fef2f2;border-left:4px solid ${DANGER};border-radius:0 8px 8px 0;font-size:14px;color:${DANGER};">${reason}</blockquote>`
+    ? `<blockquote style="margin:0 0 16px;padding:12px 16px;background:#fef2f2;border-left:4px solid ${DANGER};border-radius:0 8px 8px 0;font-size:14px;color:${DANGER};">${htmlEscape(reason)}</blockquote>`
     : '';
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
@@ -617,10 +689,10 @@ export function tplInstapayPaymentDeclined(
     </div>
     ${heading('Payment Could Not Be Verified')}
     ${subHeading('Action required — please retry your payment')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, unfortunately our team was unable to verify your InstaPay payment for booking <strong>${bookingRef}</strong> at <strong>${propertyTitle}</strong>.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, unfortunately our team was unable to verify your InstaPay payment for booking <strong>${br}</strong> at <strong>${pt}</strong>.`)}
     ${reasonNote}
     ${paragraph('Your booking is still reserved. Please go to My Trips and try again — you can submit a new InstaPay reference or pay by card.')}
-    ${btn('🔄 Retry Payment', tripsUrl, WARNING)}
+    ${btn('🔄 Retry Payment', url, WARNING)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">If you believe this is an error, please contact our support team via the in-app chat.</span>`)}
   `);
@@ -639,33 +711,37 @@ export function tplBookingRequestSubmitted(
   cancellationPolicy: string,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(tripsUrl);
   const policyNote: Record<string, string> = {
     flexible: 'Full refund if cancelled within 48 hours of booking.',
     moderate: 'Full refund if cancelled 5 days before check-in.',
     strict: 'No refund within 48 hours of check-in.',
   };
-  const policyText = `<strong>Cancellation policy (${cancellationPolicy}):</strong> ${policyNote[cancellationPolicy] ?? 'See cancellation terms on the property page.'}`;
+  const policyText = `<strong>Cancellation policy (${htmlEscape(cancellationPolicy)}):</strong> ${policyNote[cancellationPolicy] ?? 'See cancellation terms on the property page.'}`;
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">📬</span>
     </div>
     ${heading('Booking request sent!')}
     ${subHeading('Awaiting host confirmation')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, your booking request for <strong>${propertyTitle}</strong> has been received. The host will confirm shortly — you'll be notified by email and in-app.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, your booking request for <strong>${pt}</strong> has been received. The host will confirm shortly — you'll be notified by email and in-app.`)}
     ${infoTable(
-      infoRow('Property', propertyTitle) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Guests', String(guests)) +
       infoRow('Total amount', `${totalAmount} ${currency}`) +
-      infoRow('Booking ref', bookingRef) +
+      infoRow('Booking ref', br) +
       infoRow('Status', badge('Pending confirmation', WARNING))
     )}
     ${divider()}
     <p style="margin:0 0 16px;font-size:13px;color:${MUTED};">
       ${policyText}
     </p>
-    ${btn('📅 View My Trips', tripsUrl)}
+    ${btn('📅 View My Trips', url)}
     ${currencyNote(currency)}
   `);
 }
@@ -681,6 +757,9 @@ export function tplPayoutProcessed(
   processedAt: string,
   earningsUrl: string,
 ): string {
+  const hn = htmlEscape(hostName);
+  const ad = htmlEscape(accountDetails);
+  const url = safeUrl(earningsUrl);
   const methodLabel = method.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
@@ -688,7 +767,7 @@ export function tplPayoutProcessed(
     </div>
     ${heading('Your payout has been processed!')}
     ${subHeading('The funds have been transferred to your account')}
-    ${paragraph(`Hi <strong>${hostName}</strong>, your payout request has been approved and the funds have been sent to your account.`)}
+    ${paragraph(`Hi <strong>${hn}</strong>, your payout request has been approved and the funds have been sent to your account.`)}
     <div style="text-align:center;margin:24px 0;">
       <div style="display:inline-block;background:linear-gradient(135deg,${SUCCESS}18,${SUCCESS}10);border:1px solid ${SUCCESS}40;border-radius:14px;padding:20px 40px;">
         <p style="margin:0;font-size:13px;color:${SUCCESS};font-weight:600;text-transform:uppercase;letter-spacing:1px;">Amount Transferred</p>
@@ -698,11 +777,11 @@ export function tplPayoutProcessed(
     </div>
     ${infoTable(
       infoRow('Transfer method', methodLabel) +
-      infoRow('Account / handle', accountDetails) +
+      infoRow('Account / handle', ad) +
       infoRow('Processed on', processedAt) +
       infoRow('Status', badge('Completed', SUCCESS))
     )}
-    ${btn('💰 View Earnings', earningsUrl, SUCCESS)}
+    ${btn('💰 View Earnings', url, SUCCESS)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">If you have not received the funds within 24 hours, please contact support.</span>`)}
   `);
@@ -717,13 +796,17 @@ export function tplInstapayRefundCompleted(
   bookingRef: string,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(tripsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">✅</span>
     </div>
     ${heading('Your InstaPay refund has been sent!')}
     ${subHeading('The transfer is complete')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, great news! Our team has completed the manual InstaPay refund for your cancelled booking at <strong>${propertyTitle}</strong>.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, great news! Our team has completed the manual InstaPay refund for your cancelled booking at <strong>${pt}</strong>.`)}
     <div style="text-align:center;margin:24px 0;">
       <div style="display:inline-block;background:linear-gradient(135deg,${SUCCESS}18,${SUCCESS}10);border:1px solid ${SUCCESS}40;border-radius:14px;padding:20px 40px;">
         <p style="margin:0;font-size:13px;color:${SUCCESS};font-weight:600;text-transform:uppercase;letter-spacing:1px;">Amount Refunded</p>
@@ -731,13 +814,13 @@ export function tplInstapayRefundCompleted(
       </div>
     </div>
     ${infoTable(
-      infoRow('Booking ref', bookingRef) +
-      infoRow('Property', propertyTitle) +
+      infoRow('Booking ref', br) +
+      infoRow('Property', pt) +
       infoRow('Refund method', badge('InstaPay', SUCCESS)) +
       infoRow('Status', badge('Completed', SUCCESS))
     )}
     ${paragraph('The funds should appear in your InstaPay account immediately. If you do not see them within 24 hours, please contact our support team.')}
-    ${btn('📅 View My Trips', tripsUrl, SUCCESS)}
+    ${btn('📅 View My Trips', url, SUCCESS)}
   `);
 }
 
@@ -750,13 +833,17 @@ export function tplInstapayRefundPending(
   bookingRef: string,
   tripsUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(tripsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">⏳</span>
     </div>
     ${heading('Your refund is being arranged')}
     ${subHeading('Manual InstaPay refund in progress')}
-    ${paragraph(`Hi <strong>${guestName}</strong>, your booking at <strong>${propertyTitle}</strong> has been cancelled and a refund is being processed manually by our team.`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, your booking at <strong>${pt}</strong> has been cancelled and a refund is being processed manually by our team.`)}
     <div style="text-align:center;margin:24px 0;">
       <div style="display:inline-block;background:${BG};border:2px solid ${WARNING};border-radius:14px;padding:20px 40px;">
         <p style="margin:0;font-size:13px;color:${MUTED};font-weight:600;text-transform:uppercase;letter-spacing:1px;">Refund Amount</p>
@@ -764,13 +851,13 @@ export function tplInstapayRefundPending(
       </div>
     </div>
     ${infoTable(
-      infoRow('Booking ref', bookingRef) +
-      infoRow('Property', propertyTitle) +
+      infoRow('Booking ref', br) +
+      infoRow('Property', pt) +
       infoRow('Refund method', badge('InstaPay', WARNING)) +
       infoRow('Processing time', '2–3 business days')
     )}
     ${paragraph('Our team will process the InstaPay transfer to your registered account within 2–3 business days. You will receive a confirmation once the transfer is complete.')}
-    ${btn('📅 View My Trips', tripsUrl, WARNING)}
+    ${btn('📅 View My Trips', url, WARNING)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">If you have questions, contact our support team via the in-app messaging system.</span>`)}
   `);
@@ -784,21 +871,25 @@ export function tplCohostInvite(
   role: 'co_host' | 'cleaner',
   invitesUrl: string,
 ): string {
+  const ie = htmlEscape(inviteeName);
+  const hn = htmlEscape(hostName);
+  const pt = htmlEscape(propertyTitle);
+  const url = safeUrl(invitesUrl);
   const roleLabel = role === 'cleaner' ? 'Cleaner' : 'Co-host';
   const roleDesc = role === 'cleaner'
     ? 'As a cleaner, you will receive turnover notifications to help prepare the unit between guest stays.'
     : 'As a co-host, you will have access to manage bookings, reply to guests, and help maintain the listing.';
   return layout(`
     ${heading(`You've been invited as a ${roleLabel}`)}
-    ${subHeading(`${hostName} wants you to help manage a listing`)}
-    ${paragraph(`Hi <strong>${inviteeName}</strong>, you have received an invitation to join the team for the listing below.`)}
+    ${subHeading(`${hn} wants you to help manage a listing`)}
+    ${paragraph(`Hi <strong>${ie}</strong>, you have received an invitation to join the team for the listing below.`)}
     ${infoTable(
-      infoRow('Property', propertyTitle) +
-      infoRow('Host', hostName) +
+      infoRow('Property', pt) +
+      infoRow('Host', hn) +
       infoRow('Your role', badge(roleLabel, role === 'cleaner' ? '#0d9488' : '#4f46e5')),
     )}
     ${paragraph(roleDesc)}
-    ${btn('✅ View Invitation', invitesUrl)}
+    ${btn('✅ View Invitation', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">You can accept or decline this invitation from your account. If you did not expect this, you can safely ignore it.</span>`)}
   `);
@@ -815,22 +906,26 @@ export function tplConsultationRequestReceived(
   currency: string,
   dashboardUrl: string,
 ): string {
+  const cn = htmlEscape(consultantName);
+  const cl = htmlEscape(clientName);
+  const sn = htmlEscape(serviceName);
+  const url = safeUrl(dashboardUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">📋</span>
     </div>
     ${heading('New consultation request!')}
     ${subHeading('A client wants to book a session with you')}
-    ${paragraph(`Hi <strong>${consultantName}</strong>, <strong>${clientName}</strong> has requested a consultation session. Please review and respond within 24 hours.`)}
+    ${paragraph(`Hi <strong>${cn}</strong>, <strong>${cl}</strong> has requested a consultation session. Please review and respond within 24 hours.`)}
     ${infoTable(
-      infoRow('Client', clientName) +
-      infoRow('Service', serviceName) +
+      infoRow('Client', cl) +
+      infoRow('Service', sn) +
       infoRow('Scheduled', scheduledAt) +
       infoRow('Duration', `${durationMinutes} minutes`) +
       infoRow('Your payout', `${payout} ${currency}`) +
       infoRow('Status', badge('Pending Review', WARNING))
     )}
-    ${btn('✅ Accept or Decline', dashboardUrl, SUCCESS)}
+    ${btn('✅ Accept or Decline', url, SUCCESS)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Respond within 24 hours to maintain your response rate.</span>`)}
   `);
@@ -847,22 +942,26 @@ export function tplConsultationRequestSubmitted(
   currency: string,
   bookingsUrl: string,
 ): string {
+  const cl = htmlEscape(clientName);
+  const cn = htmlEscape(consultantName);
+  const sn = htmlEscape(serviceName);
+  const url = safeUrl(bookingsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">🎓</span>
     </div>
     ${heading('Consultation request submitted!')}
     ${subHeading('Waiting for the consultant to confirm')}
-    ${paragraph(`Hi <strong>${clientName}</strong>, your request has been sent to <strong>${consultantName}</strong>. You will be notified once they respond.`)}
+    ${paragraph(`Hi <strong>${cl}</strong>, your request has been sent to <strong>${cn}</strong>. You will be notified once they respond.`)}
     ${infoTable(
-      infoRow('Consultant', consultantName) +
-      infoRow('Service', serviceName) +
+      infoRow('Consultant', cn) +
+      infoRow('Service', sn) +
       infoRow('Scheduled', scheduledAt) +
       infoRow('Duration', `${durationMinutes} minutes`) +
       infoRow('Total', `${totalAmount} ${currency}`) +
       infoRow('Status', badge('Pending Confirmation', WARNING))
     )}
-    ${btn('📅 View My Bookings', bookingsUrl)}
+    ${btn('📅 View My Bookings', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">You will receive an email once the consultant accepts or declines your request.</span>`)}
   `);
@@ -880,9 +979,13 @@ export function tplConsultationConfirmed(
   meetingLink: string | null,
   bookingsUrl: string,
 ): string {
+  const cl = htmlEscape(clientName);
+  const cn = htmlEscape(consultantName);
+  const sn = htmlEscape(serviceName);
+  const url = safeUrl(bookingsUrl);
   const meetingSection = meetingLink
     ? `${paragraph(`Your session link is ready:`)}
-       ${btn('🎥 Join Session', meetingLink, '#0d9488')}`
+       ${btn('🎥 Join Session', safeUrl(meetingLink), '#0d9488')}`
     : `${paragraph(`<span style="color:${MUTED};">The consultant will share a meeting link before the session.</span>`)}`;
 
   return layout(`
@@ -890,24 +993,24 @@ export function tplConsultationConfirmed(
       <span style="font-size:48px;">🎉</span>
     </div>
     ${heading('Your consultation is confirmed!')}
-    ${subHeading(`Session with ${consultantName}`)}
-    ${paragraph(`Hi <strong>${clientName}</strong>, your consultation session has been confirmed. Here are your details:`)}
+    ${subHeading(`Session with ${cn}`)}
+    ${paragraph(`Hi <strong>${cl}</strong>, your consultation session has been confirmed. Here are your details:`)}
     ${infoTable(
-      infoRow('Consultant', consultantName) +
-      infoRow('Service', serviceName) +
+      infoRow('Consultant', cn) +
+      infoRow('Service', sn) +
       infoRow('Scheduled', scheduledAt) +
       infoRow('Duration', `${durationMinutes} minutes`) +
       infoRow('Total paid', `${totalAmount} ${currency}`) +
       infoRow('Status', badge('Confirmed', SUCCESS))
     )}
     ${meetingSection}
-    ${btn('📅 View My Bookings', bookingsUrl)}
+    ${btn('📅 View My Bookings', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Please be ready a few minutes before the session. If you need to reschedule, contact the consultant directly.</span>`)}
   `);
 }
 
-// ─── Template: Consultation Declined (to client) ─────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 export function tplConsultationDeclined(
   clientName: string,
   consultantName: string,
@@ -916,21 +1019,25 @@ export function tplConsultationDeclined(
   reason: string | null,
   bookingsUrl: string,
 ): string {
+  const cl = htmlEscape(clientName);
+  const cn = htmlEscape(consultantName);
+  const sn = htmlEscape(serviceName);
+  const url = safeUrl(bookingsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">❌</span>
     </div>
     ${heading('Consultation request declined')}
-    ${subHeading(`${consultantName} was unable to accept your request`)}
-    ${paragraph(`Hi <strong>${clientName}</strong>, unfortunately your consultation request was not accepted.`)}
+    ${subHeading(`${cn} was unable to accept your request`)}
+    ${paragraph(`Hi <strong>${cl}</strong>, unfortunately your consultation request was not accepted.`)}
     ${infoTable(
-      infoRow('Consultant', consultantName) +
-      infoRow('Service', serviceName) +
+      infoRow('Consultant', cn) +
+      infoRow('Service', sn) +
       infoRow('Scheduled', scheduledAt) +
-      (reason ? infoRow('Reason', reason) : '') +
+      (reason ? infoRow('Reason', htmlEscape(reason)) : '') +
       infoRow('Status', badge('Declined', DANGER))
     )}
-    ${btn('🔍 Browse Other Consultants', bookingsUrl)}
+    ${btn('🔍 Browse Other Consultants', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">No payment has been charged. You can book with another consultant at any time.</span>`)}
   `);
@@ -947,12 +1054,16 @@ export function tplConsultationReminder(
   meetingLink: string | null,
   sessionUrl: string,
 ): string {
+  const un = htmlEscape(userName);
+  const on = htmlEscape(otherName);
+  const sn = htmlEscape(serviceName);
+  const url = safeUrl(sessionUrl);
   const roleNote = role === 'client'
-    ? `Your consultation with <strong>${otherName}</strong> is in 24 hours.`
-    : `You have a consultation session with <strong>${otherName}</strong> in 24 hours.`;
+    ? `Your consultation with <strong>${on}</strong> is in 24 hours.`
+    : `You have a consultation session with <strong>${on}</strong> in 24 hours.`;
 
   const meetingSection = meetingLink
-    ? `${btn('🎥 Join Session', meetingLink, '#0d9488')}`
+    ? `${btn('🎥 Join Session', safeUrl(meetingLink), '#0d9488')}`
     : `${paragraph(`<span style="color:${MUTED};">A meeting link will be shared before the session if not already provided.</span>`)}`;
 
   return layout(`
@@ -961,15 +1072,15 @@ export function tplConsultationReminder(
     </div>
     ${heading('Reminder: Session tomorrow')}
     ${subHeading('Make sure you are ready')}
-    ${paragraph(`Hi <strong>${userName}</strong>, ${roleNote}`)}
+    ${paragraph(`Hi <strong>${un}</strong>, ${roleNote}`)}
     ${infoTable(
-      infoRow(role === 'client' ? 'Consultant' : 'Client', otherName) +
-      infoRow('Service', serviceName) +
+      infoRow(role === 'client' ? 'Consultant' : 'Client', on) +
+      infoRow('Service', sn) +
       infoRow('Scheduled', scheduledAt) +
       infoRow('Duration', `${durationMinutes} minutes`)
     )}
     ${meetingSection}
-    ${btn('📅 View Details', sessionUrl)}
+    ${btn('📅 View Details', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Please be on time. If you need to cancel, do so as early as possible out of respect for the other party.</span>`)}
   `);
@@ -984,21 +1095,25 @@ export function tplConsultationCompleted(
   currency: string,
   reviewUrl: string,
 ): string {
+  const cl = htmlEscape(clientName);
+  const cn = htmlEscape(consultantName);
+  const sn = htmlEscape(serviceName);
+  const url = safeUrl(reviewUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">✅</span>
     </div>
     ${heading('Session completed!')}
-    ${subHeading(`How was your session with ${consultantName}?`)}
-    ${paragraph(`Hi <strong>${clientName}</strong>, your consultation session is now complete. We hope it was valuable!`)}
+    ${subHeading(`How was your session with ${cn}?`)}
+    ${paragraph(`Hi <strong>${cl}</strong>, your consultation session is now complete. We hope it was valuable!`)}
     ${infoTable(
-      infoRow('Consultant', consultantName) +
-      infoRow('Service', serviceName) +
+      infoRow('Consultant', cn) +
+      infoRow('Service', sn) +
       infoRow('Total charged', `${payout} ${currency}`) +
       infoRow('Status', badge('Completed', SUCCESS))
     )}
     ${paragraph('Your feedback helps other hosts find the right consultant. It only takes 30 seconds!')}
-    ${btn('⭐ Leave a Review', reviewUrl, WARNING)}
+    ${btn('⭐ Leave a Review', url, WARNING)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Thank you for using Oikivo's consultation marketplace. We hope to see you grow your property income!</span>`)}
   `);
@@ -1017,30 +1132,37 @@ export function tplConsultationInstapayPending(
   bookingRef: string,
   bookingsUrl: string,
 ): string {
+  const cl = htmlEscape(clientName);
+  const cn = htmlEscape(consultantName);
+  const sn = htmlEscape(serviceName);
+  const ip = htmlEscape(instapayPhone);
+  const iname = htmlEscape(instapayName);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(bookingsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">💳</span>
     </div>
     ${heading('Complete your payment via InstaPay')}
-    ${subHeading(`Booking reference: ${badge(bookingRef)}`)}
-    ${paragraph(`Hi <strong>${clientName}</strong>, your consultation session is reserved — please complete payment via InstaPay within <strong>24 hours</strong> to confirm your booking.`)}
+    ${subHeading(`Booking reference: ${badge(br)}`)}
+    ${paragraph(`Hi <strong>${cl}</strong>, your consultation session is reserved — please complete payment via InstaPay within <strong>24 hours</strong> to confirm your booking.`)}
     ${infoTable(
-      infoRow('Consultant', consultantName) +
-      infoRow('Service', serviceName) +
+      infoRow('Consultant', cn) +
+      infoRow('Service', sn) +
       infoRow('Scheduled', scheduledAt) +
       infoRow('Amount to pay', `<strong style="color:#16a34a;">${totalAmount} ${currency}</strong>`) +
-      infoRow('Booking Ref', `<strong>${bookingRef}</strong>`)
+      infoRow('Booking Ref', `<strong>${br}</strong>`)
     )}
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fefce8;border:2px solid #fde047;border-radius:12px;padding:16px;margin:20px 0;">
       <tr><td>
         <p style="margin:0 0 8px;font-weight:700;font-size:14px;color:#92400e;">📱 InstaPay Transfer Details</p>
-        <p style="margin:0 0 4px;font-size:14px;color:#78350f;">Phone: <strong>${instapayPhone}</strong></p>
-        <p style="margin:0 0 4px;font-size:14px;color:#78350f;">Name: <strong>${instapayName}</strong></p>
-        <p style="margin:0;font-size:13px;color:#a16207;">Include <strong>${bookingRef}</strong> as the transfer note</p>
+        <p style="margin:0 0 4px;font-size:14px;color:#78350f;">Phone: <strong>${ip}</strong></p>
+        <p style="margin:0 0 4px;font-size:14px;color:#78350f;">Name: <strong>${iname}</strong></p>
+        <p style="margin:0;font-size:13px;color:#a16207;">Include <strong>${br}</strong> as the transfer note</p>
       </td></tr>
     </table>
     ${paragraph('Once you transfer the amount, upload your InstaPay receipt in-app to confirm your booking.')}
-    ${btn('📤 Upload Receipt', bookingsUrl)}
+    ${btn('📤 Upload Receipt', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Booking will be automatically released if payment is not received within 24 hours. For help, contact support.</span>`)}
   `);
@@ -1055,21 +1177,25 @@ export function tplHostCancelledRebooking(
   bookingRef: string,
   propertyUrl: string,
 ): string {
+  const gn = htmlEscape(guestName);
+  const pt = htmlEscape(propertyTitle);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(propertyUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">🏠</span>
     </div>
     ${heading('Your booking was cancelled by the host')}
-    ${subHeading(`Reference: ${badge(bookingRef, DANGER)}`)}
-    ${paragraph(`Hi <strong>${guestName}</strong>, unfortunately the host had to cancel your upcoming stay. We're sorry for the inconvenience.`)}
+    ${subHeading(`Reference: ${badge(br, DANGER)}`)}
+    ${paragraph(`Hi <strong>${gn}</strong>, unfortunately the host had to cancel your upcoming stay. We're sorry for the inconvenience.`)}
     ${infoTable(
-      infoRow('Property', propertyTitle) +
+      infoRow('Property', pt) +
       infoRow('Check-in', checkIn) +
       infoRow('Check-out', checkOut) +
       infoRow('Status', badge('Cancelled by host', DANGER))
     )}
     ${paragraph('The good news: this property may have availability on other dates. Click below to explore alternatives.')}
-    ${btn('🔍 Find alternative dates', propertyUrl)}
+    ${btn('🔍 Find alternative dates', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">Any eligible refund will be processed automatically. Contact us via in-app messaging for questions.</span>`)}
   `);
@@ -1083,21 +1209,25 @@ export function tplConsultantSuspendedClientNotice(
   bookingRef: string,
   browsUrl: string,
 ): string {
+  const cl = htmlEscape(clientName);
+  const cd = htmlEscape(consultantDisplayName);
+  const br = htmlEscape(bookingRef);
+  const url = safeUrl(browsUrl);
   return layout(`
     <div style="text-align:center;margin-bottom:24px;">
       <span style="font-size:48px;">⚠️</span>
     </div>
     ${heading('Your consultation booking has been cancelled')}
-    ${subHeading(`Reference: ${badge(bookingRef, WARNING)}`)}
-    ${paragraph(`Hi <strong>${clientName}</strong>, we regret to inform you that <strong>${consultantDisplayName}</strong>'s account has been suspended. As a result, your upcoming session has been automatically cancelled.`)}
+    ${subHeading(`Reference: ${badge(br, WARNING)}`)}
+    ${paragraph(`Hi <strong>${cl}</strong>, we regret to inform you that <strong>${cd}</strong>'s account has been suspended. As a result, your upcoming session has been automatically cancelled.`)}
     ${infoTable(
-      infoRow('Consultant', consultantDisplayName) +
+      infoRow('Consultant', cd) +
       infoRow('Scheduled', scheduledAt) +
-      infoRow('Booking Ref', bookingRef) +
+      infoRow('Booking Ref', br) +
       infoRow('Status', badge('Cancelled — refund pending', WARNING))
     )}
     ${paragraph('A full refund will be processed for any amount paid. You can browse our other verified consultants and rebook.')}
-    ${btn('🔍 Browse consultants', browsUrl)}
+    ${btn('🔍 Browse consultants', url)}
     ${divider()}
     ${paragraph(`<span style="font-size:13px;color:${MUTED};">We apologise for the inconvenience. Please contact support if you have questions.</span>`)}
   `);
@@ -1326,6 +1456,46 @@ export function tplHostActivationRequest(firstName: string, isArabic: boolean, a
   `);
 }
 
+// ─── Admin: Property submitted for review ────────────────────────────────────
+export function tplAdminPropertyPendingReview(
+  propertyTitle: string,
+  hostName: string,
+  hostEmail: string,
+  adminUrl: string,
+): string {
+  return layout(`
+    ${heading('New Listing Submitted for Review')}
+    ${paragraph('A host has submitted a property listing and it is now awaiting your review.')}
+    ${infoTable(
+      infoRow('Property', htmlEscape(propertyTitle)) +
+      infoRow('Host', htmlEscape(hostName)) +
+      infoRow('Host Email', htmlEscape(hostEmail))
+    )}
+    ${btn('Review in Admin Panel', safeUrl(adminUrl))}
+    ${divider()}
+    ${paragraph('Please log in to the admin panel to approve or reject this listing.')}
+  `);
+}
+
+// ─── Admin: ID document submitted ────────────────────────────────────────────
+export function tplAdminIdDocumentPending(
+  hostName: string,
+  hostEmail: string,
+  adminUrl: string,
+): string {
+  return layout(`
+    ${heading('New ID Verification Request')}
+    ${paragraph('A host has submitted their ID document and is awaiting verification.')}
+    ${infoTable(
+      infoRow('Host', htmlEscape(hostName)) +
+      infoRow('Email', htmlEscape(hostEmail))
+    )}
+    ${btn('Review in Admin Panel', safeUrl(adminUrl))}
+    ${divider()}
+    ${paragraph('Please log in to the admin panel to approve or reject the ID document.')}
+  `);
+}
+
 // ─── Mailer ───────────────────────────────────────────────────────────────────
 @Injectable()
 export class MailService {
@@ -1374,4 +1544,26 @@ export class MailService {
     `);
     await this.send(to, subject, html);
   }
+}
+
+// ─── UX-08 / P1-07: Post-checkout review request ─────────────────────────────
+export function tplReviewRequest(
+  firstName: string,
+  propertyTitle: string,
+  bookingRef: string,
+  reviewUrl: string,
+): string {
+  return layout(`
+    ${heading('How was your stay?')}
+    ${paragraph(`Hi <strong>${firstName}</strong>,`)}
+    ${paragraph(`Your stay at <strong>${propertyTitle}</strong> is now complete. We'd love to hear about your experience!`)}
+    ${paragraph('Honest reviews help other guests make informed decisions and help hosts improve their listings. It only takes a minute.')}
+    ${infoTable(
+      infoRow('Booking', bookingRef) +
+      infoRow('Property', propertyTitle)
+    )}
+    ${btn('Leave a Review', reviewUrl)}
+    ${divider()}
+    ${paragraph('Reviews can be submitted within 14 days of check-out. Thank you for staying with Oikivo!')}
+  `);
 }

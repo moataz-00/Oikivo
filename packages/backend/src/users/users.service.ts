@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { UserEntity } from '../entities/user.entity';
 import { ReviewEntity } from '../entities/review.entity';
@@ -17,7 +17,9 @@ import { MessageEntity } from '../entities/message.entity';
 import { BlockedUserEntity } from '../entities/blocked-user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EGYPTIAN_PHONE_REGEX } from './dto/update-profile.dto';
-import { tplHostActivationRequest } from '../mail/mail.service';
+import { tplHostActivationRequest, MailService, tplAdminIdDocumentPending } from '../mail/mail.service';
+
+const ADMIN_NOTIFY_EMAIL = 'oikivo.support@gmail.com';
 
 @Injectable()
 export class UsersService {
@@ -42,6 +44,7 @@ export class UsersService {
     private blockedUsersRepo: Repository<BlockedUserEntity>,
     private jwtService: JwtService,
     private config: ConfigService,
+    private mail: MailService,
   ) {}
 
   private sanitizeUser(user: UserEntity) {
@@ -339,6 +342,14 @@ export class UsersService {
   }
 
   async updateAvatar(userId: number, avatarUrl: string): Promise<UserEntity> {
+    // Delete old avatar file if it was a local upload
+    const current = await this.usersRepo.findOne({ where: { id: userId }, select: ['id', 'avatarUrl'] as any });
+    if (current?.avatarUrl && current.avatarUrl.startsWith('/uploads/avatars/')) {
+      const oldPath = join(process.cwd(), current.avatarUrl.replace(/^\//, ''));
+      try {
+        if (existsSync(oldPath)) unlinkSync(oldPath);
+      } catch { /* best-effort */ }
+    }
     await this.usersRepo.update(userId, { avatarUrl });
     return this.findById(userId);
   }
@@ -394,11 +405,23 @@ export class UsersService {
   }
 
   async submitIdDocument(userId: number, docUrl: string) {
+    const user = await this.usersRepo.findOne({ where: { id: userId } });
     await this.usersRepo.update(userId, {
       idDocumentUrl: docUrl,
       idVerificationStatus: 'pending',
       isIdVerified: false,
     } as any);
+
+    // Notify admin of new ID verification request
+    const adminPanelUrl = (process.env.ADMIN_URL ?? 'http://localhost:3003') + '/host-verification';
+    const hostName = user ? `${user.firstName} ${user.lastName}` : `User #${userId}`;
+    const hostEmail = user?.email ?? '';
+    this.mail.send(
+      ADMIN_NOTIFY_EMAIL,
+      'New ID Verification Request',
+      tplAdminIdDocumentPending(hostName, hostEmail, adminPanelUrl),
+    ).catch(() => {});
+
     return { message: 'ID document submitted for review. Verification typically takes 1–2 business days.' };
   }
 

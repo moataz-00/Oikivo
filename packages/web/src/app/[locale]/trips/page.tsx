@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, CreditCard, AlertTriangle, Scale, Home, Compass, Star, MessageSquareWarning, Printer, QrCode, Download, RefreshCw, CheckCircle } from 'lucide-react';
+import { MapPin, CreditCard, AlertTriangle, Scale, Home, Compass, Star, MessageSquareWarning, Printer, QrCode, Download, RefreshCw, CheckCircle, ImagePlus, AlertCircle, ChevronDown, Check } from 'lucide-react';
 import { PaymentMethodModal } from '@/components/payment/PaymentMethodModal';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,6 +37,100 @@ const expStatusColors: Record<ExperienceBookingStatus, 'success' | 'warning' | '
   declined: 'error',
   completed: 'default',
 };
+
+// ─── Emoji reactions (replaces star ratings) ─────────────────────────────────
+const EMOJI_REACTIONS = [
+  { value: 1, emoji: '😢', label: 'Terrible' },
+  { value: 2, emoji: '😕', label: 'Poor' },
+  { value: 3, emoji: '😐', label: 'Okay' },
+  { value: 4, emoji: '😊', label: 'Good' },
+  { value: 5, emoji: '🤩', label: 'Amazing' },
+];
+
+function EmojiRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const selectedReaction = EMOJI_REACTIONS.find(r => r.value === value);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-2 items-end">
+        {EMOJI_REACTIONS.map(({ value: v, emoji, label }) => {
+          const isSelected = value === v;
+          const isHovered = hovered === v;
+          const isDimmed = hovered !== null
+            ? (!isHovered && !isSelected)
+            : (value > 0 && !isSelected);
+          return (
+            <div key={v} className="relative flex flex-col items-center">
+              {/* Tooltip */}
+              <AnimatePresence>
+                {isHovered && !isSelected && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.8 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute -top-9 left-1/2 -translate-x-1/2 bg-neutral-900 text-white text-xs font-medium rounded-lg px-2 py-1 whitespace-nowrap pointer-events-none z-10 shadow-lg"
+                  >
+                    {label}
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-neutral-900" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {/* Selected glow ring */}
+              <AnimatePresence>
+                {isSelected && (
+                  <motion.span
+                    initial={{ scale: 0.4, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.4, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    className="absolute -inset-1.5 rounded-full bg-indigo-100 ring-2 ring-indigo-400 pointer-events-none z-0"
+                  />
+                )}
+              </AnimatePresence>
+              <motion.button
+                type="button"
+                onClick={() => onChange(v)}
+                onHoverStart={() => setHovered(v)}
+                onHoverEnd={() => setHovered(null)}
+                animate={
+                  isHovered
+                    ? { scale: 1.55, y: -10 }
+                    : isSelected
+                      ? { scale: 1.4, y: -6 }
+                      : { scale: 1, y: 0 }
+                }
+                whileTap={{ scale: 0.85 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+                className="relative text-2xl focus:outline-none select-none leading-none z-10"
+                style={{ opacity: isDimmed ? 0.28 : 1 }}
+            >
+              {emoji}
+            </motion.button>
+          </div>
+        );
+      })}
+      </div>
+      {/* Persistent label for selected emoji */}
+      <div className="h-4">
+        <AnimatePresence mode="wait">
+          {selectedReaction && (
+            <motion.p
+              key={selectedReaction.value}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="text-xs font-semibold text-indigo-600 text-center leading-none"
+            >
+              {selectedReaction.label}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
 
 function ExperienceBookingCard({
   booking,
@@ -130,59 +224,71 @@ function ExperienceBookingCard({
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-5">
+          {/* — Navigation link — */}
           <Link
             href={`/${locale}/experiences/${booking.experience.id}`}
-            className="text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors"
           >
             {t('viewExperience')}
           </Link>
+
+          {/* — Primary CTA: Pay Now — */}
           {needsPayment && (
             <button
               onClick={() => onPay(booking)}
-              className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-1.5 text-sm font-semibold text-white hover:brightness-110 transition-all shadow-sm shadow-indigo-500/25"
             >
-              <CreditCard className="h-3.5 w-3.5" />
+              <CreditCard className="h-3.5 w-3.5 shrink-0" />
               {booking.paymentStatus === 'declined' ? t('retryPayment') : t('payNow')}
             </button>
           )}
+
+          {/* — Status chips — */}
           {booking.paymentStatus === 'submitted' && (
-            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-medium flex items-center gap-1">
-              🔍 {t('paymentUnderReview')}
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+              <RefreshCw className="h-3 w-3 animate-spin" />
+              {t('paymentUnderReview')}
             </span>
           )}
           {booking.paymentStatus === 'declined' && (
-            <span className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 font-medium">
-              ❌ {t('paymentNotVerified')}
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              {t('paymentNotVerified')}
             </span>
           )}
-          {(booking.status === 'pending' && (
-            <span className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2.5 py-1.5 font-medium">
-              ⏳ {t('awaitingConfirmation')}
+          {(booking.status === 'pending') && (
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+              <RefreshCw className="h-3 w-3 shrink-0" />
+              {t('awaitingConfirmation')}
             </span>
-          ))}
-          {canCancel && (
-            <button
-              onClick={() => onCancel(booking.id)}
-              className="text-sm font-medium text-red-600 underline hover:text-red-800"
-            >
-              {t('cancelBooking')}
-            </button>
           )}
+
+          {/* — Review — */}
           {canReview && (
             <button
               onClick={() => setReviewOpen(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors"
             >
-              <Star className="h-3.5 w-3.5" />
+              <Star className="h-3.5 w-3.5 shrink-0" />
               {t('leaveReview')}
             </button>
           )}
           {booking.review && (
-            <span className="flex items-center gap-1 text-xs text-neutral-400">
-              <Star className="h-3 w-3 fill-neutral-400" />
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-500">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />
               {t('reviewedRating', { rating: booking.review.overallRating })}
             </span>
+          )}
+
+          {/* — Destructive: Cancel — */}
+          {canCancel && (
+            <button
+              onClick={() => onCancel(booking.id)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+            >
+              {t('cancelBooking')}
+            </button>
           )}
         </div>
       </div>
@@ -201,23 +307,18 @@ function ExperienceBookingCard({
           </div>
         </div>
 
-        {([
-          { label: t('overall'), value: overallRating, set: setOverallRating },
-          { label: t('host'), value: hostRating, set: setHostRating },
-          { label: t('value'), value: valueRating, set: setValueRating },
-        ] as const).map(({ label, value, set }) => (
-          <div key={label} className="bg-indigo-50/40 rounded-xl px-4 py-3">
-            <label className="block text-sm font-semibold text-indigo-800 mb-2">{label}</label>
-            <div className="flex gap-1.5">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} type="button" onClick={() => set(n)}
-                  className="rounded-lg p-0.5 transition-transform hover:scale-110 active:scale-95">
-                  <Star className={cn('h-7 w-7 transition-colors', n <= value ? 'fill-violet-500 text-violet-500' : 'text-neutral-300 hover:text-violet-300')} />
-                </button>
-              ))}
+        <div className="space-y-2">
+          {([
+            { label: t('overall'), value: overallRating, set: setOverallRating },
+            { label: t('host'), value: hostRating, set: setHostRating },
+            { label: t('value'), value: valueRating, set: setValueRating },
+          ] as const).map(({ label, value, set }) => (
+            <div key={label} className="flex items-center justify-between bg-indigo-50/40 rounded-xl px-4 py-3">
+              <label className="text-sm font-semibold text-indigo-800 w-20 shrink-0">{label}</label>
+              <EmojiRating value={value} onChange={(v) => set(v)} />
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">{t('commentLabel')} <span className="font-normal text-neutral-400">({t('optional')})</span></label>
@@ -251,6 +352,36 @@ function ExperienceBookingCard({
   );
 }
 
+/**
+ * Returns which refund tier the guest is currently in based on policy + days until check-in.
+ * Returns null if check-in has passed or the status doesn't need a badge.
+ */
+function getCancellationTierInfo(policy: string | null | undefined, checkIn: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const checkInDate = new Date(checkIn + 'T00:00:00'); // parse as local midnight
+  const daysUntil = Math.ceil((checkInDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysUntil <= 0) return null;
+
+  switch (policy) {
+    case 'flexible':
+      // full refund if ≥1 day (24 h) before check-in
+      return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
+    case 'moderate':
+      if (daysUntil >= 5)
+        return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
+      return { tier: 'partial', color: 'text-amber-700 bg-amber-50 border-amber-200', dot: '🟡', text: 'Partial refund if cancelled' };
+    case 'strict':
+      if (daysUntil >= 14)
+        return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
+      if (daysUntil >= 7)
+        return { tier: 'partial', color: 'text-amber-700 bg-amber-50 border-amber-200', dot: '🟡', text: 'Partial refund if cancelled' };
+      return { tier: 'none', color: 'text-red-700 bg-red-50 border-red-200', dot: '🔴', text: 'No refund if cancelled' };
+    default:
+      return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
+  }
+}
+
 function BookingCard({
   booking,
   onCancel,
@@ -262,7 +393,7 @@ function BookingCard({
   onCancel: (id: number) => void;
   onPay: (booking: Booking) => void;
   onReviewSubmitted: () => void;
-  existingDisputeId?: number;
+  existingDisputeId?: string | number;
 }) {
   const locale = useLocale();
   const t = useTranslations('trips');
@@ -278,8 +409,7 @@ function BookingCard({
   const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const queryClient = useQueryClient();
-  const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
-  const [photoInput, setPhotoInput] = useState('');
+  const [reviewPhotoFiles, setReviewPhotoFiles] = useState<File[]>([]);
   // G9: human-readable short code
   const shortCode = `STAY-${booking.id.toString(36).toUpperCase().padStart(4, '0')}`;
   const coverImage =
@@ -287,17 +417,39 @@ function BookingCard({
 
   // Show Pay Now when host confirmed but guest hasn't paid yet (also allow retry after decline)
   const needsPayment = booking.status === 'confirmed' && (!booking.paymentStatus || booking.paymentStatus === 'pending' || booking.paymentStatus === 'declined');
-  // Allow cancel for in_progress stays (prorated refund) or upcoming confirmed/pending stays
+  // Cancel visibility is policy-aware:
+  //  flexible  (partialWindow=0): allow same-day cancellation if before check-in time
+  //  moderate  (partialWindow=1): must be at least 1 day before check-in
+  //  strict    (partialWindow=7): must be at least 7 days before check-in
+  const todayDateStr = new Date().toLocaleDateString('sv'); // 'sv' locale → YYYY-MM-DD in local tz
+  const todayLocal = new Date(todayDateStr + 'T00:00:00');
+  const checkInLocal = new Date(booking.checkIn + 'T00:00:00');
+  const daysUntilCheckIn = Math.round((checkInLocal.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24));
+  const policyPartialWindow: Record<string, number> = { flexible: 0, moderate: 1, strict: 7 };
+  const partialWindow = policyPartialWindow[booking.cancellationPolicy ?? 'flexible'] ?? 0;
+  const checkInAfterStr: string =
+    ((booking.property as any).checkInAfter as string | undefined) ||
+    booking.property.checkInTime ||
+    '15:00';
+  const [ciH, ciM] = checkInAfterStr.split(':').map(Number);
+  const checkInMinutesOfDay = ciH * 60 + ciM;
+  const now = new Date();
+  const nowMinutesOfDay = now.getHours() * 60 + now.getMinutes();
+  // For flexible (partialWindow=0): allow cancel on check-in day if before check-in time
+  // For other policies: require daysUntilCheckIn > partialWindow (strictly past the no-refund zone)
+  const withinCancellableWindow =
+    daysUntilCheckIn > partialWindow ||
+    (partialWindow === 0 && daysUntilCheckIn === 0 && nowMinutesOfDay < checkInMinutesOfDay);
   const canCancelStay =
-    booking.status === 'in_progress' ||
-    ((booking.status === 'confirmed' || booking.status === 'pending') &&
-      new Date(booking.checkIn) > new Date(new Date().toDateString()));
+    (booking.status === 'confirmed' || booking.status === 'pending') &&
+    withinCancellableWindow;
+  const cancelTierInfo = canCancelStay ? getCancellationTierInfo(booking.cancellationPolicy, booking.checkIn) : null;
 
   const handleSubmitReview = async () => {
     if (submittingReview) return;
     setSubmittingReview(true);
     try {
-      await reviewsApi.createReview({
+      const review = await reviewsApi.createReview({
         bookingId: booking.id,
         overallRating,
         cleanlinessRating,
@@ -306,10 +458,13 @@ function BookingCard({
         valueRating,
         checkinRating,
         comment: comment || undefined,
-        photos: reviewPhotos.length > 0 ? reviewPhotos : undefined,
       });
+      if (reviewPhotoFiles.length > 0) {
+        await reviewsApi.uploadReviewPhotos(review.id, reviewPhotoFiles);
+      }
       toast.success(t('reviewSubmitted'));
       setReviewOpen(false);
+      setReviewPhotoFiles([]);
       onReviewSubmitted();
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? t('failedSubmitReview'));
@@ -355,14 +510,37 @@ function BookingCard({
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-neutral-600">
           <span>
             {t('checkIn')}: <strong>{formatDate(booking.checkIn, 'MMM d, yyyy')}</strong>
+            {((booking.property as any).checkInAfter || booking.property.checkInTime) && (
+              <span className="ml-1 text-neutral-400 font-normal">
+                from {((booking.property as any).checkInAfter || booking.property.checkInTime)?.slice(0, 5)}
+              </span>
+            )}
           </span>
           <span>
             {t('checkOut')}: <strong>{formatDate(booking.checkOut, 'MMM d, yyyy')}</strong>
+            {((booking.property as any).checkOutBefore || booking.property.checkOutTime) && (
+              <span className="ml-1 text-neutral-400 font-normal">
+                by {((booking.property as any).checkOutBefore || booking.property.checkOutTime)?.slice(0, 5)}
+              </span>
+            )}
           </span>
           <span>
-            {t('total')}: <strong>{formatPrice(Number(booking.total), booking.currency ?? 'EGP')}</strong>
+            {t('totalAmount')}: <strong>{formatPrice(Number(booking.total), booking.currency ?? 'EGP')}</strong>
           </span>
         </div>
+
+        {/* Cancellation policy tier badge — only for upcoming confirmed/pending */}
+        {cancelTierInfo && (
+          <div className="mt-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${cancelTierInfo.color}`}>
+              <span aria-hidden>{cancelTierInfo.dot}</span>
+              {cancelTierInfo.text}
+              {booking.cancellationPolicy && (
+                <span className="opacity-60 font-normal capitalize">· {booking.cancellationPolicy}</span>
+              )}
+            </span>
+          </div>
+        )}
 
         {/* Refund / cancellation fee for cancelled bookings */}
         {booking.status === 'cancelled' && (booking.refundAmount !== undefined || booking.cancellationFee !== undefined) && (
@@ -391,120 +569,127 @@ function BookingCard({
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-5">
+          {/* — Navigation links — */}
           <Link
             href={`/${locale}/rooms/${booking.property.uuid || booking.property.id}`}
-            className="text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
           >
+            <Home className="h-3.5 w-3.5 shrink-0" />
             {t('viewProperty')}
           </Link>
           <Link
             href={`/${locale}/trips/${booking.bookingUuid ?? booking.id}`}
-            className="text-sm font-medium text-brand underline hover:text-brand/80"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
           >
             {t('viewDetails')}
           </Link>
+
           {/* G8: Export / Print */}
           <Link
             href={`/${locale}/trips/${booking.bookingUuid ?? booking.id}/export`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-sm font-medium text-neutral-500 hover:text-neutral-800 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-200 transition-colors"
           >
-            <Printer className="h-3.5 w-3.5" />
+            <Printer className="h-3.5 w-3.5 shrink-0" />
             {t('exportPrint')}
           </Link>
+
+          {/* — Primary CTA: Pay Now — */}
           {needsPayment && (
             <button
               onClick={() => onPay(booking)}
-              className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-1.5 text-sm font-semibold text-white hover:brightness-110 transition-all shadow-sm shadow-indigo-500/25"
             >
-              <CreditCard className="h-3.5 w-3.5" />
+              <CreditCard className="h-3.5 w-3.5 shrink-0" />
               {booking.paymentStatus === 'declined' ? t('retryPayment') : t('payNow')}
             </button>
           )}
+
+          {/* — Status chips — */}
           {booking.paymentStatus === 'submitted' && (
-            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-medium flex items-center gap-1">
-              🔍 {t('paymentUnderReview')}
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+              <RefreshCw className="h-3 w-3 animate-spin" />
+              {t('paymentUnderReview')}
             </span>
           )}
           {booking.paymentStatus === 'declined' && (
-            <span className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 font-medium">
-              ❌ {t('paymentNotVerified')}
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              {t('paymentNotVerified')}
             </span>
           )}
           {booking.status === 'pending' && (
-            <span className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2.5 py-1.5 font-medium">
-              ⏳ {t('awaitingConfirmation')}
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+              <RefreshCw className="h-3 w-3 shrink-0" />
+              {t('awaitingConfirmation')}
             </span>
           )}
-          {canCancelStay ? (
-            <button
-              onClick={() => onCancel(booking.id)}
-              className="text-sm font-medium text-red-600 underline hover:text-red-800"
-            >
-              {t('cancelTrip')}
-            </button>
-          ) : null}
 
+          {/* — Review — */}
           {(booking.status === 'completed' ||
             (booking.status === 'confirmed' && new Date(booking.checkOut) < new Date())) &&
             !(booking as any).review && (
             <button
               onClick={() => setReviewOpen(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors"
             >
-              <Star className="h-3.5 w-3.5" />
+              <Star className="h-3.5 w-3.5 shrink-0" />
               {t('reviewTrip')}
             </button>
           )}
           {(booking as any).review && (
-            <span className="flex items-center gap-1 text-xs text-neutral-400">
-              <Star className="h-3 w-3 fill-neutral-400" />
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-500">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />
               {t('reviewedRating', { rating: (booking as any).review.overallRating ?? (booking as any).review.rating })}
             </span>
           )}
+
+          {/* — Dispute / Report — */}
           {existingDisputeId ? (
             <Link
               href={`/${locale}/trips/disputes/${existingDisputeId}`}
-              className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
             >
-              <Scale className="h-3.5 w-3.5" />
+              <Scale className="h-3.5 w-3.5 shrink-0" />
               View dispute
             </Link>
           ) : (
             <>
               {(booking.status === 'completed' || booking.status === 'cancelled') && (
                 <Link
-                  href={`/${locale}/trips/dispute/${booking.id}`}
-                  className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-red-600 transition-colors"
+                  href={`/${locale}/trips/dispute/${booking.bookingUuid ?? booking.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 transition-colors"
                 >
-                  <Scale className="h-3.5 w-3.5" />
+                  <Scale className="h-3.5 w-3.5 shrink-0" />
                   {t('openDispute')}
                 </Link>
               )}
               {booking.status === 'confirmed' && new Date(booking.checkIn) <= new Date() && (
                 <Link
-                  href={`/${locale}/trips/dispute/${booking.id}`}
-                  className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 transition-colors"
+                  href={`/${locale}/trips/dispute/${booking.bookingUuid ?? booking.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
                 >
-                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   Report a problem
                 </Link>
               )}
               {booking.status === 'in_progress' && (
                 <Link
-                  href={`/${locale}/trips/dispute/${booking.id}`}
-                  className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 transition-colors"
+                  href={`/${locale}/trips/dispute/${booking.bookingUuid ?? booking.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
                 >
-                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   Report a problem during your stay
                 </Link>
               )}
             </>
           )}
 
-          {/* W17: Invoice download button for paid bookings */}
+          {/* W17: Invoice download */}
           {(booking.paymentStatus === 'paid' || booking.paymentStatus === 'refunded') && (
             <button
               onClick={async () => {
@@ -513,21 +698,21 @@ function BookingCard({
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `invoice-${booking.id}.pdf`;
+                  a.download = `invoice-${booking.bookingRef ?? booking.bookingUuid ?? booking.id}.pdf`;
                   a.click();
                   window.URL.revokeObjectURL(url);
                 } catch {
                   toast.error(t('invoiceDownloadFailed') ?? 'Failed to download invoice');
                 }
               }}
-              className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-800 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-200 transition-colors"
             >
-              <Download className="h-3.5 w-3.5" />
+              <Download className="h-3.5 w-3.5 shrink-0" />
               {t('downloadInvoice') ?? 'Invoice'}
             </button>
           )}
 
-          {/* W2: Refund request button for cancelled bookings that were paid but not refunded */}
+          {/* W2: Refund request */}
           {booking.status === 'cancelled' && booking.paymentStatus === 'paid' && (
             <button
               onClick={async () => {
@@ -539,10 +724,20 @@ function BookingCard({
                   toast.error(err?.response?.data?.message ?? t('refundRequestFailed') ?? 'Refund request failed');
                 }
               }}
-              className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-800 transition-colors font-medium"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-3.5 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-3.5 w-3.5 shrink-0" />
               {t('requestRefund') ?? 'Request Refund'}
+            </button>
+          )}
+
+          {/* — Destructive: Cancel — */}
+          {canCancelStay && (
+            <button
+              onClick={() => onCancel(booking.id)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+            >
+              {t('cancelTrip')}
             </button>
           )}
         </div>
@@ -562,7 +757,7 @@ function BookingCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
           {([
             { label: t('overall'), value: overallRating, set: setOverallRating },
             { label: t('cleanliness'), value: cleanlinessRating, set: setCleanlinessRating },
@@ -571,16 +766,9 @@ function BookingCard({
             { label: t('value'), value: valueRating, set: setValueRating },
             { label: t('checkInRating'), value: checkinRating, set: setCheckinRating },
           ] as const).map(({ label, value, set }) => (
-            <div key={label} className="bg-indigo-50/40 rounded-xl px-3 py-2.5">
-              <label className="block text-xs font-semibold text-indigo-800 mb-1.5">{label}</label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} type="button" onClick={() => set(n)}
-                    className="rounded transition-transform hover:scale-110 active:scale-95">
-                    <Star className={cn('h-5 w-5 transition-colors', n <= value ? 'fill-violet-500 text-violet-500' : 'text-neutral-300 hover:text-violet-300')} />
-                  </button>
-                ))}
-              </div>
+            <div key={label} className="flex items-center justify-between bg-indigo-50/40 rounded-xl px-3 py-2.5">
+              <label className="text-xs font-semibold text-indigo-800 w-24 shrink-0">{label}</label>
+              <EmojiRating value={value} onChange={(v) => set(v)} />
             </div>
           ))}
         </div>
@@ -596,30 +784,29 @@ function BookingCard({
           />
         </div>
 
-        {/* G4: Review photo URLs */}
+        {/* M-05: Review photo upload — file picker replaces raw URL input */}
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">{t('reviewPhotosLabel')} <span className="font-normal text-neutral-400">({t('optional')})</span></label>
-          <div className="flex gap-2">
+          <label className="flex items-center justify-center gap-2 w-full cursor-pointer rounded-xl border-2 border-dashed border-indigo-200 px-3 py-4 text-sm text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50/40 transition">
+            <ImagePlus className="h-4 w-4" />
+            {reviewPhotoFiles.length === 0
+              ? t('uploadPhotos')
+              : `${reviewPhotoFiles.length} photo${reviewPhotoFiles.length !== 1 ? 's' : ''} selected`}
             <input
-              type="url"
-              value={photoInput}
-              onChange={(e) => setPhotoInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && photoInput.trim()) { setReviewPhotos(p => [...p, photoInput.trim()]); setPhotoInput(''); e.preventDefault(); } }}
-              className="flex-1 rounded-xl border border-indigo-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition"
-              placeholder="https://..."
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              onChange={(e) => setReviewPhotoFiles(Array.from(e.target.files ?? []).slice(0, 5))}
             />
-            <button type="button" onClick={() => { if (photoInput.trim()) { setReviewPhotos(p => [...p, photoInput.trim()]); setPhotoInput(''); } }}
-              className="rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition">
-              +
-            </button>
-          </div>
-          {reviewPhotos.length > 0 && (
+          </label>
+          {reviewPhotoFiles.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {reviewPhotos.map((url, i) => (
+              {reviewPhotoFiles.map((file, i) => (
                 <div key={i} className="relative group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-indigo-100" />
-                  <button type="button" onClick={() => setReviewPhotos(p => p.filter((_, j) => j !== i))}
+                  <img src={URL.createObjectURL(file)} alt="" className="h-14 w-14 rounded-lg object-cover border border-indigo-100" />
+                  <button type="button" onClick={() => setReviewPhotoFiles(p => p.filter((_, j) => j !== i))}
                     className="absolute -top-1 -right-1 bg-white border border-neutral-200 rounded-full h-4 w-4 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-red-500">
                     ×
                   </button>
@@ -667,14 +854,28 @@ export default function TripsPage() {
   const [cancelPreviewData, setCancelPreviewData] = useState<any>(null);
   const [cancelPreviewLoading, setCancelPreviewLoading] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [cancelReasonOpen, setCancelReasonOpen] = useState(false);
+  const cancelReasonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cancelReasonOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (cancelReasonRef.current && !cancelReasonRef.current.contains(e.target as Node)) {
+        setCancelReasonOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [cancelReasonOpen]);
   const [paymentSuccessDismissed, setPaymentSuccessDismissed] = useState(false);
+  // M-01: track which booking card to highlight after payment redirect
+  const [highlightBookingId, setHighlightBookingId] = useState<number | null>(null);
 
   // W10: Detect payment return from OPay / 3DS redirect
   const paymentSuccess = searchParams.get('payment') === 'success';
   const paymentBookingId = searchParams.get('bookingId');
 
   const CANCEL_REASONS = [
-    { value: '', label: 'Select a reason…' },
     { value: 'plans_changed', label: 'My plans changed' },
     { value: 'found_alternative', label: 'Found a better alternative' },
     { value: 'host_unresponsive', label: 'Host is unresponsive' },
@@ -698,6 +899,21 @@ export default function TripsPage() {
     refetchOnWindowFocus: false,
   });
 
+  // M-01: scroll to and briefly highlight the booking returned from OPay redirect
+  useEffect(() => {
+    if (!paymentBookingId || loadingTrips) return;
+    const id = Number(paymentBookingId);
+    const timer = setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-booking-id="${id}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightBookingId(id);
+        setTimeout(() => setHighlightBookingId(null), 3000);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [paymentBookingId, loadingTrips]);
+
   const { data: myDisputes = [] } = useQuery({
     queryKey: ['my-disputes'],
     queryFn: () => disputesApi.getMyDisputes(),
@@ -705,9 +921,9 @@ export default function TripsPage() {
     staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   });
-  // Map bookingId -> dispute id for fast lookup
+  // Map bookingId -> dispute uuid for fast lookup
   const disputeByBookingId = Object.fromEntries(
-    (myDisputes as any[]).map((d: any) => [d.bookingId, d.id]),
+    (myDisputes as any[]).map((d: any) => [d.bookingId, d.uuid ?? d.id]),
   );
 
   const { data: allExpTrips = [], isLoading: loadingExpTrips } = useQuery({
@@ -726,16 +942,36 @@ export default function TripsPage() {
     booking.status === 'cancelled' || booking.status === 'declined'
   );
 
-  const upcoming = allTrips.filter((booking) => {
-    if (booking.status === 'cancelled' || booking.status === 'declined') return false;
-    if (booking.status === 'completed') return false;
+  // Only show in_progress bookings whose checkout date hasn't fully passed yet.
+  // Once checkOut < today the scheduler will complete them; in the meantime
+  // they must not appear in Active — they'll already be in Past.
+  const active = allTrips.filter((booking) => {
+    if (booking.status !== 'in_progress') return false;
     const checkOut = new Date(booking.checkOut);
     return checkOut >= today;
   });
 
+  const upcoming = allTrips.filter((booking) => {
+    if (booking.status === 'cancelled' || booking.status === 'declined') return false;
+    if (booking.status === 'completed') return false;
+    if (booking.status === 'in_progress') return false;
+    const checkOut = new Date(booking.checkOut);
+    return checkOut >= today;
+  });
+
+  // H-03: bookings confirmed by host but not yet paid by guest
+  const pendingPaymentBookings = upcoming.filter(
+    (b) => b.status === 'confirmed' && (!b.paymentStatus || b.paymentStatus === 'pending' || b.paymentStatus === 'declined'),
+  );
+
   const past = allTrips.filter((booking) => {
     if (booking.status === 'cancelled' || booking.status === 'declined') return false;
     if (booking.status === 'completed') return true;
+    // in_progress bookings whose checkout has already passed (scheduler hasn't fired yet)
+    if (booking.status === 'in_progress') {
+      const checkOut = new Date(booking.checkOut);
+      return checkOut < today;
+    }
     const checkOut = new Date(booking.checkOut);
     return checkOut < today;
   });
@@ -779,6 +1015,7 @@ export default function TripsPage() {
 
   // — Stays buckets —
   const tabs = [
+    { value: 'active', label: t('active'), data: active, loading: loadingTrips, empty: t('noActiveTrips') },
     { value: 'upcoming', label: t('upcoming'), data: upcoming, loading: loadingTrips, empty: t('noUpcomingTrips') },
     { value: 'past', label: t('past'), data: past, loading: loadingTrips, empty: t('noPastTrips') },
     { value: 'cancelled', label: t('cancelled'), data: cancelled, loading: loadingTrips, empty: t('noCancelledTrips') },
@@ -851,6 +1088,23 @@ export default function TripsPage() {
         </motion.div>
       )}
 
+      {/* H-03: Remind guest of confirmed-but-unpaid bookings */}
+      {listingType === 'stays' && pendingPaymentBookings.length > 0 && (
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-900">
+              {pendingPaymentBookings.length === 1
+                ? t('oneBookingAwaitingPayment') ?? '1 booking is confirmed and awaiting payment'
+                : t('multipleBookingsAwaitingPayment') ?? `${pendingPaymentBookings.length} bookings are confirmed and awaiting payment`}
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              {t('goToUpcomingToPay') ?? 'Go to the Upcoming tab to complete your payment and secure your reservation.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Top-level listing type switcher */}
       <div className="flex border-b border-neutral-200 mb-0">
         {([
@@ -875,21 +1129,35 @@ export default function TripsPage() {
 
       {/* Stays */}
       {listingType === 'stays' && (
-        <Tabs.Root defaultValue="upcoming" className="mt-0">
+        <Tabs.Root defaultValue={active.length > 0 ? 'active' : 'upcoming'} className="mt-0">
           <Tabs.List className="flex gap-0 border-b border-neutral-200 mb-8">
             {tabs.map((tab) => (
               <Tabs.Trigger
                 key={tab.value}
                 value={tab.value}
-                className="px-5 py-3 text-sm font-medium text-neutral-500 border-b-2 border-transparent data-[state=active]:text-neutral-900 data-[state=active]:border-neutral-900 hover:text-neutral-700 transition-colors"
+                className="relative px-5 py-3 text-sm font-medium text-neutral-500 border-b-2 border-transparent data-[state=active]:text-neutral-900 data-[state=active]:border-neutral-900 hover:text-neutral-700 transition-colors"
               >
                 {tab.label}
+                {tab.value === 'active' && tab.data.length > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold w-4 h-4">
+                    {tab.data.length}
+                  </span>
+                )}
               </Tabs.Trigger>
             ))}
           </Tabs.List>
 
           {tabs.map((tab) => (
             <Tabs.Content key={tab.value} value={tab.value}>
+              {tab.value === 'active' && tab.data.length > 0 && (
+                <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+                  <span className="text-2xl">🏠</span>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">You're checked in!</p>
+                    <p className="text-xs text-emerald-700 mt-0.5">Your stay is in progress. Contact your host if you need anything.</p>
+                  </div>
+                </div>
+              )}
               {tab.loading ? (
                 <div className="flex justify-center py-16"><Spinner size="lg" /></div>
               ) : tab.data.length === 0 ? (
@@ -899,18 +1167,30 @@ export default function TripsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
                 >
-                  <motion.div
-                    className="text-6xl"
-                    animate={{ rotate: [0, -5, 5, -5, 0], scale: [1, 1.05, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
-                  >
-                    🌍
-                  </motion.div>
-                  <h2 className="text-xl font-semibold text-neutral-900">{t('startPlanningTitle')}</h2>
-                  <p className="text-neutral-500 max-w-xs">{t('startPlanningSubtitle')}</p>
-                  <Link href={`/${locale}/s`} className="mt-2 btn-brand rounded-xl px-6 py-3 text-sm">
-                    {t('startSearching')}
-                  </Link>
+                  {tab.value === 'active' ? (
+                    <>
+                      <div className="text-6xl">🛏️</div>
+                      <h2 className="text-xl font-semibold text-neutral-900">{t('noActiveTrips')}</h2>
+                      <p className="text-neutral-500 max-w-xs">You have no ongoing stays right now.</p>
+                    </>
+                  ) : (
+                    <>
+                      <motion.div
+                        className="text-6xl"
+                        animate={{ rotate: [0, -5, 5, -5, 0], scale: [1, 1.05, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
+                      >
+                        🌍
+                      </motion.div>
+                      <h2 className="text-xl font-semibold text-neutral-900">{tab.value === 'cancelled' ? tab.empty : t('startPlanningTitle')}</h2>
+                      {tab.value !== 'cancelled' && <p className="text-neutral-500 max-w-xs">{t('startPlanningSubtitle')}</p>}
+                      {tab.value !== 'cancelled' && tab.value !== 'past' && (
+                        <Link href={`/${locale}/s`} className="mt-2 btn-brand rounded-xl px-6 py-3 text-sm">
+                          {t('startSearching')}
+                        </Link>
+                      )}
+                    </>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div
@@ -921,7 +1201,9 @@ export default function TripsPage() {
                   {tab.data.map((booking) => (
                     <motion.div
                       key={booking.id}
+                      data-booking-id={booking.id}
                       variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
+                      className={cn(highlightBookingId === booking.id && 'ring-2 ring-indigo-400 ring-offset-2 rounded-2xl')}
                     >
                       <BookingCard
                         booking={booking}
@@ -1007,16 +1289,16 @@ export default function TripsPage() {
           onSuccess={(method) => {
             queryClient.setQueryData(['trips'], (old: any) =>
               Array.isArray(old)
-                ? old.map((b) => b.id === payingBooking!.id ? { ...b, paymentStatus: method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 'paid' : 'submitted' } : b)
+                ? old.map((b) => b.id === payingBooking!.id ? { ...b, paymentStatus: method === 'opay-card' ? 'paid' : 'submitted' } : b)
                 : old,
             );
             setPayingBooking(null);
             toast.success(
-              method === 'stripe' || method === 'opay-card' || method === 'opay-wallet'
+              method === 'opay-card'
                 ? t('paymentSuccessful')
                 : t('paymentSubmitted'),
             );
-            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['trips'] }), method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 3000 : 6000);
+            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['trips'] }), method === 'opay-card' ? 3000 : 6000);
           }}
           onClose={() => setPayingBooking(null)}
         />
@@ -1029,16 +1311,16 @@ export default function TripsPage() {
           onSuccess={(method) => {
             queryClient.setQueryData(['exp-trips'], (old: any) =>
               Array.isArray(old)
-                ? old.map((b) => b.id === payingExpBooking!.id ? { ...b, paymentStatus: method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 'paid' : 'submitted' } : b)
+                ? old.map((b) => b.id === payingExpBooking!.id ? { ...b, paymentStatus: method === 'opay-card' ? 'paid' : 'submitted' } : b)
                 : old,
             );
             setPayingExpBooking(null);
             toast.success(
-              method === 'stripe' || method === 'opay-card' || method === 'opay-wallet'
+              method === 'opay-card'
                 ? t('paymentSuccessful')
                 : t('paymentSubmitted'),
             );
-            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['exp-trips'] }), method === 'stripe' || method === 'opay-card' || method === 'opay-wallet' ? 3000 : 6000);
+            setTimeout(() => queryClient.invalidateQueries({ queryKey: ['exp-trips'] }), method === 'opay-card' ? 3000 : 6000);
           }}
           onClose={() => setPayingExpBooking(null)}
         />
@@ -1052,7 +1334,7 @@ export default function TripsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); setCancelReason(''); }}
+            onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); setCancelReason(''); setCancelReasonOpen(false); }}
           >
             <motion.div
               className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
@@ -1102,24 +1384,56 @@ export default function TripsPage() {
               )}
 
               <div className="mb-4">
-                <label htmlFor="cancelReason" className="block text-sm font-medium text-neutral-700 mb-1">
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
                   {t('cancellationReason')}
                 </label>
-                <select
-                  id="cancelReason"
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus:border-neutral-400 focus:outline-none"
-                >
-                  {CANCEL_REASONS.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </select>
+                <div className="relative" ref={cancelReasonRef}>
+                  <button
+                    type="button"
+                    onClick={() => setCancelReasonOpen((o) => !o)}
+                    className={`w-full flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm transition-colors ${
+                      cancelReasonOpen
+                        ? 'border-neutral-400 bg-white ring-1 ring-neutral-300'
+                        : 'border-neutral-200 bg-white hover:border-neutral-300'
+                    } ${cancelReason ? 'text-neutral-900' : 'text-neutral-400'}`}
+                  >
+                    <span>{cancelReason ? CANCEL_REASONS.find((r) => r.value === cancelReason)?.label : t('selectReason')}</span>
+                    <ChevronDown className={`h-4 w-4 text-neutral-400 transition-transform duration-200 ${cancelReasonOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  <AnimatePresence>
+                    {cancelReasonOpen && (
+                      <motion.ul
+                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute z-10 mt-1 w-full rounded-xl border border-neutral-200 bg-white shadow-lg overflow-hidden max-h-52 overflow-y-auto"
+                      >
+                        {CANCEL_REASONS.map((r) => (
+                          <li key={r.value}>
+                            <button
+                              type="button"
+                              onClick={() => { setCancelReason(r.value); setCancelReasonOpen(false); }}
+                              className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm text-left transition-colors ${
+                                cancelReason === r.value
+                                  ? 'bg-neutral-900 text-white'
+                                  : 'text-neutral-700 hover:bg-neutral-50'
+                              }`}
+                            >
+                              <span>{r.label}</span>
+                              {cancelReason === r.value && <Check className="h-3.5 w-3.5 shrink-0" />}
+                            </button>
+                          </li>
+                        ))}
+                      </motion.ul>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); setCancelReason(''); }}
+                  onClick={() => { setCancelPreviewId(null); setCancelPreviewData(null); setCancelReason(''); setCancelReasonOpen(false); }}
                   className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
                 >
                   {t('keepReservation')}

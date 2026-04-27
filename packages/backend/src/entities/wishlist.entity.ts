@@ -8,6 +8,10 @@ export class WishlistEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
 
+  /** Public-safe UUID used in URLs instead of the numeric ID */
+  @Column({ length: 36, unique: true, nullable: true })
+  uuid: string;
+
   @Column({ name: 'user_id', type: 'bigint', unsigned: true })
   userId: number;
 
@@ -26,7 +30,10 @@ export class WishlistEntity {
   shareToken: string | null;
 
   @BeforeInsert()
-  generateShareToken() {
+  generateTokens() {
+    if (!this.uuid) {
+      this.uuid = randomUUID();
+    }
     if (!this.shareToken) {
       this.shareToken = randomUUID();
     }

@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { ChevronLeft, Share, LayoutGrid, Star, Bed, Bath, Users, Maximize, Check, X } from 'lucide-react';
+import { ChevronLeft, Share, LayoutGrid, Star, Check, Pencil, X, Copy, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { useWishlist, useRemoveFromWishlist } from '@/hooks/useWishlist';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useWishlist, useRemoveFromWishlist, useRenameWishlist, useRotateShareToken } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
 import { PropertyCard } from '@/components/property/PropertyCard';
 import { Spinner, FullPageSpinner } from '@/components/ui/Spinner';
@@ -21,23 +21,94 @@ export default function WishlistDetailPage() {
   const router = useRouter();
   const t = useTranslations('wishlists');
   const { isLoggedIn, hasHydrated } = useAuth();
-  const wishlistId = Number(params.id);
+  const uuid = params.id as string;
 
   useEffect(() => {
     if (!hasHydrated) return;
     if (!isLoggedIn) router.push(`/${locale}/login`);
   }, [hasHydrated, isLoggedIn, locale, router]);
 
-  const { data: wishlist, isLoading } = useWishlist(wishlistId);
+  const { data: wishlist, isLoading } = useWishlist(uuid);
   const removeFromWishlist = useRemoveFromWishlist();
+  const renameWishlist = useRenameWishlist();
+  const rotateToken = useRotateShareToken();
+  const { formatPrice } = useCurrency();
+
   const [compareMode, setCompareMode] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
-  const { formatPrice } = useCurrency();
+
+  // Rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Share popover state
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareRef = useRef<HTMLDivElement>(null);
+
+  // Close share popover on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (shareRef.current && !shareRef.current.contains(e.target as Node)) {
+        setShareOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const toggleSelect = (id: number) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev
     );
+  };
+
+  const startRename = () => {
+    setRenameDraft(wishlist?.name ?? '');
+    setIsRenaming(true);
+    setTimeout(() => renameInputRef.current?.select(), 50);
+  };
+
+  const submitRename = () => {
+    if (!renameDraft.trim() || renameDraft.trim() === wishlist?.name) {
+      setIsRenaming(false);
+      return;
+    }
+    renameWishlist.mutate(
+      { id: wishlist?.id!, name: renameDraft.trim() },
+      {
+        onSuccess: () => {
+          toast.success(t('wishlistRenamed'));
+          setIsRenaming(false);
+        },
+        onError: () => {
+          toast.error(t('renameFailed'));
+          setIsRenaming(false);
+        },
+      },
+    );
+  };
+
+  const getShareUrl = () => {
+    const token = wishlist?.shareToken;
+    if (!token) return null;
+    return `${window.location.origin}/${locale}/wishlists/share/${token}`;
+  };
+
+  const handleCopyLink = () => {
+    const url = getShareUrl();
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success(t('linkCopied'));
+      setShareOpen(false);
+    });
+  };
+
+  const handleRotateToken = () => {
+    rotateToken.mutate({ id: wishlist?.id!, uuid }, {
+      onSuccess: () => toast.success(t('linkRevoked')),
+      onError: () => toast.error(t('rotateFailed')),
+    });
   };
 
   if (!hasHydrated || !isLoggedIn) return <FullPageSpinner />;
@@ -71,7 +142,51 @@ export default function WishlistDetailPage() {
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-semibold text-neutral-900 flex-1">{wishlist.name}</h1>
+
+        {/* Editable title */}
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          {isRenaming ? (
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <input
+                ref={renameInputRef}
+                value={renameDraft}
+                onChange={(e) => setRenameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitRename();
+                  if (e.key === 'Escape') setIsRenaming(false);
+                }}
+                className="flex-1 text-2xl font-semibold text-neutral-900 bg-transparent border-b-2 border-brand outline-none min-w-0"
+                autoFocus
+              />
+              <button
+                onClick={submitRename}
+                disabled={renameWishlist.isPending}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-white hover:bg-brand-dark transition-colors shrink-0"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setIsRenaming(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 hover:bg-neutral-50 transition-colors shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group/title min-w-0">
+              <h1 className="text-2xl font-semibold text-neutral-900 truncate">{wishlist.name}</h1>
+              <button
+                onClick={startRename}
+                className="opacity-0 group-hover/title:opacity-100 transition-opacity p-1 rounded-md hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 shrink-0"
+                title={t('renameWishlist')}
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Compare button */}
         {wishlist.properties && wishlist.properties.length >= 2 && (
           <button
             onClick={() => { setCompareMode(!compareMode); setSelected([]); }}
@@ -82,13 +197,59 @@ export default function WishlistDetailPage() {
             }`}
           >
             <LayoutGrid className="h-4 w-4" />
-            {compareMode ? 'Exit Compare' : 'Compare'}
+            {compareMode ? t('exitCompare') : t('compare')}
           </button>
         )}
-        <button className="flex items-center gap-1.5 rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors">
-          <Share className="h-4 w-4" />
-          {t('shareList')}
-        </button>
+
+        {/* Share button with popover */}
+        <div className="relative" ref={shareRef}>
+          <button
+            onClick={() => setShareOpen((o) => !o)}
+            className="flex items-center gap-1.5 rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            <Share className="h-4 w-4" />
+            {t('shareList')}
+          </button>
+
+          <AnimatePresence>
+            {shareOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-neutral-200 bg-white shadow-xl z-30 p-4"
+              >
+                <p className="text-sm font-semibold text-neutral-900 mb-1">{t('shareList')}</p>
+                <p className="text-xs text-neutral-500 mb-3">{t('shareDesc')}</p>
+
+                {/* Share URL display */}
+                <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 mb-3">
+                  <span className="flex-1 text-xs text-neutral-600 truncate font-mono">
+                    {getShareUrl() ?? '…'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleCopyLink}
+                  className="flex w-full items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark transition-colors mb-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  {t('copyLink')}
+                </button>
+
+                <button
+                  onClick={handleRotateToken}
+                  disabled={rotateToken.isPending}
+                  className="flex w-full items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {t('revokeLink')}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       <p className="text-sm text-neutral-500 mb-8">
@@ -97,11 +258,11 @@ export default function WishlistDetailPage() {
 
       {wishlist.properties && wishlist.properties.length > 0 ? (
         <>
-          {/* G7: Compare mode — select properties then show comparison table */}
+          {/* Compare mode */}
           {compareMode && (
             <div className="mb-6">
               <p className="text-sm text-neutral-500 mb-3">
-                Select 2–4 properties to compare ({selected.length}/4 selected)
+                {t('selectToCompare', { count: selected.length })}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
                 {wishlist.properties.map((p: Property) => (
@@ -121,6 +282,7 @@ export default function WishlistDetailPage() {
                     )}
                     <div className="aspect-[4/3] rounded-lg overflow-hidden bg-neutral-100 mb-2">
                       {p.images?.[0] && (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={getImageUrl(p.images[0].url)}
                           alt={p.title}
@@ -133,7 +295,6 @@ export default function WishlistDetailPage() {
                 ))}
               </div>
 
-              {/* Comparison table */}
               {selected.length >= 2 && (
                 <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
                   <table className="w-full text-sm">
@@ -213,9 +374,25 @@ export default function WishlistDetailPage() {
 
           {!compareMode && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-8">
-              {wishlist.properties.map((property: Property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
+              <AnimatePresence>
+                {wishlist.properties.map((property: Property) => (
+                  <motion.div
+                    key={property.id}
+                    layout
+                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.18 } }}
+                  >
+                    <PropertyCard
+                      property={property}
+                      onRemove={() =>
+                        removeFromWishlist.mutate(
+                          { wishlistId: wishlist?.id!, propertyId: property.id },
+                          { onSuccess: () => toast.success(t('removedFromWishlist')) },
+                        )
+                      }
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </>

@@ -14,9 +14,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AvailabilityService } from './availability.service';
 import { ICalSyncService } from './ical-sync.service';
-import { BlockDatesDto, SeasonalPricingDto } from './dto/block-dates.dto';
+import { BlockDatesDto, SeasonalPricingDto, SetPriceDatesDto, ResetPriceDatesDto } from './dto/block-dates.dto';
 import { BulkBlockDatesDto, BulkSeasonalPricingDto } from './dto/bulk-listing-availability.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -31,6 +32,7 @@ export class AvailabilityController {
   ) {}
 
   @Get(':propertyId')
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @ApiOperation({ summary: 'Get availability calendar for a property' })
   @ApiQuery({ name: 'year', required: true, example: 2026 })
   @ApiQuery({ name: 'month', required: true, example: 4 })
@@ -78,6 +80,30 @@ export class AvailabilityController {
     @Body() dto: SeasonalPricingDto,
   ) {
     return this.availabilityService.setSeasonalPricing(propertyId, user.id, dto);
+  }
+
+  @Post(':propertyId/set-price')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Set custom price for specific dates without changing availability (host only)' })
+  setPriceDates(
+    @Param('propertyId', ParseIntPipe) propertyId: number,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: SetPriceDatesDto,
+  ) {
+    return this.availabilityService.setPriceDates(propertyId, user.id, dto.dates, dto.pricePerNight);
+  }
+
+  @Post(':propertyId/reset-price')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reset custom price overrides to default for given dates (host only)' })
+  resetPriceDates(
+    @Param('propertyId', ParseIntPipe) propertyId: number,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: ResetPriceDatesDto,
+  ) {
+    return this.availabilityService.resetPriceDates(propertyId, user.id, dto.dates);
   }
 
   @Post('bulk/block')

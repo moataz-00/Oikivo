@@ -48,8 +48,8 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", 'https://maps.googleapis.com'],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          scriptSrc: ["'self'", 'https://maps.googleapis.com'],
+          styleSrc: ["'self'", 'https://fonts.googleapis.com'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'],
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
           connectSrc: ["'self'", ...allowedOrigins, 'https://maps.googleapis.com'],

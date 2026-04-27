@@ -22,7 +22,6 @@ import {
   X,
   Plane,
   Bell,
-  GraduationCap,
   LayoutDashboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,7 +37,7 @@ export function Navbar() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isLoggedIn, isHost, isHostMode, toggleHostMode, logout, isConsultant } = useAuth();
+  const { user, isLoggedIn, isHost, isHostMode, toggleHostMode, logout } = useAuth();
   const searchParams = useSearchParams();
   const [scrolled, setScrolled] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -55,7 +54,6 @@ export function Navbar() {
 
   const isHomePage = pathname === `/${locale}` || pathname === '/';
   const isHostingPage = pathname.includes('/hosting');
-  const isConsultationsTab = isHomePage && searchParams.get('tab') === 'consultations';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 60);
@@ -98,7 +96,7 @@ export function Navbar() {
               >
                 <img src="/favicon-96x96.png" alt="Oikivo" width={36} height={36} className="h-full w-full object-cover" />
               </motion.div>
-              <span className="font-brand text-2xl gradient-brand-text hidden sm:block">Oikivo</span>
+              <span className="font-brand text-3xl text-brand hidden sm:block tracking-wide">Oikivo</span>
             </Link>
 
             {/* Center: compact pill or expanded search */}
@@ -147,25 +145,9 @@ export function Navbar() {
             {/* Right side */}
             <div className="flex items-center gap-1 shrink-0">
               {!isHostMode && !isHostingPage && (
-                isConsultationsTab ? (
-                  /* ── Consultations tab: show consultant action ── */
-                  isConsultant ? (
-                    <Link href={`/${locale}/consultations/dashboard`} className="hidden lg:flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors whitespace-nowrap">
-                      <GraduationCap className="h-4 w-4" />
-                      {locale === 'ar' ? 'التحويل إلى مستشار' : 'Switch to Consultant'}
-                    </Link>
-                  ) : (
-                    <Link href={`/${locale}/consultations/become-a-consultant`} className="hidden lg:flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors whitespace-nowrap">
-                      <GraduationCap className="h-4 w-4" />
-                      {locale === 'ar' ? 'كن مستشاراً' : 'Become a Consultant'}
-                    </Link>
-                  )
-                ) : (
-                  /* ── Homes tab or any other page: show host action ── */
-                  <Link href={isHost ? hostingHref : beHostHref} className="hidden lg:block rounded-full px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors whitespace-nowrap">
-                    {isHost ? t('switchToHosting') : t('becomeHost')}
-                  </Link>
-                )
+                <Link href={isHost ? hostingHref : beHostHref} className="hidden lg:block rounded-full px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors whitespace-nowrap">
+                  {isHost ? t('switchToHosting') : t('becomeHost')}
+                </Link>
               )}
               {(isHostMode || isHostingPage) && (
                 <Link href={`/${locale}`} className="hidden lg:block rounded-full px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 transition-colors">
@@ -223,7 +205,7 @@ export function Navbar() {
                         </div>
                         <MenuLink href={`/${locale}/trips`} icon={<MapPin className="h-4 w-4" />}>{t('trips')}</MenuLink>
                         <MenuLink href={`/${locale}/wishlists`} icon={<Heart className="h-4 w-4" />}>{t('wishlists')}</MenuLink>
-                        <MenuLink href={`/${locale}/consultations/become-a-consultant`} icon={<GraduationCap className="h-4 w-4" />}>{t('consultations')}</MenuLink>
+
                         <MenuLink href={`/${locale}/notifications`} icon={<Bell className="h-4 w-4" />}>
                           <span className="flex items-center gap-2">
                             {t('notifications')}
@@ -283,6 +265,9 @@ export function Navbar() {
                     { label: tHosting('archive'), href: `/${locale}/hosting/listings/archive` },
                     { label: tHosting('reservations'), href: `/${locale}/hosting/reservations` },
                     { label: tHosting('inbox'), href: `/${locale}/hosting/inbox` },
+                    { label: tHosting('earnings'), href: `/${locale}/hosting/earnings` },
+                    { label: tHosting('analytics'), href: `/${locale}/hosting/analytics` },
+                    { label: tHosting('reviews'), href: `/${locale}/hosting/reviews` },
                   ] : []),
                 ].map(({ label, href }) => (
                   <Link

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { propertiesApi } from '@/lib/api';
 
 const STORAGE_KEY = 'sakan_recently_viewed';
 const MAX_ITEMS = 20;
@@ -40,7 +41,20 @@ export function useRecentlyViewed() {
   const [items, setItems] = useState<RecentlyViewedItem[]>([]);
 
   useEffect(() => {
-    setItems(getStored());
+    const stored = getStored();
+    setItems(stored);
+
+    // Prune deleted properties: validate UUIDs against backend
+    if (stored.length === 0) return;
+    const uuids = stored.map((i) => i.uuid);
+    propertiesApi.validateUuids(uuids).then((liveUuids) => {
+      const liveSet = new Set(liveUuids);
+      const pruned = stored.filter((i) => liveSet.has(i.uuid));
+      if (pruned.length !== stored.length) {
+        setStored(pruned);
+        setItems(pruned);
+      }
+    }).catch(() => { /* backend unreachable — keep existing list */ });
   }, []);
 
   const trackView = useCallback((property: {
@@ -74,10 +88,16 @@ export function useRecentlyViewed() {
     setItems(updated);
   }, []);
 
+  const removeByUuid = useCallback((uuid: string) => {
+    const pruned = getStored().filter((i) => i.uuid !== uuid);
+    setStored(pruned);
+    setItems(pruned);
+  }, []);
+
   const clearHistory = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setItems([]);
   }, []);
 
-  return { recentlyViewed: items, trackView, clearHistory };
+  return { recentlyViewed: items, trackView, removeByUuid, clearHistory };
 }

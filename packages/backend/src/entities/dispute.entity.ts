@@ -1,7 +1,8 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,
-  ManyToOne, JoinColumn,
+  ManyToOne, JoinColumn, BeforeInsert,
 } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { UserEntity } from './user.entity';
 import { BookingEntity } from './booking.entity';
 
@@ -20,6 +21,14 @@ export type DisputeResolution = 'resolved_for_guest' | 'resolved_for_host' | 'di
 export class DisputeEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
+
+  @Column({ type: 'varchar', length: 36, unique: true, nullable: true })
+  uuid: string;
+
+  @BeforeInsert()
+  generateUuid() {
+    if (!this.uuid) this.uuid = randomUUID();
+  }
 
   @Column({ name: 'booking_id', type: 'bigint', unsigned: true })
   bookingId: number;

@@ -124,6 +124,8 @@ export function MapView({ properties, center, zoom = 12, onBoundsChange }: MapVi
             <Link
               href={`/${locale}/rooms/${selectedProperty.uuid || selectedProperty.id}`}
               className="block hover:opacity-95 transition-opacity"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               {/* Image */}
               <div className="relative h-36 w-full">

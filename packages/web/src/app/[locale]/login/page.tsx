@@ -1,13 +1,13 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, Home, Star, Shield, Zap } from 'lucide-react';
+import { Eye, EyeOff, Home, Star, Shield, Zap, KeyRound } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -30,9 +30,18 @@ export default function LoginPage() {
   const login = useAuthStore((s) => s.login);
   const [showPassword, setShowPassword] = useState(false);
 
+  // TOTP step state
+  const [totpStep, setTotpStep] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<FormData | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const totpInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (searchParams.get('error') === 'google_failed') {
       toast.error('Google sign-in failed. Please try again or use email & password.');
+    }
+    if (searchParams.get('registered') === '1') {
+      toast.success(t('registerSuccess'));
     }
   }, [searchParams]);
 
@@ -40,15 +49,37 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
+      if (data?.requiresTotp) {
+        // Backend says 2FA is required — switch to TOTP step
+        setTotpStep(true);
+        setTotpCode('');
+        setTimeout(() => totpInputRef.current?.focus(), 100);
+        return;
+      }
       login(data.user, data.accessToken, data.refreshToken);
       toast.success(t('welcomeBack'));
       router.push(`/${locale}`);
     },
-    onError: () => toast.error(t('loginError')),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      if (totpStep) {
+        toast.error(msg ?? 'Invalid 2FA code. Please try again.');
+      } else {
+        toast.error(msg ?? t('loginError'));
+      }
+    },
   });
 
-  const onSubmit = (data: FormData) => loginMutation.mutate(data);
+  const onSubmit = (data: FormData) => {
+    setPendingCredentials(data);
+    loginMutation.mutate(data);
+  };
+
+  const onSubmitTotp = () => {
+    if (!pendingCredentials || totpCode.length !== 6) return;
+    loginMutation.mutate({ ...pendingCredentials, totpCode });
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -168,6 +199,49 @@ export default function LoginPage() {
               {t('logIn')}
             </Button>
           </form>
+
+          {totpStep && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+              <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
+                <div className="flex flex-col items-center text-center gap-3 mb-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50">
+                    <KeyRound className="h-6 w-6 text-indigo-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-neutral-900">Two-Factor Authentication</h2>
+                  <p className="text-sm text-neutral-500 leading-relaxed">
+                    Enter the 6-digit code from your authenticator app to continue.
+                  </p>
+                </div>
+                <input
+                  ref={totpInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') onSubmitTotp(); }}
+                  placeholder="000000"
+                  className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 mb-4"
+                />
+                <Button
+                  fullWidth
+                  size="lg"
+                  isLoading={loginMutation.isPending}
+                  disabled={totpCode.length !== 6}
+                  onClick={onSubmitTotp}
+                  className="bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
+                >
+                  Verify &amp; Sign in
+                </Button>
+                <button
+                  onClick={() => { setTotpStep(false); setTotpCode(''); setPendingCredentials(null); }}
+                  className="mt-3 w-full text-sm text-neutral-500 hover:text-neutral-700 text-center"
+                >
+                  ← Back to login
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="mt-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-neutral-200" />

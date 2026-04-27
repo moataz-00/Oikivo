@@ -13,9 +13,13 @@ import { UserEntity } from '../entities/user.entity';
 import { PriceAlertEntity } from '../entities/price-alert.entity';
 import { PasswordResetEntity } from '../entities/password-reset.entity';
 import { VerificationTokenEntity } from '../entities/verification-token.entity';
+import { AvailabilityEntity } from '../entities/availability.entity';
+import { ReviewEntity } from '../entities/review.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-import { MailService, tplInstapayPaymentDeclined, tplPreArrivalReminder, tplMonthlyEarningsSummary, tplBookingAccepted, tplPaymentReminder, tplBookingCancelled } from '../mail/mail.service';
+import { MailService, tplInstapayPaymentDeclined, tplPreArrivalReminder, tplMonthlyEarningsSummary, tplBookingAccepted, tplPaymentReminder, tplBookingCancelled, tplReviewRequest } from '../mail/mail.service';
 import { PayoutsService } from '../payouts/payouts.service';
+import { localDateStr } from '../common/utils/date.util';
+import { toZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class SchedulerService {
@@ -44,6 +48,10 @@ export class SchedulerService {
     private passwordResetsRepo: Repository<PasswordResetEntity>,
     @InjectRepository(VerificationTokenEntity)
     private verificationTokensRepo: Repository<VerificationTokenEntity>,
+    @InjectRepository(AvailabilityEntity)
+    private availabilityRepo: Repository<AvailabilityEntity>,
+    @InjectRepository(ReviewEntity)
+    private reviewsRepo: Repository<ReviewEntity>,
     private dataSource: DataSource,
     private notificationsService: NotificationsService,
     private mail: MailService,
@@ -61,7 +69,7 @@ export class SchedulerService {
   async runDailyJobs(): Promise<void> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = localDateStr(today);
 
     await this.transitionToInProgress(todayStr);
     await this.autoCompleteBookings(todayStr);
@@ -70,6 +78,19 @@ export class SchedulerService {
     await this.sendPreArrivalReminders(todayStr); // FIX BUG-GL1
     await this.purgeExpiredArchivedListings();
     await this.autoDeclineStalePendingBookings(); // FIX A1
+  }
+
+  /**
+   * Run status transitions every 10 minutes for near-real-time check-in/check-out
+   * status changes. Skips heavy jobs (payouts, earnings release, reminders) — daily only.
+   */
+  @Cron('*/10 * * * *')
+  async runStatusTransitions(): Promise<void> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = localDateStr(today);
+    await this.transitionToInProgress(todayStr);
+    await this.autoCompleteBookings(todayStr);
   }
 
   // FIX B3: Run every hour — auto-cancel confirmed/pending bookings with no payment after 24 hours
@@ -118,7 +139,7 @@ export class SchedulerService {
               'Booking cancelled — payment overdue — Oikivo',
               tplBookingCancelled(
                 booking.guest.firstName,
-                'system',
+                'guest',
                 booking.property?.title ?? 'your booking',
                 booking.checkIn,
                 booking.checkOut,
@@ -141,45 +162,89 @@ export class SchedulerService {
     await this.autoReleaseExpiredDeposits();
   }
 
-  /** a) confirmed → in_progress when checkIn <= today */
+  /** a) confirmed → in_progress:
+   *   - checkIn < today  → always (guest is already overdue)
+   *   - checkIn = today  → only if current local time >= property.checkInAfter
+   */
   private async transitionToInProgress(todayStr: string): Promise<void> {
     try {
-      const bookings = await this.bookingsRepo.find({
-        where: { status: 'confirmed', checkIn: LessThanOrEqual(todayStr) },
+      // 1. Past check-in dates — transition unconditionally
+      const pastBookings = await this.bookingsRepo.find({
+        where: { status: 'confirmed', checkIn: LessThan(todayStr) },
       });
 
-      if (bookings.length === 0) return;
+      // 2. Today's check-ins — load property to read checkInAfter time
+      const todayBookings = await this.bookingsRepo.find({
+        where: { status: 'confirmed', checkIn: todayStr },
+        relations: ['property'],
+      });
+
+      const now = new Date();
+      const todayReady = todayBookings.filter((b) => {
+        const timezone = b.property?.timezone || 'Africa/Cairo';
+        const nowInTz = toZonedTime(now, timezone);
+        const nowMinutes = nowInTz.getHours() * 60 + nowInTz.getMinutes();
+        const checkInAfter: string = b.property?.checkInAfter ?? '15:00:00';
+        const [h, m] = checkInAfter.split(':').map(Number);
+        return nowMinutes >= h * 60 + m;
+      });
+
+      const toTransition = [...pastBookings, ...todayReady];
+      if (toTransition.length === 0) return;
 
       await this.bookingsRepo.update(
-        bookings.map((b) => b.id),
+        toTransition.map((b) => b.id),
         { status: 'in_progress' },
       );
 
-      this.logger.log(`[CRON] ${bookings.length} booking(s) transitioned to in_progress`);
+      this.logger.log(`[CRON] ${toTransition.length} booking(s) transitioned to in_progress (${pastBookings.length} past, ${todayReady.length} today)`);
     } catch (err) {
       this.logger.error(`[CRON] Error transitioning bookings to in_progress: ${(err as Error).message}`);
     }
   }
 
-  /** b) in_progress → completed when checkOut < today */
+  /** b) in_progress → completed:
+   *   - checkOut < today  → always (already past checkout day)
+   *   - checkOut = today  → only if current local time >= property.checkOutBefore
+   */
   private async autoCompleteBookings(todayStr: string): Promise<void> {
     try {
-      const bookings = await this.bookingsRepo.find({
+      // 1. Past checkout dates — transition unconditionally
+      const pastBookings = await this.bookingsRepo.find({
         where: { status: 'in_progress', checkOut: LessThan(todayStr) },
         relations: ['property', 'guest'],
       });
 
+      // 2. Today's checkouts — load property to read checkOutBefore time
+      const todayBookings = await this.bookingsRepo.find({
+        where: { status: 'in_progress', checkOut: todayStr },
+        relations: ['property', 'guest'],
+      });
+
+      const now = new Date();
+      const todayReady = todayBookings.filter((b) => {
+        const timezone = b.property?.timezone || 'Africa/Cairo';
+        const nowInTz = toZonedTime(now, timezone);
+        const nowMinutes = nowInTz.getHours() * 60 + nowInTz.getMinutes();
+        const checkOutBefore: string = b.property?.checkOutBefore ?? '11:00:00';
+        const [h, m] = checkOutBefore.split(':').map(Number);
+        return nowMinutes >= h * 60 + m;
+      });
+
+      const bookings = [...pastBookings, ...todayReady];
       if (bookings.length === 0) return;
+
+      const completedAt = new Date();
 
       // FIX B2: Only mark as 'paid' if payment was actually received; preserve original paymentStatus otherwise
       const paidBookingIds = bookings.filter((b) => b.paymentStatus === 'paid').map((b) => b.id);
       const unpaidBookingIds = bookings.filter((b) => b.paymentStatus !== 'paid').map((b) => b.id);
 
       if (paidBookingIds.length > 0) {
-        await this.bookingsRepo.update(paidBookingIds, { status: 'completed', paymentStatus: 'paid' });
+        await this.bookingsRepo.update(paidBookingIds, { status: 'completed', paymentStatus: 'paid', completedAt } as any);
       }
       if (unpaidBookingIds.length > 0) {
-        await this.bookingsRepo.update(unpaidBookingIds, { status: 'completed' });
+        await this.bookingsRepo.update(unpaidBookingIds, { status: 'completed', completedAt } as any);
         this.logger.warn(`[CRON] ${unpaidBookingIds.length} booking(s) auto-completed with unpaid payment status: ${unpaidBookingIds.join(', ')}`);
       }
 
@@ -207,7 +272,7 @@ export class SchedulerService {
         ]),
       );
 
-      this.logger.log(`[CRON] ${bookings.length} booking(s) auto-completed`);
+      this.logger.log(`[CRON] ${bookings.length} booking(s) auto-completed (${pastBookings.length} past, ${todayReady.length} today)`);
     } catch (err) {
       this.logger.error(`[CRON] Error auto-completing bookings: ${(err as Error).message}`);
     }
@@ -285,11 +350,11 @@ export class SchedulerService {
     try {
       const threeDaysFromNow = new Date();
       threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-      const threeDaysStr = threeDaysFromNow.toISOString().split('T')[0];
+      const threeDaysStr = localDateStr(threeDaysFromNow);
 
       const oneDayFromNow = new Date();
       oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
-      const oneDayStr = oneDayFromNow.toISOString().split('T')[0];
+      const oneDayStr = localDateStr(oneDayFromNow);
 
       // Find bookings checking in 3 days or 1 day from now
       const upcomingBookings = await this.bookingsRepo.find({
@@ -489,12 +554,29 @@ export class SchedulerService {
       if (stale.length === 0) return;
 
       const ids = stale.map((b) => b.id);
+      // WF-02: cancel booking AND decline payment so dates get freed
       await this.bookingsRepo
         .createQueryBuilder()
         .update(BookingEntity)
-        .set({ paymentStatus: 'declined', paymentNote: 'Auto-declined: no admin action within 48 hours' } as any)
+        .set({
+          paymentStatus: 'declined',
+          paymentNote: 'Auto-declined: no admin action within 48 hours',
+          status: 'cancelled',
+          cancelledAt: new Date(),
+          cancelledBy: 'system',
+        } as any)
         .whereInIds(ids)
         .execute();
+
+      // WF-02: Remove the 'booking' source availability rows to unblock dates
+      await this.availabilityRepo
+        .createQueryBuilder()
+        .delete()
+        .from(AvailabilityEntity)
+        .where('source = :src', { src: 'booking' })
+        .andWhere('propertyId IN (SELECT property_id FROM bookings WHERE id IN (:...ids))', { ids })
+        .execute()
+        .catch((e: Error) => this.logger.warn(`[CRON] Could not unblock dates: ${e.message}`));
 
       this.logger.log(`[CRON] ${stale.length} stale InstaPay submission(s) auto-declined`);
 
@@ -1043,22 +1125,6 @@ export class SchedulerService {
 
   // ─── Purge jobs (replaces MySQL scheduled events) ────────────────────────
 
-  /** Purge login attempts older than 24 hours — runs every hour */
-  @Cron('15 * * * *')
-  async purgeOldLoginAttempts(): Promise<void> {
-    try {
-      const result = await this.dataSource.query(
-        `DELETE FROM login_attempts WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
-      );
-      const deleted = result?.affectedRows ?? 0;
-      if (deleted > 0) {
-        this.logger.log(`[CRON] Purged ${deleted} old login attempt(s)`);
-      }
-    } catch (err) {
-      this.logger.error(`[CRON] Error purging old login attempts: ${(err as Error).message}`);
-    }
-  }
-
   /** Purge expired & unused password reset tokens — runs every hour */
   @Cron('20 * * * *')
   async purgeExpiredPasswordResets(): Promise<void> {
@@ -1092,6 +1158,178 @@ export class SchedulerService {
       }
     } catch (err) {
       this.logger.error(`[CRON] Error purging expired verification tokens: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * BE-05 — Daily at 09:00 UTC: find users whose ID verification has been
+   * pending for more than 48 hours and remind all admins to review them.
+   */
+  @Cron('0 9 * * *')
+  async remindAdminsOfPendingIdVerifications(): Promise<void> {
+    try {
+      const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+      const pendingUsers = await this.usersRepo.find({
+        where: { idVerificationStatus: 'pending', updatedAt: LessThan(cutoff) },
+        select: ['id', 'firstName', 'lastName', 'email'],
+      });
+
+      if (!pendingUsers.length) return;
+
+      const admins = await this.usersRepo.find({
+        where: { isAdmin: true, isActive: true },
+        select: ['id', 'email'],
+      });
+
+      if (!admins.length) return;
+
+      const count = pendingUsers.length;
+      this.logger.warn(`[CRON] ${count} ID verification(s) pending > 48h — notifying ${admins.length} admin(s)`);
+
+      await Promise.allSettled([
+        // In-app notification for each admin
+        ...admins.map((admin) =>
+          this.notificationsService.create(
+            admin.id,
+            'pending_id_review',
+            `${count} ID Verification${count > 1 ? 's' : ''} Awaiting Review`,
+            `${count} طلب${count > 1 ? 'ات' : ''} تحقق من الهوية في انتظار المراجعة`,
+            `${count} user${count > 1 ? 's have' : ' has'} had an ID verification pending for more than 48 hours. Please review in the admin panel.`,
+            `${count} مستخدم${count > 1 ? 'ون' : ''} لديهم طلب تحقق من الهوية معلق لأكثر من 48 ساعة. يرجى المراجعة في لوحة الإدارة.`,
+            { pendingCount: count },
+          ),
+        ),
+        // Email reminder to each admin
+        ...admins.map((admin) =>
+          admin.email
+            ? this.mail.send(
+                admin.email,
+                `[Action Required] ${count} ID Verification${count > 1 ? 's' : ''} Pending > 48h — Oikivo`,
+                `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+  <h2 style="color:#4f46e5;">ID Verification Reminder</h2>
+  <p>${count} user account${count > 1 ? 's have' : ' has'} had an ID document pending admin review for more than <strong>48 hours</strong>.</p>
+  <p>Please log in to the admin panel and review the pending submissions to avoid blocking users from accessing host features.</p>
+  <p style="font-size:13px;color:#64748b;">Automated reminder — sent daily at 09:00 UTC when pending verifications exceed the 48-hour threshold.</p>
+</div>`,
+              )
+            : Promise.resolve(),
+        ),
+      ]);
+    } catch (err) {
+      this.logger.error(`[CRON] Error sending pending ID verification reminders: ${(err as Error).message}`);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // UX-08 / P1-07 — Daily at 10:00 UTC: send review request to guests whose
+  // booking completed yesterday and who have not yet left a review.
+  // ---------------------------------------------------------------------------
+  @Cron('0 10 * * *')
+  async sendPostCheckoutReviewRequests(): Promise<void> {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+    try {
+      const bookings = await this.bookingsRepo.find({
+        where: { status: 'completed', checkOut: yStr as any },
+        relations: ['guest', 'property'],
+      });
+      if (!bookings.length) return;
+
+      const feBase = process.env.FRONTEND_URL ?? 'https://oikivo.com';
+
+      await Promise.allSettled(
+        bookings.map(async (booking) => {
+          // Skip if guest already left a review for this booking
+          const existingReview = await this.reviewsRepo.findOne({
+            where: { bookingId: booking.id, reviewerId: booking.guestId },
+          });
+          if (existingReview) return;
+
+          const reviewUrl = `${feBase}/en/reviews/new?bookingId=${booking.id}`;
+
+          await this.notificationsService.create(
+            booking.guestId,
+            'review_request',
+            'How was your stay?',
+            'كيف كانت إقامتك؟',
+            `Tell us about your stay at ${booking.property?.title ?? 'your recent booking'}. Your review helps other guests!`,
+            `أخبرنا عن إقامتك في ${booking.property?.title ?? 'حجزك الأخير'}. تقييمك يساعد المسافرين الآخرين!`,
+            { bookingId: booking.id },
+          );
+
+          if (booking.guest?.email) {
+            await this.mail.send(
+              booking.guest.email,
+              'How was your stay? Leave a review — Oikivo',
+              tplReviewRequest(
+                booking.guest.firstName,
+                booking.property?.title ?? 'your booking',
+                `#${booking.id}`,
+                reviewUrl,
+              ),
+            ).catch((e: Error) => {
+              this.logger.warn(`[CRON] Failed to send review request to ${booking.guest.email}: ${e.message}`);
+            });
+          }
+        }),
+      );
+
+      this.logger.log(`[CRON] Review request emails queued for ${bookings.length} completed booking(s)`);
+    } catch (err) {
+      this.logger.error(`[CRON] Error sending post-checkout review requests: ${(err as Error).message}`);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // WF-06 — Monthly on 1st at 03:00 UTC: Re-evaluate superhost status.
+  // Criteria: ≥10 completed bookings, avg guest rating ≥ 4.8, host-cancelled < 3%.
+  // ---------------------------------------------------------------------------
+  @Cron('0 3 1 * *')
+  async reEvaluateSuperhostStatus(): Promise<void> {
+    try {
+      // Find all users who have at least one booking as a host
+      const hostIds: { hostId: number }[] = await this.bookingsRepo
+        .createQueryBuilder('b')
+        .select('DISTINCT b.host_id', 'hostId')
+        .getRawMany();
+
+      await Promise.allSettled(
+        hostIds.map(async ({ hostId }) => {
+          const totalCompleted = await this.bookingsRepo.count({
+            where: { hostId, status: 'completed' },
+          });
+
+          if (totalCompleted < 10) {
+            await this.usersRepo.update(hostId, { isSuperhost: false });
+            return;
+          }
+
+          const hostCancelled = await this.bookingsRepo.count({
+            where: { hostId, status: 'cancelled', cancelledBy: 'host' as any },
+          });
+          const cancelRate = hostCancelled / (totalCompleted + hostCancelled);
+          if (cancelRate >= 0.03) {
+            await this.usersRepo.update(hostId, { isSuperhost: false });
+            return;
+          }
+
+          const avgRatingResult = await this.reviewsRepo
+            .createQueryBuilder('r')
+            .select('AVG(r.overall_rating)', 'avg')
+            .innerJoin(BookingEntity, 'b', 'b.id = r.booking_id')
+            .where('b.host_id = :hostId', { hostId })
+            .getRawOne<{ avg: string }>();
+
+          const avgRating = parseFloat(avgRatingResult?.avg ?? '0');
+          await this.usersRepo.update(hostId, { isSuperhost: avgRating >= 4.8 });
+        }),
+      );
+
+      this.logger.log('[CRON] Superhost status re-evaluation complete');
+    } catch (err) {
+      this.logger.error(`[CRON] Error re-evaluating superhost status: ${(err as Error).message}`);
     }
   }
 }
