@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { Home, Images, DollarSign, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,7 +43,7 @@ const FEATURES = [
   },
   {
     title: '5% platform commission',
-    description: 'We charge a simple 5% commission on your nightly earnings. Every penny of the cleaning fee goes directly to you.',
+    description: 'We charge 0% commission to hosts — you keep every penny of your nightly earnings. Guests pay a simple 5% service fee on top of your price. Your cleaning fee always passes through in full.',
     icon: '💸',
   },
 ];
@@ -51,7 +51,7 @@ const FEATURES = [
 const FAQS = [
   {
     q: 'How much does it cost to list my place?',
-    a: "Listing your place is completely free. Oikivo charges a 5% commission on your nightly earnings. Your cleaning fee is always passed through in full. Guests also pay a separate 5% service fee on top.",
+    a: "Listing your place is completely free. Oikivo charges 0% commission to hosts — you keep 100% of your nightly price. Your cleaning fee is always passed through in full. Guests pay a separate 5% service fee on top of your listed price.",
   },
   {
     q: 'How do I get paid?',
@@ -69,9 +69,29 @@ const FAQS = [
 
 export default function BecomeAHostPage() {
   const locale = useLocale();
+  const t = useTranslations('becomeAHost');
   const router = useRouter();
   const { isLoggedIn, isHost } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const steps = [
+    { number: 1, title: t('step1Title'), description: t('step1Desc'), icon: Home },
+    { number: 2, title: t('step2Title'), description: t('step2Desc'), icon: Images },
+    { number: 3, title: t('step3Title'), description: t('step3Desc'), icon: DollarSign },
+  ];
+
+  const features = [
+    { title: t('feature1Title'), description: t('feature1Desc'), icon: '🎮' },
+    { title: t('feature2Title'), description: t('feature2Desc'), icon: '🛡️' },
+    { title: t('feature3Title'), description: t('feature3Desc'), icon: '💸' },
+  ];
+
+  const faqs = [
+    { q: t('faq1Q'), a: t('faq1A') },
+    { q: t('faq2Q'), a: t('faq2A') },
+    { q: t('faq3Q'), a: t('faq3A') },
+    { q: t('faq4Q'), a: t('faq4A') },
+  ];
 
   const handleGetStarted = () => {
     if (!isLoggedIn) {
@@ -105,7 +125,7 @@ export default function BecomeAHostPage() {
             className="max-w-xl"
           >
             <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 border border-brand/20 px-4 py-1.5 text-sm font-bold text-brand mb-5">
-              🎉 Only 5% commission — keep 95% of every booking
+              🎉 {t('badge')}
             </div>
 
             {/* Egypt-only notice */}
@@ -113,24 +133,25 @@ export default function BecomeAHostPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="https://flagcdn.com/eg.svg" alt="Egypt" className="h-4 w-6 mt-0.5 shrink-0" />
               <div>
-                <span className="font-semibold">Currently available for Egyptian hosts only.</span>
-                {' '}International hosting support is coming soon — stay tuned!
+                <span className="font-semibold">{t('egyptOnly')}</span>
+                {' '}{t('egyptOnlySoon')}
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight">
-              It’s easy to get started on{' '}
+              {t('headline')}{' '}
               <span className="text-brand">
                 Oikivo
               </span>
             </h1>
 
             <p className="mt-6 text-lg text-neutral-600">
-              Open your door to hosting and start earning. We only take a{' '}
-              <strong className="text-neutral-900">5% commission</strong> — keeping your costs low and transparent.
+              {t('subtitle1')}{' '}
+              <strong className="text-neutral-900">{t('subtitleStrong')}</strong>{' '}
+              {t('subtitle2')}
             </p>
 
             <div className="mt-10 space-y-6">
-              {STEPS.map((step, idx) => (
+              {steps.map((step, idx) => (
                 <motion.div
                   key={step.number}
                   initial={{ opacity: 0, x: -20 }}
@@ -159,18 +180,18 @@ export default function BecomeAHostPage() {
                 onClick={handleGetStarted}
                 className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-8 py-4 text-lg font-semibold text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Get started
-                <ChevronRight className="h-5 w-5" />
+                {t('getStarted')}
+                <ChevronRight className="h-5 w-5 rtl:rotate-180" />
               </button>
 
               {!isLoggedIn && (
                 <p className="mt-3 text-sm text-neutral-500">
-                  Already have an account?{' '}
+                  {t('alreadyHaveAccount')}{' '}
                   <Link
                     href={`/${locale}/login?redirect=/${locale}/hosting/become-a-host`}
                     className="text-neutral-700 font-medium hover:underline"
                   >
-                    Log in
+                    {t('logIn')}
                   </Link>
                 </p>
               )}
@@ -227,14 +248,14 @@ export default function BecomeAHostPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900">Why host on Sakan?</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900">{t('whyHostTitle')}</h2>
             <p className="mt-4 text-lg text-neutral-600 max-w-2xl mx-auto">
-              Join thousands of hosts who earn extra income while sharing their unique spaces with travelers from around the world.
+              {t('whyHostSubtitle')}
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {FEATURES.map((feature, idx) => (
+            {features.map((feature, idx) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
@@ -252,7 +273,7 @@ export default function BecomeAHostPage() {
         </div>
       </section>
 
-      {/* ── 5% Commission Banner ── */}
+      {/* ── 0% Commission Banner ── */}
       <section className="py-16 bg-gradient-to-r from-brand-dark via-brand to-brand-light text-white overflow-hidden relative">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
@@ -266,31 +287,32 @@ export default function BecomeAHostPage() {
             className="flex flex-col lg:flex-row items-center justify-between gap-10"
           >
             <div className="text-center lg:text-left">
-              <p className="text-indigo-200 text-sm font-semibold uppercase tracking-widest mb-3">Our promise to every host</p>
-              <div className="text-7xl sm:text-8xl font-display font-black leading-none mb-3">5%</div>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Simple. Transparent. Always.</h2>
+              <p className="text-indigo-200 text-sm font-semibold uppercase tracking-widest mb-3">{t('commissionPromise')}</p>
+              <div className="text-7xl sm:text-8xl font-display font-black leading-none mb-3">0%</div>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t('commissionTagline')}</h2>
               <p className="text-indigo-100 text-lg max-w-lg leading-relaxed">
-                Most platforms take 15–25% from hosts. Oikivo charges only{' '}
-                <strong className="text-white">5% commission</strong> on your nightly earnings — your cleaning fee always passes through in full.
+                {t('commissionDesc1')}{' '}
+                <strong className="text-white">{t('commissionDescStrong')}</strong>{' '}
+                {t('commissionDesc2')}
               </p>
             </div>
             <div className="shrink-0 rounded-3xl bg-white/10 border border-white/20 p-8 backdrop-blur-sm w-full max-w-xs">
-              <p className="text-sm font-semibold text-indigo-200 mb-5 text-center">Host earnings comparison</p>
+              <p className="text-sm font-semibold text-indigo-200 mb-5 text-center">{t('earningsComparison')}</p>
               <div className="space-y-3">
                 <div className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3">
-                  <span className="text-sm text-indigo-100">Other platforms</span>
+                  <span className="text-sm text-indigo-100">{t('otherPlatforms')}</span>
                   <span className="font-bold text-red-300">− 15% to 25%</span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3">
                   <span className="text-sm font-semibold text-neutral-900">Oikivo</span>
-                  <span className="font-black text-brand text-lg">5%</span>
+                  <span className="font-black text-brand text-lg">0%</span>
                 </div>
               </div>
               <button
                 onClick={handleGetStarted}
                 className="mt-5 w-full rounded-xl bg-white px-6 py-3 text-sm font-bold text-brand hover:bg-neutral-50 transition shadow-lg"
               >
-                Start earning →
+                {t('startEarning')} <ChevronRight className="inline h-3 w-3 rtl:rotate-180" />
               </button>
             </div>
           </motion.div>
@@ -306,23 +328,21 @@ export default function BecomeAHostPage() {
               viewport={{ once: true }}
               className="flex-1"
             >
-              <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-6">See how much you could earn</h2>
+              <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-6">{t('earnTitle')}</h2>
               <p className="text-lg text-neutral-600 mb-8">
-                Hosts in your area typically earn{' '}
-                <span className="font-semibold text-neutral-900">$2,500 - $4,500</span>
-                {' '}per month. Your earnings depend on your location, listing type, and how often you host.
+                {t('earnDesc')}
               </p>
               <div className="flex flex-wrap gap-4">
                 <div className="rounded-xl bg-green-50 border border-green-200 px-6 py-4">
-                  <p className="text-sm text-green-700 font-medium">Average nightly rate</p>
+                  <p className="text-sm text-green-700 font-medium">{t('avgNightlyRate')}</p>
                   <p className="text-2xl font-bold text-green-800">$150</p>
                 </div>
                 <div className="rounded-xl bg-neutral-100 border border-neutral-200 px-6 py-4">
-                  <p className="text-sm text-neutral-700 font-medium">Avg. occupancy</p>
+                  <p className="text-sm text-neutral-700 font-medium">{t('avgOccupancy')}</p>
                   <p className="text-2xl font-bold text-neutral-900">75%</p>
                 </div>
                 <div className="rounded-xl bg-neutral-100 border border-neutral-200 px-6 py-4">
-                  <p className="text-sm text-neutral-700 font-medium">Monthly potential</p>
+                  <p className="text-sm text-neutral-700 font-medium">{t('monthlyPotential')}</p>
                   <p className="text-2xl font-bold text-neutral-900">$3,375</p>
                 </div>
               </div>
@@ -335,16 +355,16 @@ export default function BecomeAHostPage() {
               className="flex-1 w-full"
             >
               <div className="rounded-3xl bg-neutral-900 p-8 text-white">
-                <h3 className="text-2xl font-bold mb-4">Ready to start earning?</h3>
+                <h3 className="text-2xl font-bold mb-4">{t('readyTitle')}</h3>
                 <p className="text-white/80 mb-6">
-                  It only takes 10 minutes to set up your listing. We'll guide you through every step.
+                  {t('readyDesc')}
                 </p>
                 <button
                   onClick={handleGetStarted}
                   className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-semibold text-neutral-900 shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70"
                 >
-                  Start hosting
-                  <ChevronRight className="h-5 w-5" />
+                  {t('startHosting')}
+                  <ChevronRight className="h-5 w-5 rtl:rotate-180" />
                 </button>
               </div>
             </motion.div>
@@ -360,11 +380,11 @@ export default function BecomeAHostPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold text-neutral-900">Common questions</h2>
+            <h2 className="text-3xl font-bold text-neutral-900">{t('faqTitle')}</h2>
           </motion.div>
 
           <div className="space-y-4">
-            {FAQS.map((faq, idx) => (
+            {faqs.map((faq, idx) => (
               <motion.details
                 key={faq.q}
                 initial={{ opacity: 0, y: 10 }}
@@ -375,7 +395,7 @@ export default function BecomeAHostPage() {
               >
                 <summary className="flex items-center justify-between cursor-pointer p-6 font-semibold text-neutral-900">
                   {faq.q}
-                  <ChevronRight className="h-5 w-5 text-neutral-400 transition-transform group-open:rotate-90" />
+                  <ChevronRight className="h-5 w-5 text-neutral-400 transition-transform group-open:rotate-90 rtl:-rotate-180 rtl:group-open:rotate-90" />
                 </summary>
                 <div className="px-6 pb-6 text-neutral-600">{faq.a}</div>
               </motion.details>
@@ -391,16 +411,16 @@ export default function BecomeAHostPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-6">Start your hosting journey today</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-6">{t('ctaTitle')}</h2>
             <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-              Join our community of hosts and start earning from your extra space. Setup takes less than 10 minutes.
+              {t('ctaDesc')}
             </p>
             <button
               onClick={handleGetStarted}
               className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-lg font-semibold text-neutral-900 shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70"
             >
-              Get started
-              <ChevronRight className="h-5 w-5" />
+              {t('getStarted')}
+              <ChevronRight className="h-5 w-5 rtl:rotate-180" />
             </button>
           </motion.div>
         </div>

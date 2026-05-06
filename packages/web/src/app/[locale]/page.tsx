@@ -385,7 +385,7 @@ export default function HomePage() {
             {[
               { stat: '150K+', desc: t('staysBooked') },
               { stat: '4.8★', desc: t('averageRatingStat') },
-              { stat: '5%', desc: t('hostCommissionStat') },
+              { stat: '0%', desc: t('hostCommissionStat') },
               { stat: '48+', desc: t('citiesCovered') },
             ].map(({ stat, desc }) => (
               <div key={desc}>
@@ -451,15 +451,18 @@ export default function HomePage() {
                   </Link>
                   <Link
                     href={`/${locale}/experiences`}
-                    className="rounded-xl border border-white/25 text-white px-8 py-4 text-sm font-semibold hover:bg-white/10 transition-colors"
+                    className="relative rounded-xl border border-white/25 text-white px-8 py-4 text-sm font-semibold hover:bg-white/10 transition-colors"
                   >
                     🎭 {t('exploreExperiencesCTA')}
+                    <span className="absolute -top-2.5 -end-2.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-neutral-900 leading-none">
+                      {t('soonLabel')}
+                    </span>
                   </Link>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { icon: '💸', stat: '5%', desc: t('hostCommissionStat'), highlight: true },
+                  { icon: '💸', stat: '0%', desc: t('hostCommissionStat'), highlight: true },
                   { icon: '⚡', stat: '24h', desc: t('fastPayouts'), highlight: false },
                   { icon: '🛡️', stat: '100%', desc: t('hostProtection'), highlight: false },
                   { icon: '📱', stat: '24/7', desc: t('support'), highlight: false },

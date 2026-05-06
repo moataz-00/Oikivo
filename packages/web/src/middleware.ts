@@ -80,7 +80,9 @@ export default async function middleware(request: NextRequest) {
   }
 
   // 4. Protected routes → redirect to login if not authenticated
-  if (PROTECTED_PREFIXES.some((prefix) => strippedPath.startsWith(prefix))) {
+  //    Exempt /hosting/activate — activation link must work without prior login
+  const isHostActivatePath = strippedPath === '/hosting/activate' || strippedPath.startsWith('/hosting/activate?');
+  if (!isHostActivatePath && PROTECTED_PREFIXES.some((prefix) => strippedPath.startsWith(prefix))) {
     const token = request.cookies.get('access_token')?.value;
     if (!token) {
       const loginUrl = new URL(`/${locale}/login`, request.url);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -37,6 +37,7 @@ function getBookingDates(booking: Booking): string[] {
 
 export default function ReservationsCalendarPage() {
   const locale = useLocale();
+  const t = useTranslations('hosting');
   const router = useRouter();
   const { isLoggedIn, isHost, hasHydrated } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -75,21 +76,21 @@ export default function ReservationsCalendarPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10">
+    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="mb-6 flex items-center gap-4">
         <Link
           href={`/${locale}/hosting/reservations`}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 hover:bg-neutral-50 transition-colors"
         >
-          <ChevronLeft className="h-5 w-5" />
+          {locale === 'ar' ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-2">
             <CalendarClock className="h-6 w-6 text-neutral-600" />
-            Reservations Calendar
+            {t('resCalTitle')}
           </h1>
-          <p className="text-sm text-neutral-500 mt-0.5">All bookings across your listings</p>
+          <p className="text-sm text-neutral-500 mt-0.5">{t('resCalDesc')}</p>
         </div>
       </div>
 
@@ -102,23 +103,23 @@ export default function ReservationsCalendarPage() {
               onClick={() => setCurrentDate((d) => subMonths(d, 1))}
               className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-indigo-100 text-indigo-600 transition-colors"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
             </button>
             <h2 className="font-semibold text-indigo-900">{format(currentDate, 'MMMM yyyy')}</h2>
             <button
               onClick={() => setCurrentDate((d) => addMonths(d, 1))}
               className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-indigo-100 text-indigo-600 transition-colors"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-5 w-5 rtl:rotate-180" />
             </button>
           </div>
 
           {/* Legend */}
           <div className="flex items-center gap-4 px-6 py-2.5 border-b border-neutral-100 bg-neutral-50/50">
-            {['pending', 'confirmed', 'completed'].map((s) => (
+            {(['pending', 'confirmed', 'completed'] as const).map((s) => (
               <div key={s} className="flex items-center gap-1.5">
                 <div className={cn('h-2.5 w-2.5 rounded-full', STATUS_COLORS[s])} />
-                <span className="text-xs text-neutral-600 capitalize">{s}</span>
+                <span className="text-xs text-neutral-600 capitalize">{t(s as any)}</span>
               </div>
             ))}
           </div>
@@ -131,8 +132,8 @@ export default function ReservationsCalendarPage() {
             <div className="p-4">
               {/* Weekday headers */}
               <div className="grid grid-cols-7 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-                  <div key={d} className="text-center text-xs font-medium text-neutral-400 py-2">{d}</div>
+                {(['calWeekSun','calWeekMon','calWeekTue','calWeekWed','calWeekThu','calWeekFri','calWeekSat'] as const).map((k) => (
+                  <div key={k} className="text-center text-xs font-medium text-neutral-400 py-2">{t(k)}</div>
                 ))}
               </div>
 
@@ -181,12 +182,12 @@ export default function ReservationsCalendarPage() {
           <div className="border-t border-neutral-100 px-6 py-3 bg-neutral-50/50 flex items-center gap-4 text-xs text-neutral-500">
             <span className="flex items-center gap-1">
               <Home className="h-3.5 w-3.5" />
-              {bookings.length} booking{bookings.length !== 1 ? 's' : ''} this month
+              {t('resCalBookingsCount', { count: bookings.length })}
             </span>
             {bookings.length > 0 && (
               <span className="flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" />
-                {bookings.reduce((s, b) => s + (b.guests ?? 0), 0)} total guests
+                {t('resCalTotalGuests', { count: bookings.reduce((s, b) => s + (b.guests ?? 0), 0) })}
               </span>
             )}
           </div>
@@ -214,7 +215,7 @@ export default function ReservationsCalendarPage() {
               <h3 className="font-semibold text-neutral-900 text-sm">{selected.property?.title}</h3>
               <p className="text-xs text-neutral-500 mt-1">
                 {format(parseISO(selected.checkIn), 'MMM d')} – {format(parseISO(selected.checkOut), 'MMM d, yyyy')}
-                {' '}· {selected.nights} nights
+                {' '}· {t('resCalNights', { count: selected.nights })}
               </p>
               <div className="mt-3 flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-bold text-neutral-600">
@@ -222,7 +223,7 @@ export default function ReservationsCalendarPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-neutral-800">{selected.guest?.firstName} {selected.guest?.lastName}</p>
-                  <p className="text-xs text-neutral-400">{selected.guests} guest{selected.guests !== 1 ? 's' : ''}</p>
+                  <p className="text-xs text-neutral-400">{t('resCalGuests', { count: selected.guests })}</p>
                 </div>
               </div>
               <div className="mt-4 rounded-xl bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-800">
@@ -232,13 +233,13 @@ export default function ReservationsCalendarPage() {
                 href={`/${locale}/hosting/reservations`}
                 className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-neutral-200 py-2.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
               >
-                View in Reservations
+                {t('resCalViewInReservations')}
               </Link>
             </motion.div>
           ) : (
             <div className="rounded-3xl border border-dashed border-neutral-200 bg-white p-8 text-center">
               <CalendarClock className="h-8 w-8 text-neutral-300 mx-auto mb-3" />
-              <p className="text-sm text-neutral-500">Click a date with bookings to see details</p>
+              <p className="text-sm text-neutral-500">{t('resCalClickDate')}</p>
             </div>
           )}
 
@@ -246,7 +247,7 @@ export default function ReservationsCalendarPage() {
           {bookings.length > 0 && (
             <div className="rounded-3xl border border-neutral-200 bg-white overflow-hidden">
               <div className="px-4 py-3 border-b border-neutral-100 text-xs font-semibold text-neutral-600 uppercase tracking-wide">
-                This month
+                {t('resCalThisMonth')}
               </div>
               <div className="divide-y divide-neutral-100 max-h-72 overflow-y-auto">
                 {bookings.map((b) => (

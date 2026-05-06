@@ -35,7 +35,6 @@ export function Select({
   id,
 }: SelectProps) {
   const labelId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
-  const selected = options.find((o) => o.value === value);
 
   return (
     <div className={cn('w-full', className)}>
@@ -44,7 +43,7 @@ export function Select({
           {label}
         </label>
       )}
-      <RadixSelect.Root value={value} onValueChange={onChange} disabled={disabled}>
+      <RadixSelect.Root value={value ?? ''} onValueChange={onChange} disabled={disabled}>
         <RadixSelect.Trigger
           id={labelId}
           className={cn(
@@ -55,9 +54,7 @@ export function Select({
             error && 'border-red-500 focus:border-red-500 focus:ring-red-500'
           )}
         >
-          <RadixSelect.Value placeholder={placeholder ?? 'Select...'}>
-            {selected?.label}
-          </RadixSelect.Value>
+          <RadixSelect.Value placeholder={placeholder ?? 'Select...'} />
           <RadixSelect.Icon asChild>
             <ChevronDown className="h-4 w-4 text-neutral-400 shrink-0 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
           </RadixSelect.Icon>
@@ -85,13 +82,13 @@ export function Select({
                   key={opt.value}
                   value={opt.value}
                   className={cn(
-                    'relative flex w-full cursor-pointer select-none items-center rounded-lg px-3 py-2.5 pr-8 text-sm text-neutral-700 outline-none',
+                    'relative flex w-full cursor-pointer select-none items-center rounded-lg px-3 py-2.5 pe-8 text-sm text-neutral-700 outline-none',
                     'hover:bg-neutral-100 focus:bg-neutral-100',
                     'data-[state=checked]:bg-indigo-50 data-[state=checked]:text-indigo-700 data-[state=checked]:font-medium'
                   )}
                 >
                   <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>
-                  <RadixSelect.ItemIndicator className="absolute right-2.5 flex items-center">
+                  <RadixSelect.ItemIndicator className="absolute end-2.5 flex items-center">
                     <Check className="h-3.5 w-3.5 text-indigo-600" />
                   </RadixSelect.ItemIndicator>
                 </RadixSelect.Item>

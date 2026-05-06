@@ -1,5 +1,12 @@
-@import url('https://fonts.cdnfonts.com/css/magnolia-script');
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+@font-face {
+  font-family: 'Magnolia Script';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.cdnfonts.com/s/14601/Magnolia_Script.woff') format('woff');
+}
 
 @tailwind base;
 @tailwind components;
@@ -29,9 +36,13 @@
   [lang="ar"] {
     font-family: 'Cairo', var(--font-sans, system-ui, sans-serif);
   }
-  [lang="ar"] * {
+  [lang="ar"] *:not(.font-brand) {
     letter-spacing: 0 !important; /* Arabic script doesn't use letter-spacing */
     word-spacing: 0.05em;
+  }
+  /* Preserve Magnolia Script for brand elements on Arabic pages */
+  [lang="ar"] .font-brand {
+    font-family: 'Magnolia Script', cursive !important;
   }
 
   body {

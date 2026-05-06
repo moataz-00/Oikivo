@@ -262,6 +262,12 @@ export class AdminController {
     );
   }
 
+  @Get('disputes/:id')
+  @ApiOperation({ summary: 'Get full dispute details (admin) — includes both guest and host evidence' })
+  getDisputeDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.disputesService.getDisputeForAdmin(id);
+  }
+
   @Patch('disputes/:id/resolve')
   @ApiOperation({ summary: 'Resolve a dispute with a resolution type and admin note' })
   resolveDispute(
@@ -504,6 +510,15 @@ export class AdminController {
     return this.adminService.banUser(id, body.reason);
   }
 
+  @Patch('users/:id/suspend')
+  @ApiOperation({ summary: 'Suspend a user with reason and send email notification (admin only)' })
+  suspendUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { reason: string },
+  ) {
+    return this.adminService.suspendUser(id, body.reason);
+  }
+
   // ─── Property Detail + CRUD ─────────────────────────────────────────────────
 
   @Get('properties/:id')
@@ -569,6 +584,31 @@ export class AdminController {
     @Body() body: { amount: number; reason: string },
   ) {
     return this.adminService.adminRefund(id, body.amount, body.reason);
+  }
+
+  @Post('bookings/:id/deposit/approve')
+  @ApiOperation({ summary: 'Admin approves a host deposit damage claim — host keeps cash' })
+  approveDepositClaim(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { adminNote?: string },
+  ) {
+    return this.adminService.approveDepositClaim(id, body?.adminNote);
+  }
+
+  @Post('bookings/:id/deposit/reject')
+  @ApiOperation({ summary: 'Admin rejects a host deposit damage claim — host must return cash to guest' })
+  rejectDepositClaim(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { reason?: string },
+  ) {
+    return this.adminService.rejectDepositClaim(id, body?.reason);
+  }
+
+  @Get('deposit-claims')
+  @ApiOperation({ summary: 'List all bookings with a deposit (filterable by depositStatus)' })
+  @ApiQuery({ name: 'status', required: false, enum: ['held', 'claimed', 'approved', 'rejected', 'released'] })
+  getDepositClaims(@Query('status') status?: string) {
+    return this.adminService.getDepositClaims(status);
   }
 
   // ─── Categories CRUD ───────────────────────────────────────────────────────

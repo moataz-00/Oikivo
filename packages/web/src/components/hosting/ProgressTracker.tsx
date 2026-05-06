@@ -2,6 +2,7 @@
 
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface Step {
   slug: string;
@@ -43,6 +44,9 @@ export function ProgressTracker({
   onStepClick,
   className,
 }: ProgressTrackerProps) {
+  const t = useTranslations('hosting');
+  const isRTL = useLocale() === 'ar';
+
   const handleStepClick = (stepNumber: number) => {
     // Only allow clicking on completed steps or current step
     if (completedSteps.has(stepNumber) || stepNumber === currentStep) {
@@ -52,8 +56,9 @@ export function ProgressTracker({
 
   return (
     <aside
+      dir={isRTL ? 'rtl' : 'ltr'}
       className={cn(
-        'shrink-0 sticky top-0 h-screen overflow-y-auto border-r border-neutral-200 bg-white pt-6 pb-8 px-4',
+        'shrink-0 sticky top-0 h-screen overflow-y-auto border-e border-neutral-200 bg-white pt-6 pb-8 px-4',
         'w-72',
         className
       )}
@@ -71,7 +76,7 @@ export function ProgressTracker({
               onClick={() => handleStepClick(stepNumber)}
               disabled={!isClickable}
               className={cn(
-                'w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all',
+                'w-full flex items-center gap-3 rounded-xl px-3 py-3 text-start transition-all',
                 'hover:bg-neutral-50',
                 isCurrent && 'bg-neutral-100 border border-neutral-200',
                 isCompleted && !isCurrent && 'opacity-70 hover:opacity-100',
@@ -107,7 +112,7 @@ export function ProgressTracker({
                 >
                   {step.title.length > 30 ? step.title.slice(0, 30) + '...' : step.title}
                 </p>
-                <p className="text-xs text-neutral-500 mt-0.5">Step {stepNumber} of {steps.length}</p>
+                <p className="text-xs text-neutral-500 mt-0.5">{t('wizardStepOf' as any, { current: stepNumber, total: steps.length })}</p>
               </div>
             </button>
           );
@@ -118,7 +123,7 @@ export function ProgressTracker({
       <div className="hidden lg:block mt-6 pt-6 border-t border-neutral-200">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between text-neutral-600">
-            <span>Completed</span>
+            <span>{t('completedLabel' as any)}</span>
             <span className="font-semibold text-neutral-900">
               {completedSteps.size}/{steps.length}
             </span>

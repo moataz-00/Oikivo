@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface Step {
   slug: string;
@@ -45,6 +46,8 @@ export function MobileProgressBar({
   className,
 }: MobileProgressBarProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const t = useTranslations('hosting');
+  const isRTL = useLocale() === 'ar';
 
   const currentStepData = steps[currentStep - 1];
   const progress = (completedSteps.size / steps.length) * 100;
@@ -60,7 +63,7 @@ export function MobileProgressBar({
   return (
     <>
       {/* Mobile Progress Bar */}
-      <div className={cn('lg:hidden', className)}>
+      <div className={cn('lg:hidden', className)} dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Compact Bar */}
         <button
           onClick={() => setIsModalOpen(true)}
@@ -85,7 +88,7 @@ export function MobileProgressBar({
               </span>
             </div>
           </div>
-          <ChevronDown className="h-5 w-5 text-neutral-400 ml-2 shrink-0" />
+          <ChevronDown className="h-5 w-5 text-neutral-400 ms-2 shrink-0" />
         </button>
       </div>
 
@@ -99,10 +102,10 @@ export function MobileProgressBar({
           />
 
           {/* Bottom Sheet */}
-          <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto lg:hidden animate-in slide-in-from-bottom duration-300">
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto lg:hidden animate-in slide-in-from-bottom duration-300" dir={isRTL ? 'rtl' : 'ltr'}>
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-neutral-200 px-4 py-4 flex items-center justify-between rounded-t-3xl">
-              <h3 className="text-lg font-semibold text-neutral-900">All Steps</h3>
+              <h3 className="text-lg font-semibold text-neutral-900">{t('allStepsLabel' as any)}</h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-neutral-100 transition-colors"
@@ -125,7 +128,7 @@ export function MobileProgressBar({
                     onClick={() => handleStepClick(stepNumber)}
                     disabled={!isClickable}
                     className={cn(
-                      'w-full flex items-start gap-3 rounded-xl p-4 text-left transition-all',
+                      'w-full flex items-start gap-3 rounded-xl p-4 text-start transition-all',
                       'border-2',
                       isCurrent && 'bg-neutral-100 border-indigo-600',
                       isCompleted && !isCurrent && 'border-green-200 bg-green-50/30',
@@ -173,7 +176,7 @@ export function MobileProgressBar({
                     {isCurrent && (
                       <div className="shrink-0 pt-2">
                         <div className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-medium text-white">
-                          Current
+                          {t('wizardCurrentBadge' as any)}
                         </div>
                       </div>
                     )}
@@ -185,9 +188,9 @@ export function MobileProgressBar({
             {/* Progress Summary */}
             <div className="sticky bottom-0 bg-white border-t border-neutral-200 px-4 py-4">
               <div className="flex justify-between items-center text-sm mb-2">
-                <span className="text-neutral-600">Progress</span>
+                <span className="text-neutral-600">{t('progressLabel' as any)}</span>
                 <span className="font-semibold text-neutral-900">
-                  {completedSteps.size} of {steps.length} completed
+                  {t('wizardProgressCompleted' as any, { done: completedSteps.size, total: steps.length })}
                 </span>
               </div>
               <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">

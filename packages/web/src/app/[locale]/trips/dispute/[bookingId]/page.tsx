@@ -7,16 +7,17 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowLeft, AlertTriangle, Loader2, ImagePlus, X } from 'lucide-react';
 import Link from 'next/link';
 import { disputesApi, bookingsApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/utils';
 import { toast } from '@/components/ui/Toast';
 import { FadeIn } from '@/components/ui/Motion';
 
 const CATEGORIES = [
-  { value: 'property_not_as_described', label: 'Property not as described', emoji: '🏠' },
-  { value: 'no_show',                   label: 'Host no-show',              emoji: '🚫' },
-  { value: 'safety_concern',            label: 'Safety concern',            emoji: '⚠️' },
-  { value: 'refund_request',            label: 'Refund request',            emoji: '💰' },
-  { value: 'damage_claim',              label: 'Damage claim (host)',        emoji: '🛠️' },
-  { value: 'other',                     label: 'Other',                     emoji: '📝' },
+  { value: 'property_not_as_described', label: 'Property not as described', labelAr: 'العقار لا يطابق الوصف', emoji: '🏠' },
+  { value: 'no_show',                   label: 'Host no-show',              labelAr: 'المضيف لم يحضر',          emoji: '🚫' },
+  { value: 'safety_concern',            label: 'Safety concern',            labelAr: 'مخاوف تتعلق بالسلامة',    emoji: '⚠️' },
+  { value: 'refund_request',            label: 'Refund request',            labelAr: 'طلب استرداد',              emoji: '💰' },
+  { value: 'damage_claim',              label: 'Damage claim (host)',        labelAr: 'ادعاء بالأضرار (مضيف)',    emoji: '🛠️' },
+  { value: 'other',                     label: 'Other',                     labelAr: 'أخرى',                     emoji: '📝' },
 ] as const;
 
 export default function OpenDisputePage() {
@@ -50,7 +51,7 @@ export default function OpenDisputePage() {
       return dispute;
     },
     onSuccess: (dispute) => {
-      toast.success('Dispute opened. Our team will review it within 5 business days.');
+      toast.success(locale === 'ar' ? 'تم فتح النزاع. سيراجعه فريقنا خلال 5 أيام عمل.' : 'Dispute opened. Our team will review it within 5 business days.');
       if (dispute?.uuid) {
         router.push(`/${locale}/trips/disputes/${dispute.uuid}`);
       } else {
@@ -58,15 +59,15 @@ export default function OpenDisputePage() {
       }
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to open dispute. Please try again.');
+      toast.error(err?.response?.data?.message ?? (locale === 'ar' ? 'فشل فتح النزاع. يرجى المحاولة مرة أخرى.' : 'Failed to open dispute. Please try again.'));
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!category) { toast.error('Please select a category'); return; }
-    if (title.trim().length < 10) { toast.error('Title must be at least 10 characters'); return; }
-    if (description.trim().length < 30) { toast.error('Description must be at least 30 characters'); return; }
+    if (!category) { toast.error(locale === 'ar' ? 'يرجى اختيار فئة' : 'Please select a category'); return; }
+    if (title.trim().length < 10) { toast.error(locale === 'ar' ? 'يجب أن يكون العنوان 10 أحرف على الأقل' : 'Title must be at least 10 characters'); return; }
+    if (description.trim().length < 30) { toast.error(locale === 'ar' ? 'يجب أن يكون الوصف 30 حرفًا على الأقل' : 'Description must be at least 30 characters'); return; }
     mutation.mutate();
   };
 
@@ -79,15 +80,15 @@ export default function OpenDisputePage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <FadeIn>
         <div className="mx-auto max-w-2xl px-4 py-10">
           <Link
             href={`/${locale}/trips`}
             className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors mb-6"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to trips
+            <ArrowLeft className={`h-4 w-4 ${locale === 'ar' ? 'rotate-180' : ''}`} />
+            {locale === 'ar' ? 'العودة إلى رحلاتي' : 'Back to trips'}
           </Link>
 
           {/* Header */}
@@ -96,9 +97,13 @@ export default function OpenDisputePage() {
               <AlertTriangle className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Open a dispute</h1>
+              <h1 className="text-2xl font-bold text-neutral-900">
+                {locale === 'ar' ? 'فتح نزاع' : 'Open a dispute'}
+              </h1>
               <p className="text-neutral-500 text-sm mt-1">
-                Our resolution team will review your case and respond within 5 business days.
+                {locale === 'ar'
+                  ? 'سيراجع فريق الحل قضيتك ويرد خلال 5 أيام عمل.'
+                  : 'Our resolution team will review your case and respond within 5 business days.'}
               </p>
             </div>
           </div>
@@ -107,14 +112,13 @@ export default function OpenDisputePage() {
           {booking && (
             <div className="bg-white rounded-2xl border border-neutral-200 p-4 mb-6 flex items-center gap-3">
               <div className="h-14 w-14 rounded-xl bg-neutral-100 overflow-hidden shrink-0">
-                {booking.property?.images?.[0]?.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={booking.property.images[0].url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                )}
+                {(() => {
+                  const cover = (booking.property as any)?.photos?.find((p: any) => p.isCover) ?? (booking.property as any)?.photos?.[0];
+                  return cover ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={getImageUrl(cover.url)} alt="" className="h-full w-full object-cover" />
+                  ) : null;
+                })()}
               </div>
               <div>
                 <p className="font-medium text-neutral-900 line-clamp-1">{booking.property?.title ?? 'Booking'}</p>
@@ -128,21 +132,23 @@ export default function OpenDisputePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Category */}
             <div>
-              <p className="text-sm font-semibold text-neutral-700 mb-3">What is this dispute about?</p>
+              <p className="text-sm font-semibold text-neutral-700 mb-3">
+                {locale === 'ar' ? 'ما موضوع هذا النزاع؟' : 'What is this dispute about?'}
+              </p>
               <div className="grid grid-cols-2 gap-2.5">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.value}
                     type="button"
                     onClick={() => setCategory(cat.value)}
-                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium text-left transition-all ${
+                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium text-start transition-all ${
                       category === cat.value
                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-400'
                         : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50'
                     }`}
                   >
                     <span className="text-lg">{cat.emoji}</span>
-                    {cat.label}
+                    {locale === 'ar' ? cat.labelAr : cat.label}
                   </button>
                 ))}
               </div>
@@ -151,42 +157,50 @@ export default function OpenDisputePage() {
             {/* Title */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
-                Dispute title
-                <span className="text-neutral-400 font-normal ml-1">(10–200 characters)</span>
+                {locale === 'ar' ? 'عنوان النزاع' : 'Dispute title'}
+                <span className="text-neutral-400 font-normal ms-1">
+                  {locale === 'ar' ? '(10–200 حرف)' : '(10–200 characters)'}
+                </span>
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={200}
-                placeholder="e.g. Property had no hot water as listed"
+                placeholder={locale === 'ar' ? 'مثال: لم يكن هناك ماء ساخن كما هو مذكور' : 'e.g. Property had no hot water as listed'}
                 className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition"
               />
-              <p className="text-xs text-neutral-400 mt-1 text-right">{title.length}/200</p>
+              <p className="text-xs text-neutral-400 mt-1 text-end">{title.length}/200</p>
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
-                Detailed description
-                <span className="text-neutral-400 font-normal ml-1">(30–5 000 characters)</span>
+                {locale === 'ar' ? 'وصف مفصّل' : 'Detailed description'}
+                <span className="text-neutral-400 font-normal ms-1">
+                  {locale === 'ar' ? '(30–5000 حرف)' : '(30–5 000 characters)'}
+                </span>
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={5000}
                 rows={6}
-                placeholder="Describe the issue clearly. Include dates, what was promised vs. what happened, and any communication you had with the host."
+                placeholder={locale === 'ar'
+                  ? 'صف المشكلة بوضوح. اذكر التواريخ وما كان مَوعودًا به مقابل ما حدث، وأي تواصل مع المضيف.'
+                  : 'Describe the issue clearly. Include dates, what was promised vs. what happened, and any communication you had with the host.'}
                 className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition resize-none"
               />
-              <p className="text-xs text-neutral-400 mt-1 text-right">{description.length}/5000</p>
+              <p className="text-xs text-neutral-400 mt-1 text-end">{description.length}/5000</p>
             </div>
 
             {/* Evidence photos */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
-                Evidence photos
-                <span className="text-neutral-400 font-normal ml-1">(optional, up to 10)</span>
+                {locale === 'ar' ? 'صور الأدلة' : 'Evidence photos'}
+                <span className="text-neutral-400 font-normal ms-1">
+                  {locale === 'ar' ? '(اختياري، حتى 10 صور)' : '(optional, up to 10)'}
+                </span>
               </label>
               <div className="flex flex-wrap gap-2.5">
                 {evidenceFiles.map((file, idx) => (
@@ -224,15 +238,21 @@ export default function OpenDisputePage() {
                 )}
               </div>
               {evidenceFiles.length > 0 && (
-                <p className="text-xs text-neutral-400 mt-1">{evidenceFiles.length}/10 photos selected</p>
+                <p className="text-xs text-neutral-400 mt-1">
+                  {locale === 'ar' ? `${evidenceFiles.length}/10 صور محددة` : `${evidenceFiles.length}/10 photos selected`}
+                </p>
               )}
             </div>
 
             {/* Info box */}
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800">
-              <strong>Before submitting:</strong> Please attempt to resolve the issue directly with the host
-              via the messaging system. Disputes that haven&apos;t involved prior communication may take
-              longer to resolve.
+              {locale === 'ar' ? (
+                <><strong>قبل التقديم:</strong> يرجى محاولة حل المشكلة مباشرة مع المضيف عبر نظام المراسلة. النزاعات التي لم تشمل تواصلًا مسبقًا قد تستغرق وقتًا أطول في الحل.</>
+              ) : (
+                <><strong>Before submitting:</strong> Please attempt to resolve the issue directly with the host
+                via the messaging system. Disputes that haven&apos;t involved prior communication may take
+                longer to resolve.</>
+              )}
             </div>
 
             <button
@@ -243,10 +263,10 @@ export default function OpenDisputePage() {
               {mutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Submitting…
+                  {locale === 'ar' ? 'جارٍ التقديم…' : 'Submitting…'}
                 </>
               ) : (
-                'Submit dispute'
+                locale === 'ar' ? 'تقديم النزاع' : 'Submit dispute'
               )}
             </button>
           </form>

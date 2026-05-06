@@ -102,19 +102,19 @@ export default function LoginPage() {
         <div className="relative z-10 space-y-8">
           <div>
             <h2 className="text-4xl font-bold text-white leading-tight">
-              Your next stay<br />begins here.
+              {t('loginPanelHeadline')}
             </h2>
             <p className="mt-4 text-indigo-200 text-lg leading-relaxed">
-              Thousands of verified homes, experiences, and stays across Egypt and beyond.
+              {t('loginPanelSubtitle')}
             </p>
           </div>
 
           {/* Feature cards */}
           <div className="space-y-3">
             {[
-              { icon: Shield, text: 'Secure payments & verified hosts' },
-              { icon: Star, text: 'Curated stays with real guest reviews' },
-              { icon: Zap, text: 'Instant book — no waiting required' },
+              { icon: Shield, text: t('loginFeature1') },
+              { icon: Star, text: t('loginFeature2') },
+              { icon: Zap, text: t('loginFeature3') },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20">
@@ -128,9 +128,9 @@ export default function LoginPage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Listings', value: '12K+' },
-              { label: 'Happy guests', value: '48K+' },
-              { label: 'Cities', value: '27' },
+              { label: t('statListings'), value: '12K+' },
+              { label: t('statHappyGuests'), value: '48K+' },
+              { label: t('statCities'), value: '27' },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-xl bg-white/10 backdrop-blur-sm p-3 text-center">
                 <p className="text-2xl font-bold text-white">{value}</p>
@@ -142,7 +142,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="relative z-10 text-sm text-indigo-300">
-          © {new Date().getFullYear()} Oikivo — All rights reserved
+          © {new Date().getFullYear()} {t('panelCopyright')}
         </p>
       </div>
 
@@ -159,7 +159,7 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-neutral-900">{t('loginTitle')}</h1>
+            <h1 className="text-2xl font-bold text-neutral-900">{t('loginTitle')} <span className="font-brand text-indigo-600">Oikivo</span></h1>
             <p className="mt-1.5 text-sm text-neutral-500">{t('loginSubtitle')}</p>
           </div>
 
@@ -207,9 +207,9 @@ export default function LoginPage() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50">
                     <KeyRound className="h-6 w-6 text-indigo-600" />
                   </div>
-                  <h2 className="text-xl font-semibold text-neutral-900">Two-Factor Authentication</h2>
+                  <h2 className="text-xl font-semibold text-neutral-900">{t('twoFactorTitle')}</h2>
                   <p className="text-sm text-neutral-500 leading-relaxed">
-                    Enter the 6-digit code from your authenticator app to continue.
+                    {t('twoFactorEnterCode')}
                   </p>
                 </div>
                 <input
@@ -231,13 +231,13 @@ export default function LoginPage() {
                   onClick={onSubmitTotp}
                   className="bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
                 >
-                  Verify &amp; Sign in
+                  {t('verifyAndSignIn')}
                 </Button>
                 <button
                   onClick={() => { setTotpStep(false); setTotpCode(''); setPendingCredentials(null); }}
                   className="mt-3 w-full text-sm text-neutral-500 hover:text-neutral-700 text-center"
                 >
-                  ← Back to login
+                  {t('backToLogin')}
                 </button>
               </div>
             </div>

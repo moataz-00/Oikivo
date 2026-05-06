@@ -1,12 +1,17 @@
+import { getLocale } from 'next-intl/server';
+
 // Root layout — must contain <html> and <body> per Next.js App Router requirements.
-// Locale-specific attributes (lang, dir, font classes) are applied in [locale]/layout.tsx.
-export default function RootLayout({
+// Sets lang and dir on <html> so browsers, screen readers, and native controls get correct RTL/LTR.
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+
   return (
-    <html suppressHydrationWarning>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

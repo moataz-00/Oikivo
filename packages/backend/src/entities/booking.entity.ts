@@ -64,6 +64,25 @@ export class BookingEntity {
   @Column({ name: 'base_amount', type: 'decimal', precision: 10, scale: 2 })
   baseAmount: number;
 
+  /** Property's base price per night at time of booking (before any discount). */
+  @Column({ name: 'price_per_night', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  pricePerNight: number;
+
+  /** Discount amount applied (long-stay / last-minute / new-listing promo). 0 = no discount. */
+  @Column({ name: 'discount_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  discountAmount: number;
+
+  /** Discount percentage (e.g. 10 = 10%). 0 = no discount. */
+  @Column({ name: 'discount_percent', type: 'decimal', precision: 5, scale: 2, default: 0 })
+  discountPercent: number;
+
+  /** Discount type label: weekly | monthly | new_listing_promotion | last_minute. */
+  @Column({ name: 'discount_type', length: 40, nullable: true, default: null })
+  discountType: string | null;
+
+  @Column({ name: 'nightly_rates', type: 'json', nullable: true, comment: 'Per-night price breakdown stored at booking creation time' })
+  nightlyRates: { date: string; price: number }[] | null;
+
   @Column({ name: 'cleaning_fee', type: 'decimal', precision: 10, scale: 2, default: 0 })
   cleaningFee: number;
 
@@ -82,10 +101,10 @@ export class BookingEntity {
   @Column({
     name: 'deposit_status',
     type: 'enum',
-    enum: ['none', 'held', 'claimed', 'released'],
+    enum: ['none', 'held', 'claimed', 'released', 'approved', 'rejected'],
     default: 'none',
   })
-  depositStatus: 'none' | 'held' | 'claimed' | 'released';
+  depositStatus: 'none' | 'held' | 'claimed' | 'released' | 'approved' | 'rejected';
 
   @Column({ name: 'deposit_claim_deadline', type: 'datetime', nullable: true })
   depositClaimDeadline: Date | null;
@@ -95,6 +114,9 @@ export class BookingEntity {
 
   @Column({ name: 'deposit_claim_reason', type: 'text', nullable: true })
   depositClaimReason: string | null;
+
+  @Column({ name: 'deposit_claim_evidence', type: 'json', nullable: true })
+  depositClaimEvidence: string[] | null;
 
   @Column({ length: 3, default: 'EGP' })
   currency: string;

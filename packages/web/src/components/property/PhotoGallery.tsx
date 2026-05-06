@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import { X, ChevronLeft, ChevronRight, Grid3X3 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Grid3X3, ImageOff } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
 import type { PropertyImage } from '@/types';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,50 @@ interface PhotoGalleryProps {
   images: PropertyImage[];
   title: string;
 }
+
+/** Wrapper that gracefully falls back to a placeholder when an image fails to load. */
+function GalleryImage({
+  src,
+  alt,
+  fill,
+  className,
+  priority,
+  sizes,
+  quality,
+  loading,
+}: {
+  src: string;
+  alt: string;
+  fill?: boolean;
+  className?: string;
+  priority?: boolean;
+  sizes?: string;
+  quality?: number;
+  loading?: 'eager' | 'lazy';
+}) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-neutral-100">
+        <ImageOff className="h-8 w-8 text-neutral-300" />
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill={fill}
+      className={className}
+      priority={priority}
+      sizes={sizes}
+      quality={quality}
+      loading={loading}
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
 
 export function PhotoGallery({ images, title }: PhotoGalleryProps) {
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -103,7 +147,7 @@ export function PhotoGallery({ images, title }: PhotoGalleryProps) {
                 onClick={() => { setActiveIndex(0); setGalleryOpen(true); }}
                 className="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-l-2xl overflow-hidden"
               >
-                <Image
+                <GalleryImage
                   src={imageUrls[0]}
                   alt={`${title} - photo 1`}
                   fill
@@ -124,7 +168,7 @@ export function PhotoGallery({ images, title }: PhotoGalleryProps) {
                   onClick={() => { setActiveIndex(idx + 1); setGalleryOpen(true); }}
                   className="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 overflow-hidden"
                 >
-                  <Image
+                  <GalleryImage
                     src={imageUrls[idx + 1]}
                     alt={`${title} - photo ${idx + 2}`}
                     fill
@@ -198,7 +242,7 @@ export function PhotoGallery({ images, title }: PhotoGalleryProps) {
               <div className="flex h-full items-center justify-center px-4 sm:px-16 pt-16 pb-24">
                 <div className="relative w-full max-w-5xl" style={{ height: 'calc(100vh - 160px)' }}>
                   {images.map((_, idx) => (
-                    <Image
+                    <GalleryImage
                       key={idx}
                       src={imageUrls[idx] ?? ''}
                       alt={`${title} - photo ${idx + 1}`}
@@ -247,7 +291,7 @@ export function PhotoGallery({ images, title }: PhotoGalleryProps) {
                       idx === 0 && 'col-span-2 row-span-2',
                     )}
                   >
-                    <Image
+                    <GalleryImage
                       src={imageUrls[idx]}
                       alt={`${title} - photo ${idx + 1}`}
                       fill
@@ -282,7 +326,7 @@ export function PhotoGallery({ images, title }: PhotoGalleryProps) {
                       : 'border-transparent opacity-50 hover:opacity-90',
                   )}
                 >
-                  <Image
+                  <GalleryImage
                     src={imageUrls[idx]}
                     alt={`thumbnail ${idx + 1}`}
                     fill

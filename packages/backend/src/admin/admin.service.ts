@@ -115,6 +115,12 @@ const EMAIL_TEMPLATE_REGISTRY: Array<{
     render: () => MailTpl.tplConsultationPaymentReceived('Dr. Youssef', 'Ahmed', 'Video Call', 'Jan 20, 2025 10:00 AM', 'EGP 250', 'EGP', 'CB-001', 'https://sakan.app/consultant/bookings/1') },
   { slug: 'consultant-payout-processed', name: 'Consultant Payout Processed', category: 'Consultations', description: 'Payout confirmation for consultant',
     render: () => MailTpl.tplConsultantPayoutProcessed('Dr. Youssef', 'EGP 225', 'EGP', 'bank_transfer', 'completed', null, 'https://sakan.app/consultant/payouts') },
+
+  // Admin / Moderation
+  { slug: 'account-suspended', name: 'Account Suspended', category: 'Admin', description: 'Sent to a user when their account is suspended by admin',
+    render: () => MailTpl.tplAccountSuspended('Ahmed', 'Violation of community guidelines', 'https://oikivo.com/support') },
+  { slug: 'account-banned', name: 'Account Banned', category: 'Admin', description: 'Sent to a user when their account is permanently banned by admin',
+    render: () => MailTpl.tplAccountBanned('Ahmed', 'Repeated serious violations of Terms of Service', 'https://oikivo.com/support') },
 ];
 
 @Injectable()
@@ -222,6 +228,51 @@ export class AdminService {
     (user as any).idVerificationStatus = approved ? 'approved' : 'rejected';
     (user as any).idRejectionReason = approved ? null : (rejectionReason ?? null);
     await this.usersRepo.save(user);
+
+    const appUrl = process.env.WEB_URL ?? 'https://oikivo.com';
+    const verificationUrl = `${appUrl}/account/verification`;
+
+    // In-app notification
+    const notifTitle    = approved ? 'Identity Verified ✅' : 'ID Verification Rejected';
+    const notifTitleAr  = approved ? 'تم التحقق من الهوية ✅' : 'تم رفض التحقق من الهوية';
+    const notifBody     = approved
+      ? 'Your government ID has been reviewed and approved. You now have full access to all platform features.'
+      : `Your ID document was not approved. ${rejectionReason ? `Reason: ${rejectionReason}. ` : ''}Please resubmit a clear photo of your ID.`;
+    const notifBodyAr   = approved
+      ? 'تمت مراجعة هويتك الحكومية والموافقة عليها. أصبح بإمكانك الآن الوصول الكامل لجميع ميزات المنصة.'
+      : `لم تتم الموافقة على وثيقة هويتك. ${rejectionReason ? `السبب: ${rejectionReason}. ` : ''}يرجى إعادة تقديم صورة واضحة من هويتك.`;
+    await this.notificationsService.create(
+      userId,
+      'system',
+      notifTitle,
+      notifTitleAr,
+      notifBody,
+      notifBodyAr,
+      { actionUrl: verificationUrl },
+    );
+
+    // Email notification
+    if (user.email) {
+      try {
+        if (approved) {
+          await this.mail.send(
+            user.email,
+            '✅ Your identity has been verified — Oikivo',
+            MailTpl.tplIdVerificationApproved(user.firstName, appUrl),
+          );
+        } else {
+          await this.mail.send(
+            user.email,
+            '❌ ID verification was not approved — Oikivo',
+            MailTpl.tplIdVerificationRejected(user.firstName, rejectionReason ?? null, verificationUrl),
+          );
+        }
+      } catch (e) {
+        // Email failure should not break the review action
+        console.warn('[reviewIdDocument] Email send failed:', (e as Error).message);
+      }
+    }
+
     return { message: approved ? 'ID approved — user is now ID verified' : 'ID rejected', isIdVerified: approved };
   }
 
@@ -884,6 +935,32 @@ export class AdminService {
     return { message: 'User deleted' };
   }
 
+  async suspendUser(userId: number, reason: string) {
+    const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.isAdmin) throw new BadRequestException('Cannot suspend an admin user');
+    user.isActive = false;
+    await this.usersRepo.save(user);
+    await this.notificationsService.create(
+      userId, 'account_suspended', 'Account Suspended',
+      'تم إيقاف الحساب مؤقتاً',
+      `Your account has been suspended. Reason: ${reason}`,
+      `تم إيقاف حسابك مؤقتاً. السبب: ${reason}`,
+      { reason },
+    );
+    const supportUrl = (process.env.FRONTEND_URL?.split(',')?.[0]?.trim() ?? 'https://oikivo.com') + '/support';
+    try {
+      await this.mail.send(
+        user.email,
+        'Your Oikivo account has been suspended',
+        MailTpl.tplAccountSuspended(user.firstName, reason, supportUrl),
+      );
+    } catch (e) {
+      console.error('[AdminService] Failed to send suspension email:', e);
+    }
+    return { message: 'User suspended', reason };
+  }
+
   async banUser(userId: number, reason: string) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -891,12 +968,22 @@ export class AdminService {
     user.isActive = false;
     await this.usersRepo.save(user);
     await this.notificationsService.create(
-      userId, 'account_banned', 'Account Suspended',
-      'تم إيقاف الحساب',
-      `Your account has been suspended. Reason: ${reason}`,
-      `تم إيقاف حسابك. السبب: ${reason}`,
+      userId, 'account_banned', 'Account Banned',
+      'تم حظر الحساب',
+      `Your account has been permanently banned. Reason: ${reason}`,
+      `تم حظر حسابك بشكل دائم. السبب: ${reason}`,
       { reason },
     );
+    const supportUrl = (process.env.FRONTEND_URL?.split(',')?.[0]?.trim() ?? 'https://oikivo.com') + '/support';
+    try {
+      await this.mail.send(
+        user.email,
+        'Your Oikivo account has been permanently banned',
+        MailTpl.tplAccountBanned(user.firstName, reason, supportUrl),
+      );
+    } catch (e) {
+      console.error('[AdminService] Failed to send ban email:', e);
+    }
     return { message: 'User banned', reason };
   }
 
@@ -1022,6 +1109,8 @@ export class AdminService {
     booking.cancelledBy = 'admin';
     booking.cancellationReason = reason;
     const saved = await this.bookingsRepo.save(booking);
+    // Unblock dates so they become available for new bookings
+    await this.bookingsService.unblockDates(booking.propertyId, booking.checkIn, booking.checkOut);
     // Notify guest
     if (booking.guest) {
       await this.notificationsService.create(
@@ -1058,6 +1147,144 @@ export class AdminService {
       );
     }
     return saved;
+  }
+
+  // ─── Deposit Claim Admin Actions ──────────────────────────────────────────
+
+  async approveDepositClaim(bookingId: number, adminNote?: string): Promise<BookingEntity> {
+    const booking = await this.bookingsRepo.findOne({
+      where: { id: bookingId },
+      relations: ['guest', 'host'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.depositStatus !== 'claimed') {
+      throw new BadRequestException('No pending deposit claim to approve');
+    }
+    booking.depositStatus = 'approved';
+    const saved = await this.bookingsRepo.save(booking);
+
+    const depositFormatted = `${Number(booking.depositAmount).toLocaleString()} ${booking.currency}`;
+    const noteBlock = adminNote ? `<p><strong>Admin Note:</strong> ${adminNote}</p>` : '';
+
+    // Notify host — claim approved
+    if (booking.host) {
+      await this.notificationsService.create(
+        booking.hostId, 'deposit_approved', 'Deposit Claim Approved',
+        'تمت الموافقة على طلب الإيداع',
+        `Your deposit claim of ${depositFormatted} for booking #${booking.id} has been approved. You may keep the cash deposit collected from the guest.`,
+        `تمت الموافقة على طلب الإيداع الخاص بك بمبلغ ${depositFormatted} للحجز #${booking.id}. يمكنك الاحتفاظ بمبلغ الإيداع النقدي المحصّل من الضيف.`,
+        { bookingId: booking.id },
+      );
+      await this.mail.send(
+        booking.host.email,
+        'Your deposit claim has been approved — Oikivo',
+        `<p>Hi ${booking.host.firstName ?? 'Host'},</p>
+         <p>Your damage deposit claim of <strong>${depositFormatted}</strong> for booking #${booking.id} has been <strong>approved</strong> by the Oikivo team.</p>
+         ${noteBlock}
+         <p>You may keep the cash deposit you collected from the guest at checkout.</p>
+         <p>Thank you for maintaining your property.</p>
+         <p>— The Oikivo Team</p>`,
+      );
+    }
+
+    // Notify guest — claim approved, deposit kept by host
+    if (booking.guest) {
+      await this.notificationsService.create(
+        booking.guestId, 'deposit_approved', 'Damage Deposit Decision',
+        'قرار الإيداع الضماني',
+        `The host's damage claim of ${depositFormatted} for booking #${booking.id} has been reviewed and approved. The deposit you paid at checkout will not be returned.`,
+        `تمت مراجعة طلب الضرر الخاص بالمضيف بمبلغ ${depositFormatted} للحجز #${booking.id} والموافقة عليه. لن يتم إعادة الإيداع الذي دفعته عند تسجيل المغادرة.`,
+        { bookingId: booking.id },
+      );
+      await this.mail.send(
+        booking.guest.email,
+        'Damage deposit decision for your booking — Oikivo',
+        `<p>Hi ${booking.guest.firstName ?? 'Guest'},</p>
+         <p>Following a review of the damage claim filed by your host for booking #${booking.id}, the Oikivo team has <strong>approved</strong> the host's claim.</p>
+         ${noteBlock}
+         <p>The security deposit of <strong>${depositFormatted}</strong> that you paid in cash at checkout will not be returned.</p>
+         <p>If you have questions or concerns, please contact Oikivo support.</p>
+         <p>— The Oikivo Team</p>`,
+      );
+    }
+
+    return saved;
+  }
+
+  async rejectDepositClaim(bookingId: number, adminReason?: string): Promise<BookingEntity> {
+    const booking = await this.bookingsRepo.findOne({
+      where: { id: bookingId },
+      relations: ['guest', 'host'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.depositStatus !== 'claimed') {
+      throw new BadRequestException('No pending deposit claim to reject');
+    }
+    booking.depositStatus = 'rejected';
+    const saved = await this.bookingsRepo.save(booking);
+
+    const depositFormatted = `${Number(booking.depositAmount).toLocaleString()} ${booking.currency}`;
+    const reasonBlock = adminReason ? `<p><strong>Reason:</strong> ${adminReason}</p>` : '';
+
+    // Notify host — claim rejected, must return cash
+    if (booking.host) {
+      await this.notificationsService.create(
+        booking.hostId, 'deposit_rejected', 'Deposit Claim Rejected',
+        'تم رفض طلب الإيداع',
+        `Your deposit claim of ${depositFormatted} for booking #${booking.id} has been rejected. You must return the cash deposit to the guest.`,
+        `تم رفض طلب الإيداع الخاص بك بمبلغ ${depositFormatted} للحجز #${booking.id}. يجب عليك إعادة الإيداع النقدي إلى الضيف.`,
+        { bookingId: booking.id },
+      );
+      await this.mail.send(
+        booking.host.email,
+        'Your deposit claim has been rejected — Oikivo',
+        `<p>Hi ${booking.host.firstName ?? 'Host'},</p>
+         <p>After reviewing the evidence provided, the Oikivo team has <strong>rejected</strong> your damage deposit claim of <strong>${depositFormatted}</strong> for booking #${booking.id}.</p>
+         ${reasonBlock}
+         <p>You are required to return the cash deposit to your guest as soon as possible.</p>
+         <p>If you believe this decision is incorrect, please contact Oikivo support.</p>
+         <p>— The Oikivo Team</p>`,
+      );
+    }
+
+    // Notify guest — claim rejected, deposit should be returned
+    if (booking.guest) {
+      await this.notificationsService.create(
+        booking.guestId, 'deposit_rejected', 'Damage Deposit Decision',
+        'قرار الإيداع الضماني',
+        `The host's damage claim for booking #${booking.id} has been reviewed and rejected. The host has been instructed to return your deposit of ${depositFormatted}.`,
+        `تمت مراجعة طلب الضرر الخاص بالمضيف للحجز #${booking.id} ورفضه. تم إخطار المضيف بإعادة وديعتك البالغة ${depositFormatted}.`,
+        { bookingId: booking.id },
+      );
+      await this.mail.send(
+        booking.guest.email,
+        'Damage deposit decision for your booking — Oikivo',
+        `<p>Hi ${booking.guest.firstName ?? 'Guest'},</p>
+         <p>After reviewing the host's damage claim for booking #${booking.id}, the Oikivo team has <strong>rejected</strong> the claim.</p>
+         ${reasonBlock}
+         <p>Your host has been instructed to return the security deposit of <strong>${depositFormatted}</strong> to you.</p>
+         <p>If you do not receive the deposit back within 48 hours, please contact Oikivo support.</p>
+         <p>— The Oikivo Team</p>`,
+      );
+    }
+
+    return saved;
+  }
+
+  async getDepositClaims(status?: string) {
+    const qb = this.bookingsRepo
+      .createQueryBuilder('b')
+      .leftJoinAndSelect('b.property', 'property')
+      .leftJoinAndSelect('b.guest', 'guest')
+      .leftJoinAndSelect('b.host', 'host')
+      .where('b.depositStatus != :none', { none: 'none' })
+      .orderBy('b.updatedAt', 'DESC');
+
+    if (status) {
+      qb.andWhere('b.depositStatus = :status', { status });
+    }
+
+    return qb.getMany();
   }
 
   // ─── Categories CRUD ───────────────────────────────────────────────────────

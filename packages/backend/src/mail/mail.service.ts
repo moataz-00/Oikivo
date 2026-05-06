@@ -1438,8 +1438,7 @@ export function tplHostActivationRequest(firstName: string, isArabic: boolean, a
       ${btn('🏠 تفعيل الاستضافة', activationUrl)}
       ${divider()}
       <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
-        إذا لم تطلب هذا الإجراء، يمكنك تجاهل هذه الرسالة.<br/>
-        <a href="${activationUrl}" style="color:${PRIMARY};font-size:11px;word-break:break-all;">${activationUrl}</a>
+        إذا لم تطلب هذا الإجراء، يمكنك تجاهل هذه الرسالة.
       </p>
     `);
   }
@@ -1450,8 +1449,7 @@ export function tplHostActivationRequest(firstName: string, isArabic: boolean, a
     ${btn('🏠 Activate Hosting', activationUrl)}
     ${divider()}
     <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
-      If you did not request this, you can safely ignore this email.<br/>
-      <a href="${activationUrl}" style="color:${PRIMARY};font-size:11px;word-break:break-all;">${activationUrl}</a>
+      If you did not request this, you can safely ignore this email.
     </p>
   `);
 }
@@ -1477,6 +1475,56 @@ export function tplAdminPropertyPendingReview(
   `);
 }
 
+// ─── Admin: InstaPay proof submitted — action required ───────────────────────
+export function tplAdminInstapaySubmitted(
+  guestName: string,
+  guestEmail: string,
+  bookingRef: string,
+  propertyTitle: string,
+  checkIn: string,
+  checkOut: string,
+  totalAmount: string,
+  currency: string,
+  reference: string,
+  proofUrl: string | null | undefined,
+  deadlineHours: number,
+  adminBookingsUrl: string,
+): string {
+  const gn = htmlEscape(guestName);
+  const ge = htmlEscape(guestEmail);
+  const br = htmlEscape(bookingRef);
+  const pt = htmlEscape(propertyTitle);
+  const ref = htmlEscape(reference);
+  const url = safeUrl(adminBookingsUrl);
+  const proofLink = proofUrl
+    ? `<a href="${safeUrl(proofUrl)}" style="color:${PRIMARY};">View proof image</a>`
+    : '<span style="color:#94a3b8;">No image uploaded</span>';
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">🔔</span>
+    </div>
+    ${heading('InstaPay Payment — Action Required')}
+    ${subHeading('A guest has submitted an InstaPay transfer proof')}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin:0 0 20px;">
+      <p style="margin:0;font-size:14px;color:#92400e;font-weight:600;">⏰ You have ${deadlineHours} hours to accept or decline this payment before it is auto-declined.</p>
+    </div>
+    ${infoTable(
+      infoRow('Booking ref', br) +
+      infoRow('Guest', `${gn} &lt;${ge}&gt;`) +
+      infoRow('Property', pt) +
+      infoRow('Check-in', checkIn) +
+      infoRow('Check-out', checkOut) +
+      infoRow('Total', `${totalAmount} ${htmlEscape(currency)}`) +
+      infoRow('InstaPay ref', ref) +
+      infoRow('Proof', proofLink) +
+      infoRow('Payment status', badge('Submitted — Pending Verification', WARNING))
+    )}
+    ${btn('✅ Review in Admin Panel', url, PRIMARY)}
+    ${divider()}
+    ${paragraph(`<span style="font-size:13px;color:${MUTED};">If no action is taken within ${deadlineHours} hours, the payment will be automatically declined and the booking cancelled.</span>`)}
+  `);
+}
+
 // ─── Admin: ID document submitted ────────────────────────────────────────────
 export function tplAdminIdDocumentPending(
   hostName: string,
@@ -1493,6 +1541,120 @@ export function tplAdminIdDocumentPending(
     ${btn('Review in Admin Panel', safeUrl(adminUrl))}
     ${divider()}
     ${paragraph('Please log in to the admin panel to approve or reject the ID document.')}
+  `);
+}
+
+// ─── Admin: Account Suspended ────────────────────────────────────────────────
+export function tplAccountSuspended(
+  firstName: string,
+  reason: string,
+  supportUrl: string,
+): string {
+  const fn = htmlEscape(firstName);
+  const re = htmlEscape(reason);
+  const url = safeUrl(supportUrl);
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">⚠️</span>
+    </div>
+    ${heading('Your account has been suspended')}
+    ${subHeading('Action taken by the Oikivo moderation team')}
+    ${paragraph(`Hi <strong>${fn}</strong>, your Oikivo account has been temporarily suspended by our moderation team. Access to your account has been restricted.`)}
+    ${infoTable(
+      infoRow('Status', badge('Suspended', DANGER)) +
+      infoRow('Reason', re)
+    )}
+    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:16px 18px;margin:20px 0;">
+      <p style="margin:0;font-size:14px;color:#9f1239;line-height:1.6;">If you believe this suspension was made in error or you have questions, please contact our support team. We are committed to reviewing all appeals fairly and promptly.</p>
+    </div>
+    ${btn('Contact Support', url, DANGER)}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+      This action was taken in accordance with Oikivo's <a href="#" style="color:${PRIMARY};">Terms of Service</a>. Appeals must be submitted within 30 days.
+    </p>
+  `);
+}
+
+// ─── Admin: Account Banned ────────────────────────────────────────────────────
+export function tplAccountBanned(
+  firstName: string,
+  reason: string,
+  supportUrl: string,
+): string {
+  const fn = htmlEscape(firstName);
+  const re = htmlEscape(reason);
+  const url = safeUrl(supportUrl);
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">🚫</span>
+    </div>
+    ${heading('Your account has been permanently banned')}
+    ${subHeading('Action taken by the Oikivo moderation team')}
+    ${paragraph(`Hi <strong>${fn}</strong>, your Oikivo account has been permanently banned due to a serious violation of our Terms of Service. All active listings, bookings, and sessions have been deactivated.`)}
+    ${infoTable(
+      infoRow('Status', badge('Permanently Banned', DANGER)) +
+      infoRow('Reason', re)
+    )}
+    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:16px 18px;margin:20px 0;">
+      <p style="margin:0;font-size:14px;color:#9f1239;line-height:1.6;">This ban is permanent. If you believe this action was taken in error, you may contact our support team to submit a formal appeal. All appeals are reviewed by senior staff.</p>
+    </div>
+    ${btn('Submit an Appeal', url, DANGER)}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+      Oikivo reserves the right to permanently terminate accounts that violate our community standards. See our <a href="#" style="color:${PRIMARY};">Terms of Service</a> for more details.
+    </p>
+  `);
+}
+
+// ─── Admin: ID Verification Approved ─────────────────────────────────────────
+export function tplIdVerificationApproved(firstName: string, dashboardUrl: string): string {
+  const fn = htmlEscape(firstName);
+  const url = safeUrl(dashboardUrl);
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">✅</span>
+    </div>
+    ${heading('Your identity has been verified!')}
+    ${subHeading('Welcome to the verified community')}
+    ${paragraph(`Hi <strong>${fn}</strong>, great news! Our team has reviewed your submitted ID document and your identity is now <strong>verified</strong>.`)}
+    ${infoTable(infoRow('Verification Status', badge('Approved', SUCCESS)))}
+    ${paragraph('You now have full access to all platform features — you can book properties and create listings without any restrictions.')}
+    ${btn('Go to Dashboard', url)}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+      Thank you for helping us keep Oikivo safe and trustworthy for everyone.
+    </p>
+  `);
+}
+
+// ─── Admin: ID Verification Rejected ─────────────────────────────────────────
+export function tplIdVerificationRejected(firstName: string, reason: string | null, resubmitUrl: string): string {
+  const fn = htmlEscape(firstName);
+  const re = reason
+    ? htmlEscape(reason)
+    : 'The document could not be verified. Please ensure it is clear, unobstructed, and valid.';
+  const url = safeUrl(resubmitUrl);
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">❌</span>
+    </div>
+    ${heading('ID verification was not approved')}
+    ${subHeading('Action required — please resubmit')}
+    ${paragraph(`Hi <strong>${fn}</strong>, unfortunately we could not verify your identity based on the submitted document.`)}
+    ${infoTable(
+      infoRow('Verification Status', badge('Rejected', DANGER)) +
+      infoRow('Reason', re),
+    )}
+    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:16px 18px;margin:20px 0;">
+      <p style="margin:0;font-size:14px;color:#9f1239;line-height:1.6;">
+        Please upload a new, clear photo of your government-issued ID. For a National ID include both <strong>front and back</strong>; for a Passport include the main photo page. Make sure the document is fully visible, not blurry, and not expired.
+      </p>
+    </div>
+    ${btn('Resubmit ID Document', url)}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+      If you have questions, please contact our support team. We are here to help.
+    </p>
   `);
 }
 

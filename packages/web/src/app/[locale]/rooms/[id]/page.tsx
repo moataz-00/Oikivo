@@ -352,7 +352,7 @@ export default function PropertyDetailPage() {
             </div>
             <p className="text-sm text-neutral-500 mb-5 ml-[calc(2rem+10px)]">{t('availabilityDesc')}</p>
             <div className="rounded-3xl border border-emerald-100 bg-white shadow-md ring-1 ring-emerald-50/60 p-4 overflow-hidden">
-              <AvailabilityCalendar propertyId={property.id} />
+              <AvailabilityCalendar propertyId={property.id} currency={property.currency ?? 'EGP'} />
             </div>
           </motion.div>
 

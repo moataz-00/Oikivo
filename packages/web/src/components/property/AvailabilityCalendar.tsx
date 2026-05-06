@@ -6,9 +6,12 @@ import { useLocale } from 'next-intl';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { availabilityApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/useCurrency';
+import type { CalendarDay } from '@/types';
 
 interface AvailabilityCalendarProps {
   propertyId: number;
+  currency?: string;
 }
 
 const DAYS_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -44,12 +47,20 @@ function MonthCalendar({
   year,
   month,
   statusMap,
+  priceMap,
+  overrideMap,
+  sourceCurrency,
+  formatPrice,
   days,
   monthNames,
 }: {
   year: number;
   month: number;
   statusMap: Record<string, 'available' | 'booked' | 'blocked'>;
+  priceMap: Record<string, number>;
+  overrideMap: Record<string, boolean>;
+  sourceCurrency: string;
+  formatPrice: (amount: number, src: string) => string;
   days: string[];
   monthNames: string[];
 }) {
@@ -68,31 +79,45 @@ function MonthCalendar({
           </div>
         ))}
         {grid.map((date, i) => {
-          if (!date) return <div key={`empty-${i}`} className="h-9 w-9 mx-auto" />;
+          if (!date) return <div key={`empty-${i}`} className="h-[52px] w-full mx-auto" />;
           const key = toDateString(date);
           const status = statusMap[key];
           const isPast = key < today;
           const isToday = key === today;
+          const price = priceMap[key];
+          const hasOverride = overrideMap[key];
 
           return (
             <div
               key={key}
-              title={status ? `${key}: ${status}` : key}
+              title={status ? `${key}: ${status}${price ? ` · ${price} ${sourceCurrency}` : ''}` : key}
               className={cn(
-                'relative flex items-center justify-center mx-auto h-9 w-9 rounded-full text-sm transition-colors',
+                'relative flex flex-col items-center justify-start mx-auto w-full h-[52px] rounded-xl px-0.5 pt-1 text-sm transition-colors',
                 isPast && 'opacity-25 cursor-default',
                 isToday && 'ring-1 ring-neutral-400 ring-offset-1',
-                !isPast && status === 'available' && 'text-neutral-900 hover:bg-neutral-100 cursor-default',
+                !isPast && status === 'available' && 'text-neutral-900 cursor-default hover:bg-neutral-50',
                 !isPast && status === 'booked' && 'bg-neutral-900 text-white',
                 !isPast && status === 'blocked' && 'text-neutral-300 cursor-not-allowed',
                 !isPast && !status && 'text-neutral-300 cursor-not-allowed',
               )}
             >
-              {status === 'blocked' ? (
-                <span className="line-through opacity-50">{date.getDate()}</span>
-              ) : (
-                date.getDate()
-              )}
+              {/* Day number */}
+              <span className={cn(
+                'font-medium leading-none',
+                status === 'blocked' && 'line-through opacity-50',
+              )}>
+                {date.getDate()}
+              </span>
+
+              {/* Price label — only on available, non-past days */}
+              {!isPast && status === 'available' && price ? (
+                <span className={cn(
+                  'text-[9px] leading-none mt-0.5 font-medium truncate max-w-full px-0.5',
+                  hasOverride ? 'text-amber-500' : 'text-neutral-400',
+                )}>
+                  {formatPrice(price, sourceCurrency)}
+                </span>
+              ) : null}
             </div>
           );
         })}
@@ -101,7 +126,8 @@ function MonthCalendar({
   );
 }
 
-export function AvailabilityCalendar({ propertyId }: AvailabilityCalendarProps) {
+export function AvailabilityCalendar({ propertyId, currency = 'EGP' }: AvailabilityCalendarProps) {
+  const { formatPrice } = useCurrency();
   const locale = useLocale();
   const DAYS = locale === 'ar' ? DAYS_AR : DAYS_EN;
   const MONTH_NAMES = locale === 'ar' ? MONTH_NAMES_AR : MONTH_NAMES_EN;
@@ -132,7 +158,13 @@ export function AvailabilityCalendar({ propertyId }: AvailabilityCalendarProps) 
   });
 
   const statusMap: Record<string, 'available' | 'booked' | 'blocked'> = {};
-  for (const d of [...days1, ...days2]) statusMap[d.date] = d.status as any;
+  const priceMap: Record<string, number> = {};
+  const overrideMap: Record<string, boolean> = {};
+  for (const d of [...days1, ...days2]) {
+    statusMap[d.date] = d.status as any;
+    if (d.price) priceMap[d.date] = d.price;
+    if (d.priceOverride != null) overrideMap[d.date] = true;
+  }
 
   const isLoading = l1 || l2;
 
@@ -168,9 +200,9 @@ export function AvailabilityCalendar({ propertyId }: AvailabilityCalendarProps) 
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row gap-8">
-          <MonthCalendar year={m1Year} month={m1Month} statusMap={statusMap} days={DAYS} monthNames={MONTH_NAMES} />
+          <MonthCalendar year={m1Year} month={m1Month} statusMap={statusMap} priceMap={priceMap} overrideMap={overrideMap} sourceCurrency={currency} formatPrice={formatPrice} days={DAYS} monthNames={MONTH_NAMES} />
           <div className="hidden sm:block w-px bg-neutral-100 self-stretch" />
-          <MonthCalendar year={m2Year} month={m2Month} statusMap={statusMap} days={DAYS} monthNames={MONTH_NAMES} />
+          <MonthCalendar year={m2Year} month={m2Month} statusMap={statusMap} priceMap={priceMap} overrideMap={overrideMap} sourceCurrency={currency} formatPrice={formatPrice} days={DAYS} monthNames={MONTH_NAMES} />
         </div>
       )}
 
@@ -189,6 +221,10 @@ export function AvailabilityCalendar({ propertyId }: AvailabilityCalendarProps) 
         <span className="flex items-center gap-2">
           <span className="h-4 w-4 rounded-full bg-neutral-100 inline-block" />
           Unavailable
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-amber-400 inline-block" />
+          Special price
         </span>
       </div>
     </div>

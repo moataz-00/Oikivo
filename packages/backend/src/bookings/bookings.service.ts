@@ -17,8 +17,9 @@ import { AvailabilityEntity } from '../entities/availability.entity';
 import { EarningEntity } from '../entities/earning.entity';
 import { AvailabilityService } from '../availability/availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { MailService, tplBookingRequestReceived, tplBookingRequestSubmitted, tplBookingConfirmed, tplBookingAccepted, tplBookingCancelled, tplInstapayPaymentConfirmed, tplInstapayPaymentDeclined, tplRefundNotification, tplInstapayRefundPending, tplInstapayRefundCompleted, tplHostCancelledRebooking } from '../mail/mail.service';
+import { MailService, tplBookingRequestReceived, tplBookingRequestSubmitted, tplBookingConfirmed, tplBookingAccepted, tplBookingCancelled, tplInstapayPaymentConfirmed, tplInstapayPaymentDeclined, tplRefundNotification, tplInstapayRefundPending, tplInstapayRefundCompleted, tplHostCancelledRebooking, tplAdminInstapaySubmitted } from '../mail/mail.service';
 import { CoHostEntity } from '../entities/cohost.entity';
+import { ReviewEntity } from '../entities/review.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -55,11 +56,11 @@ export class BookingsService {
     private currencyService: CurrencyService,
     private dataSource: DataSource,
   ) {
-    // FIX BUG-GC2: Fail fast in production if Stripe key is missing
+    // Stripe is optional — warn but don't crash; payment attempts will fail gracefully
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
     if (!secretKey && nodeEnv === 'production') {
-      throw new Error('STRIPE_SECRET_KEY is required in production mode');
+      console.warn('[BookingsService] STRIPE_SECRET_KEY not set — Stripe payments disabled');
     }
     this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
       apiVersion: '2024-04-10' as any,
@@ -102,7 +103,13 @@ export class BookingsService {
     // Guest must have a verified email address before booking
     const guest = await this.usersRepo.findOne({ where: { id: guestId } });
     if (!guest || !guest.isEmailVerified) {
-      throw new ForbiddenException('Please verify your email address before making a booking');
+      throw new ForbiddenException('VERIFICATION_EMAIL_REQUIRED');
+    }
+    if (!guest.isPhoneVerified) {
+      throw new ForbiddenException('VERIFICATION_PHONE_REQUIRED');
+    }
+    if (!guest.idVerificationStatus || guest.idVerificationStatus === 'none') {
+      throw new ForbiddenException('VERIFICATION_ID_REQUIRED');
     }
 
     const property = await this.propertiesRepo.findOne({
@@ -195,21 +202,32 @@ export class BookingsService {
     const priceOverrides = new Map<string, number>(
       overrideRows
         .filter((r) => r.priceOverride != null)
-        .map((r) => [r.date, Number(r.priceOverride)]),
+        .map((r) => {
+          // TypeORM may return a Date object for `date` columns — normalise to YYYY-MM-DD.
+          const dateKey =
+            typeof r.date === 'string' && (r.date as string).length === 10
+              ? r.date
+              : localDateStr(new Date(r.date as unknown as string | Date));
+          return [dateKey, Number(r.priceOverride)];
+        }),
     );
 
     let baseAmount = 0;
+    const nightlyRates: { date: string; price: number }[] = [];
     // Sum per-night prices respecting custom overrides, weekend rates, and Egyptian public holidays
     for (let d = new Date(checkInDate); d < checkOutDate; d.setDate(d.getDate() + 1)) {
       const dateStr = localDateStr(d);
       const override = priceOverrides.get(dateStr);
+      let nightPrice: number;
       if (override != null) {
-        baseAmount += override;
+        nightPrice = override;
       } else {
         const dow = d.getDay(); // 5=Friday, 6=Saturday
         const isPeak = dow === 5 || dow === 6 || this.isEgyptianPublicHolidayCheck(d);
-        baseAmount += isPeak && weekendPrice != null ? weekendPrice : pricePerNight;
+        nightPrice = isPeak && weekendPrice != null ? weekendPrice : pricePerNight;
       }
+      baseAmount += nightPrice;
+      nightlyRates.push({ date: dateStr, price: nightPrice });
     }
     baseAmount = parseFloat(baseAmount.toFixed(2));
 
@@ -225,14 +243,16 @@ export class BookingsService {
     );
 
     let discountPercent = 0;
-    if (nights >= 28 && monthlyDiscount > 0) discountPercent = monthlyDiscount;
-    else if (nights >= 7 && weeklyDiscount > 0) discountPercent = weeklyDiscount;
-    else if (newListingPromoEnabled && approvedCount < 3) discountPercent = 20;
-    else if (daysUntilCheckIn <= 14 && daysUntilCheckIn >= 0 && lastMinutePct > 0) discountPercent = lastMinutePct;
+    let discountType: string | null = null;
+    if (nights >= 28 && monthlyDiscount > 0) { discountPercent = monthlyDiscount; discountType = 'monthly'; }
+    else if (nights >= 7 && weeklyDiscount > 0) { discountPercent = weeklyDiscount; discountType = 'weekly'; }
+    else if (newListingPromoEnabled && approvedCount < 3) { discountPercent = 20; discountType = 'new_listing_promotion'; }
+    else if (daysUntilCheckIn <= 14 && daysUntilCheckIn >= 0 && lastMinutePct > 0) { discountPercent = lastMinutePct; discountType = 'last_minute'; }
 
+    let discountAmount = 0;
     if (discountPercent > 0) {
-      const disc = parseFloat(((baseAmount * discountPercent) / 100).toFixed(2));
-      baseAmount = parseFloat((baseAmount - disc).toFixed(2));
+      discountAmount = parseFloat(((baseAmount * discountPercent) / 100).toFixed(2));
+      baseAmount = parseFloat((baseAmount - discountAmount).toFixed(2));
     }
 
     const bookingMode = property.bookingMode ?? 'instant_book';
@@ -240,6 +260,19 @@ export class BookingsService {
       property.instantBook ||
       bookingMode === 'instant_book' ||
       (bookingMode === 'approve_first_three' && approvedCount >= 3);
+
+    // For request-to-book properties, check-in must be at least 72 hours away:
+    // 24 h for host to review + 24 h for guest payment + 24 h safety buffer
+    if (!effectiveInstantBook) {
+      const minCheckIn = new Date(Date.now() + 72 * 60 * 60 * 1000);
+      minCheckIn.setHours(0, 0, 0, 0);
+      if (checkInDate < minCheckIn) {
+        throw new BadRequestException(
+          'For request-to-book properties, check-in must be at least 3 days from today ' +
+          'to allow time for host approval (24 h) and payment processing (24 h).',
+        );
+      }
+    }
 
     const cleaningFee = Number(property.cleaningFee ?? 0);
     const depositAmount = Number(property.securityDeposit ?? 0);
@@ -287,6 +320,10 @@ export class BookingsService {
         guestsCount: dto.guestsCount,
         nights,
         baseAmount,
+        pricePerNight,
+        discountAmount,
+        discountPercent,
+        discountType,
         cleaningFee,
         serviceFee,
         taxes,
@@ -301,6 +338,7 @@ export class BookingsService {
         cancellationPolicy: property.cancellationPolicy ?? 'flexible',
         guestNote: dto.guestNote,
         specialRequests: dto.specialRequests,
+        nightlyRates,
       });
 
       const savedBooking = await txBookingsRepo.save(booking);
@@ -1384,6 +1422,39 @@ export class BookingsService {
       { bookingId },
     );
 
+    // Notify admin by email immediately so they can act within the 24h window
+    if (dto.method === 'instapay') {
+      try {
+        const adminUrl = (process.env.ADMIN_URL ?? 'http://localhost:3003') + '/bookings';
+        const freshBooking = await this.findOne(bookingId);
+        const amount = this.currencyService.convertAndFormat(
+          Number(freshBooking.totalAmount),
+          freshBooking.currency ?? 'EGP',
+          freshBooking.displayCurrency,
+        );
+        await this.mail.send(
+          'oikivo.support@gmail.com',
+          `⚡ InstaPay Payment Submitted — Booking #${bookingId} needs verification`,
+          tplAdminInstapaySubmitted(
+            freshBooking.guest?.firstName ?? 'Guest',
+            freshBooking.guest?.email ?? '',
+            `#${bookingId}`,
+            freshBooking.property?.title ?? 'N/A',
+            freshBooking.checkIn,
+            freshBooking.checkOut,
+            amount,
+            freshBooking.currency ?? 'EGP',
+            dto.reference,
+            dto.proofUrl ?? null,
+            24,
+            adminUrl,
+          ),
+        );
+      } catch (e) {
+        this.logger.error(`[submitPayment] Failed to email admin for booking #${bookingId}: ${(e as Error).message}`);
+      }
+    }
+
     return this.findOne(bookingId);
   }
 
@@ -1407,7 +1478,6 @@ export class BookingsService {
         const serviceFee = Number(booking.serviceFee);
         const baseAmt = Number(booking.baseAmount);
         const cleaningFee = Number(booking.cleaningFee ?? 0);
-        const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
         const checkOutDate = new Date(booking.checkOut);
         const availableAt = new Date(checkOutDate);
         availableAt.setDate(availableAt.getDate() + 1);
@@ -1415,8 +1485,8 @@ export class BookingsService {
           this.earningsRepo.create({
             hostId: booking.hostId,
             bookingId,
-            amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
-            platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
+            amount: parseFloat((baseAmt + cleaningFee).toFixed(2)),
+            platformFee: serviceFee,
             currency: booking.currency ?? 'EGP',
             status: new Date() >= availableAt ? 'available' : 'pending',
             availableAt,
@@ -1622,11 +1692,26 @@ export class BookingsService {
     const where: any = { guestId };
     if (status) where.status = status;
 
-    return this.bookingsRepo.find({
+    const bookings = await this.bookingsRepo.find({
       where,
       relations: ['property', 'property.photos'],
       order: { createdAt: 'DESC' },
     });
+
+    if (bookings.length === 0) return bookings;
+
+    // Load only the guest's own review for each booking
+    // (booking now supports two reviews: guest→property and host→guest)
+    const bookingIds = bookings.map((b) => b.id);
+    const reviews = await this.dataSource.getRepository(ReviewEntity).find({
+      where: { bookingId: In(bookingIds), reviewerId: guestId, reviewerRole: 'guest' },
+    });
+    const reviewMap = new Map(reviews.map((r) => [Number(r.bookingId), r]));
+    for (const booking of bookings) {
+      (booking as any).review = reviewMap.get(Number(booking.id)) ?? null;
+    }
+
+    return bookings;
   }
 
   /** G11: Guest payment history — all bookings with payment info */
@@ -2052,7 +2137,7 @@ export class BookingsService {
     ).catch(() => {/* best-effort */});
   }
 
-  private async unblockDates(propertyId: number, checkIn: string, checkOut: string) {
+  async unblockDates(propertyId: number, checkIn: string, checkOut: string) {
     const ci = new Date(checkIn);
     const co = new Date(checkOut);
     for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
@@ -2066,7 +2151,7 @@ export class BookingsService {
 
   // ─── Security Deposit ────────────────────────────────────────────────────────
 
-  async claimDeposit(bookingId: number, hostId: number, reason: string): Promise<BookingEntity> {
+  async claimDeposit(bookingId: number, hostId: number, reason: string, evidencePaths?: string[]): Promise<BookingEntity> {
     const booking = await this.findOne(bookingId);
     if (booking.hostId !== hostId) throw new ForbiddenException('Not your booking');
     if (booking.depositStatus !== 'held') throw new BadRequestException('No deposit available to claim');
@@ -2079,6 +2164,31 @@ export class BookingsService {
     if (!reason?.trim()) throw new BadRequestException('Claim reason is required');
     booking.depositStatus = 'claimed';
     booking.depositClaimReason = reason;
+    booking.depositClaimEvidence = evidencePaths?.length ? evidencePaths : null;
+    return this.bookingsRepo.save(booking);
+  }
+
+  async cancelDepositClaim(bookingId: number, hostId: number): Promise<BookingEntity> {
+    const booking = await this.findOne(bookingId);
+    if (booking.hostId !== hostId) throw new ForbiddenException('Not your booking');
+    if (booking.depositStatus !== 'claimed') {
+      throw new BadRequestException('No pending claim to cancel');
+    }
+    booking.depositStatus = 'held';
+    booking.depositClaimReason = null;
+    booking.depositClaimEvidence = null;
+    return this.bookingsRepo.save(booking);
+  }
+
+  async editDepositClaim(bookingId: number, hostId: number, reason: string, evidencePaths?: string[]): Promise<BookingEntity> {
+    const booking = await this.findOne(bookingId);
+    if (booking.hostId !== hostId) throw new ForbiddenException('Not your booking');
+    if (booking.depositStatus !== 'claimed') {
+      throw new BadRequestException('No pending claim to edit');
+    }
+    if (!reason?.trim()) throw new BadRequestException('Claim reason is required');
+    booking.depositClaimReason = reason;
+    booking.depositClaimEvidence = evidencePaths?.length ? evidencePaths : booking.depositClaimEvidence;
     return this.bookingsRepo.save(booking);
   }
 

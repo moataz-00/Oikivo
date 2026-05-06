@@ -1,23 +1,25 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { FadeIn } from '@/components/ui/Motion';
 import {
   Calendar, XCircle, AlertTriangle, Clock, HelpCircle, Shield, ArrowRight,
 } from 'lucide-react';
 
-const sections = [
-  { id: 'overview', label: 'Policy Overview', icon: Calendar, iconBg: 'bg-blue-50 text-blue-600' },
-  { id: 'guest', label: 'Guest Cancellations', icon: XCircle, iconBg: 'bg-orange-50 text-orange-600' },
-  { id: 'host', label: 'Host Cancellations', icon: AlertTriangle, iconBg: 'bg-red-50 text-red-600' },
-  { id: 'refunds', label: 'Refund Timing', icon: Clock, iconBg: 'bg-teal-50 text-teal-600' },
-  { id: 'exceptions', label: 'Special Circumstances', icon: Shield, iconBg: 'bg-violet-50 text-violet-600' },
-  { id: 'support', label: 'Need Help?', icon: HelpCircle, iconBg: 'bg-sky-50 text-sky-600' },
-];
-
 export default function CancellationPage() {
   const locale = useLocale();
+  const t = useTranslations('cancellation');
+
+  const sections = [
+    { id: 'overview', label: t('sec1Label'), icon: Calendar, iconBg: 'bg-blue-50 text-blue-600' },
+    { id: 'guest', label: t('sec2Label'), icon: XCircle, iconBg: 'bg-orange-50 text-orange-600' },
+    { id: 'host', label: t('sec3Label'), icon: AlertTriangle, iconBg: 'bg-red-50 text-red-600' },
+    { id: 'refunds', label: t('sec4Label'), icon: Clock, iconBg: 'bg-teal-50 text-teal-600' },
+    { id: 'exceptions', label: t('sec5Label'), icon: Shield, iconBg: 'bg-violet-50 text-violet-600' },
+    { id: 'support', label: t('sec6Label'), icon: HelpCircle, iconBg: 'bg-sky-50 text-sky-600' },
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}
@@ -28,13 +30,13 @@ export default function CancellationPage() {
               <Calendar className="h-7 w-7 text-white" />
             </div>
             <div>
-              <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Support</span>
-              <h1 className="font-display font-bold text-4xl text-white mb-3">Cancellation Policy</h1>
+              <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">{t('supportLabel')}</span>
+              <h1 className="font-display font-bold text-4xl text-white mb-3">{t('heroTitle')}</h1>
               <p className="text-indigo-100 text-sm max-w-xl leading-relaxed">
-                How cancellations, refunds, and exceptions are handled on Oikivo.
+                {t('heroDesc')}
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
-                {['3 policy tiers', 'Flexible · Moderate · Strict', '5–10 day refunds'].map((chip) => (
+                {[t('chip1'), t('chip2'), t('chip3')].map((chip) => (
                   <span key={chip} className="rounded-full bg-white/15 px-3 py-1 text-xs text-white border border-white/20">{chip}</span>
                 ))}
               </div>
@@ -49,7 +51,7 @@ export default function CancellationPage() {
           {/* TOC */}
           <aside className="hidden lg:block w-60 shrink-0">
             <div className="sticky top-28">
-              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Contents</p>
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">{t('tocTitle')}</p>
               <nav className="space-y-0.5">
                 {sections.map((item) => (
                   <a
@@ -76,10 +78,10 @@ export default function CancellationPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
                     <Calendar className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">1. Policy Overview</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('overviewTitle')}</h2>
                 </div>
                 <p>
-                  Hosts choose a cancellation policy for each listing. The active policy is shown on the listing page and in the checkout summary before a guest confirms payment.
+                  {t('overviewDesc')}
                 </p>
               </section>
 
@@ -88,15 +90,15 @@ export default function CancellationPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-600 shrink-0">
                     <XCircle className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">2. Guest Cancellations</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('guestTitle')}</h2>
                 </div>
-                <p className="mb-4">Guests can cancel from the Trips page. Refund eligibility depends on timing and the listing&apos;s policy tier:</p>
+                <p className="mb-4">{t('guestDesc')}</p>
                 <Link
                   href={`/${locale}/trips`}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors mb-4"
                 >
-                  Go to My Trips to cancel a booking
-                  <ArrowRight className="h-4 w-4" />
+                  {t('guestCta')}
+                  <ArrowRight className="h-4 w-4 rtl:rotate-180" />
                 </Link>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
@@ -150,13 +152,13 @@ export default function CancellationPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 text-red-600 shrink-0">
                     <AlertTriangle className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">3. Host Cancellations</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('hostTitle')}</h2>
                 </div>
                 <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 mb-3">
-                  <p className="text-sm text-red-800">Host cancellations may trigger penalties, impact listing ranking, and reduce trust with future guests.</p>
+                  <p className="text-sm text-red-800">{t('hostWarning')}</p>
                 </div>
                 <p>
-                  When a host cancels a confirmed booking, the guest is eligible for a full refund and will receive assistance finding an alternative stay.
+                  {t('hostDesc')}
                 </p>
               </section>
 
@@ -165,10 +167,10 @@ export default function CancellationPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0">
                     <Clock className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">4. Refund Timing</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('refundTitle')}</h2>
                 </div>
                 <p>
-                  Approved refunds are usually issued to the original payment method within 5–10 business days. Bank processing times may vary depending on your payment provider and card issuer.
+                  {t('refundDesc')}
                 </p>
               </section>
 
@@ -177,10 +179,10 @@ export default function CancellationPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 shrink-0">
                     <Shield className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">5. Special Circumstances</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('exceptionsTitle')}</h2>
                 </div>
                 <p>
-                  In certain verified cases — major travel disruptions, government travel restrictions, or serious safety issues — Oikivo may apply special handling beyond the standard policy. Supporting documentation is required to qualify.
+                  {t('exceptionsDesc')}
                 </p>
               </section>
 
@@ -189,25 +191,25 @@ export default function CancellationPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-600 shrink-0">
                     <HelpCircle className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">6. Need Help?</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('supportTitle')}</h2>
                 </div>
                 <p className="mb-4">
-                  For cancellation support, visit the Help Center or Contact Us page. Include your booking ID, the timeline of events, and any supporting evidence for faster resolution.
+                  {t('supportDesc')}
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link
                     href={`/${locale}/help`}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
                   >
-                    Help Center
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    {t('helpCenter')}
+                    <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
                   </Link>
                   <Link
                     href={`/${locale}/contact`}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
                   >
-                    Contact Us
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    {t('contactUs')}
+                    <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
                   </Link>
                 </div>
               </section>

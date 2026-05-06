@@ -66,7 +66,7 @@ export const apiClient = axios.create({
   withCredentials: true, // send httpOnly cookies (refresh_token) automatically
 });
 
-// ─── Request interceptor: attach Bearer token ────────────────────────────────
+// ─── Request interceptor: attach Bearer token + fix FormData Content-Type ────
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (typeof window !== 'undefined') {
@@ -74,6 +74,14 @@ apiClient.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+    }
+    // For FormData uploads, delete the 'application/json' instance default so
+    // the browser can set 'multipart/form-data; boundary=...' automatically.
+    // In axios v1.x, having Content-Type: application/json as the instance
+    // default causes transformRequest to JSON-serialize FormData, breaking multer.
+    if (config.data instanceof FormData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (config.headers as any)['Content-Type'];
     }
     return config;
   },
@@ -167,6 +175,10 @@ function normalizeBooking(raw: any): Booking {
     property: raw.property ? normalizeProperty(raw.property) : raw.property,
     guests: Number(raw.guests ?? raw.guestsCount ?? 0),
     basePrice: Number(raw.basePrice ?? raw.baseAmount ?? 0),
+    pricePerNight: raw.pricePerNight != null ? Number(raw.pricePerNight) : undefined,
+    discountAmount: raw.discountAmount != null ? Number(raw.discountAmount) : undefined,
+    discountPercent: raw.discountPercent != null ? Number(raw.discountPercent) : undefined,
+    discountType: raw.discountType ?? null,
     total: Number(raw.total ?? raw.totalAmount ?? 0),
     message: raw.message ?? raw.guestNote ?? raw.specialRequests ?? null,
   } as Booking;
@@ -208,6 +220,10 @@ function mapListingPayloadToBackend(payload: Partial<CreateListingPayload>) {
     allowsChildren: payload.allowsChildren,
     categoryId: payload.categoryId,
     cancellationPolicy: payload.cancellationPolicy,
+    wifiName: payload.wifiName,
+    wifiPassword: payload.wifiPassword,
+    doorCode: payload.doorCode,
+    checkInInstructions: payload.checkInInstructions,
     wizardLastStep: payload.wizardLastStep,
   };
 }
@@ -297,9 +313,7 @@ export const usersApi = {
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return apiClient.post<User>('/users/me/avatar', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    return apiClient.post<User>('/users/me/avatar', formData).then((r) => r.data);
   },
 
   becomeHost: () =>
@@ -317,13 +331,20 @@ export const usersApi = {
       })
       .then((r) => r.data),
 
-  submitIdDocument: (file: File) => {
+  submitIdDocument: (file: File, docType: 'national_id' | 'passport' = 'national_id') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('docType', docType);
+    return apiClient
+      .post<{ message: string }>('/users/me/verify-id', formData)
+      .then((r) => r.data);
+  },
+
+  submitIdDocumentBack: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     return apiClient
-      .post<{ message: string }>('/users/me/verify-id', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      .post<{ message: string }>('/users/me/verify-id/back', formData)
       .then((r) => r.data);
   },
 
@@ -439,9 +460,7 @@ export const propertiesApi = {
   uploadImages: (id: number, files: File[]) => {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f));
-    return apiClient.post(`/uploads/photos/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    return apiClient.post(`/uploads/photos/${id}`, formData).then((r) => r.data);
   },
 
   reorderPhotos: (photoOrders: Array<{ id: number; displayOrder: number }>) =>
@@ -532,8 +551,20 @@ export const bookingsApi = {
   submitPayment: (id: number, data: { method: string; reference: string; note?: string; proofUrl?: string }) =>
     apiClient.patch<Booking>(`/bookings/${id}/submit-payment`, data).then((r) => normalizeBooking(r.data)),
 
-  claimDeposit: (id: number, reason: string) =>
-    apiClient.post<Booking>(`/bookings/${id}/deposit/claim`, { reason }).then((r) => normalizeBooking(r.data)),
+  claimDeposit: (id: number, reason: string, evidencePaths?: string[]) =>
+    apiClient.post<Booking>(`/bookings/${id}/deposit/claim`, { reason, evidencePaths }).then((r) => normalizeBooking(r.data)),
+
+  cancelDepositClaim: (id: number) =>
+    apiClient.delete<Booking>(`/bookings/${id}/deposit/claim`).then((r) => normalizeBooking(r.data)),
+
+  editDepositClaim: (id: number, reason: string, evidencePaths?: string[]) =>
+    apiClient.patch<Booking>(`/bookings/${id}/deposit/claim`, { reason, evidencePaths }).then((r) => normalizeBooking(r.data)),
+
+  uploadDepositEvidence: (id: number, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return apiClient.post<{ paths: string[]; message: string }>(`/bookings/${id}/deposit/evidence`, formData).then((r) => r.data);
+  },
 
   releaseDeposit: (id: number) =>
     apiClient.patch<Booking>(`/bookings/${id}/deposit/release`).then((r) => normalizeBooking(r.data)),
@@ -562,15 +593,16 @@ export const reviewsApi = {
   replyReview: (id: number, reply: string) =>
     apiClient.patch<Review>(`/reviews/${id}/reply`, { hostReply: reply }).then((r) => r.data),
 
+  deleteReply: (id: number) =>
+    apiClient.delete<Review>(`/reviews/${id}/reply`).then((r) => r.data),
+
   updateReview: (id: number, payload: Partial<CreateReviewPayload>) =>
     apiClient.patch<Review>(`/reviews/${id}`, payload).then((r) => r.data),
 
   uploadReviewPhotos: async (reviewId: number, files: File[]): Promise<void> => {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f));
-    await apiClient.post(`/reviews/${reviewId}/photos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await apiClient.post(`/reviews/${reviewId}/photos`, formData);
   },
 
   deleteReview: (id: number) =>
@@ -714,9 +746,7 @@ export const messagesApi = {
     formData.append('file', file);
     return apiClient
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .post<any>(`/messages/conversations/${conversationId}/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      .post<any>(`/messages/conversations/${conversationId}/upload`, formData)
       .then((r) => normalizeMessage(r.data));
   },
 
@@ -901,6 +931,9 @@ export const adminApi = {
   getDisputes: (status?: string) =>
     apiClient.get('/admin/disputes', { params: status ? { status } : undefined }).then((r) => r.data),
 
+  getDisputeDetail: (id: number) =>
+    apiClient.get(`/admin/disputes/${id}`).then((r) => r.data),
+
   resolveDispute: (id: number, resolution: string, adminNote: string) =>
     apiClient.patch(`/admin/disputes/${id}/resolve`, { resolution, adminNote }).then((r) => r.data),
 
@@ -928,9 +961,7 @@ export const disputesApi = {
   uploadEvidence: (disputeId: number, files: File[]) => {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f));
-    return apiClient.post(`/disputes/${disputeId}/evidence`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    return apiClient.post(`/disputes/${disputeId}/evidence`, formData).then((r) => r.data);
   },
 
   getMyDisputes: () =>
@@ -1075,9 +1106,7 @@ export const experiencesApi = {
   uploadPhoto: (id: number, files: File[]) => {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f));
-    return apiClient.post(`/uploads/experience-photos/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    return apiClient.post(`/uploads/experience-photos/${id}`, formData).then((r) => r.data);
   },
 
   deleteExperiencePhoto: (photoId: number) =>
@@ -1204,17 +1233,13 @@ export const consultationsApi = {
     apiClient.get(`/consultations/consultants/${id}`).then((r) => r.data),
 
   apply: (formData: FormData) =>
-    apiClient.post('/consultations/apply', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data),
+    apiClient.post('/consultations/apply', formData).then((r) => r.data),
 
   uploadDocuments: (files: File[], documentTypes: string[]) => {
     const fd = new FormData();
     files.forEach((f) => fd.append('files', f));
     fd.append('documentTypes', JSON.stringify(documentTypes));
-    return apiClient.post('/consultations/documents', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    return apiClient.post('/consultations/documents', fd).then((r) => r.data);
   },
 
   getMyProfile: () =>
@@ -1352,6 +1377,10 @@ export const priceAlertsApi = {
   getMyAlerts: () =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiClient.get<any[]>('/price-alerts').then((r) => r.data),
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getByProperty: (propertyId: number) =>
+    apiClient.get<any | null>(`/price-alerts/property/${propertyId}`).then((r) => r.data),
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   create: (propertyId: number, targetPrice: number) =>

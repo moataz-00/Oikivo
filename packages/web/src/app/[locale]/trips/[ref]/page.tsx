@@ -17,6 +17,8 @@ import {
   AlertCircle,
   Navigation,
   FileDown,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -124,6 +126,44 @@ function buildTimeline(
       subtitle: 'Checkout processed',
       date: booking.checkOut,
     });
+  }
+
+  // 7. Deposit events
+  if ((booking.depositAmount ?? 0) > 0) {
+    const depositFmt = formatPrice(Number(booking.depositAmount ?? 0), sourceCurrency);
+    if (booking.depositStatus === 'claimed') {
+      events.push({
+        icon: <ShieldAlert className="h-4 w-4" />,
+        color: 'bg-amber-100 text-amber-600',
+        title: `Host submitted a damage claim`,
+        subtitle: `Security deposit of ${depositFmt} is under admin review`,
+        date: booking.checkOut,
+      });
+    } else if (booking.depositStatus === 'approved') {
+      events.push({
+        icon: <ShieldAlert className="h-4 w-4" />,
+        color: 'bg-red-100 text-red-600',
+        title: 'Damage claim approved',
+        subtitle: `Host's claim for ${depositFmt} was approved. The deposit was not returned.`,
+        date: booking.checkOut,
+      });
+    } else if (booking.depositStatus === 'rejected') {
+      events.push({
+        icon: <ShieldCheck className="h-4 w-4" />,
+        color: 'bg-green-100 text-green-600',
+        title: 'Damage claim rejected',
+        subtitle: `Host's claim was rejected. The ${depositFmt} deposit must be returned to you.`,
+        date: booking.checkOut,
+      });
+    } else if (booking.depositStatus === 'released') {
+      events.push({
+        icon: <ShieldCheck className="h-4 w-4" />,
+        color: 'bg-emerald-100 text-emerald-600',
+        title: 'Deposit released',
+        subtitle: `Host confirmed the ${depositFmt} deposit has been returned`,
+        date: booking.checkOut,
+      });
+    }
   }
 
   // Sort by date ascending
@@ -280,12 +320,92 @@ export default function BookingHistoryPage() {
         <div className="bg-white border border-neutral-100 rounded-2xl p-5 mb-6">
           <h2 className="font-semibold text-neutral-900 mb-4">Price breakdown</h2>
           <div className="space-y-2.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-neutral-600">
-                {formatPrice(Number(booking.basePrice), sourceCurrency)} × {booking.nights} night{booking.nights !== 1 ? 's' : ''}
-              </span>
-              <span className="font-medium">{formatPrice(Number(booking.basePrice) * Number(booking.nights), sourceCurrency)}</span>
-            </div>
+            {/* Accommodation row */}
+            {(() => {
+              const nights = Number(booking.nights);
+              const preDiscountBase = Number(booking.basePrice) + Number(booking.discountAmount ?? 0);
+              const cur = booking.currency ?? sourceCurrency;
+
+              // Best case: nightly rates stored at booking time — group and show rows
+              if (booking.nightlyRates && booking.nightlyRates.length > 0) {
+                const groups: { price: number; count: number }[] = [];
+                let g = { price: booking.nightlyRates[0].price, count: 1 };
+                for (let i = 1; i < booking.nightlyRates.length; i++) {
+                  if (booking.nightlyRates[i].price === g.price) {
+                    g.count++;
+                  } else {
+                    groups.push(g);
+                    g = { price: booking.nightlyRates[i].price, count: 1 };
+                  }
+                }
+                groups.push(g);
+                return (
+                  <>
+                    {groups.map((row, i) => (
+                      <div key={i} className="flex justify-between">
+                        <span className="text-neutral-600">
+                          {formatPrice(row.price, cur)} × {row.count} night{row.count !== 1 ? 's' : ''}
+                        </span>
+                        <span className="font-medium">{formatPrice(row.price * row.count, cur)}</span>
+                      </div>
+                    ))}
+                  </>
+                );
+              }
+
+              const storedPPN = (booking.pricePerNight && Number(booking.pricePerNight) > 0)
+                ? Number(booking.pricePerNight)
+                : null;
+              const uniformTotal = storedPPN ? parseFloat((storedPPN * nights).toFixed(2)) : null;
+              // Rates varied (weekend/seasonal) if stored per-night × nights ≠ actual pre-discount total
+              const hasVariedRates = uniformTotal !== null && Math.abs(preDiscountBase - uniformTotal) > 0.5;
+
+              if (storedPPN && !hasVariedRates) {
+                // All nights at same rate — simple formula
+                return (
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">
+                      {formatPrice(storedPPN, cur)} × {nights} night{nights !== 1 ? 's' : ''}
+                    </span>
+                    <span className="font-medium">{formatPrice(storedPPN * nights, cur)}</span>
+                  </div>
+                );
+              }
+
+              if (storedPPN && hasVariedRates) {
+                // Mixed nightly rates — no detailed breakdown available for old bookings
+                return (
+                  <div className="flex justify-between items-start">
+                    <span className="text-neutral-600">
+                      <span className="block">{nights} night{nights !== 1 ? 's' : ''}</span>
+                      <span className="text-xs text-neutral-400">Base {formatPrice(storedPPN, cur)}/night · includes variable rates</span>
+                    </span>
+                    <span className="font-medium">{formatPrice(preDiscountBase, cur)}</span>
+                  </div>
+                );
+              }
+
+              // Old booking — per-night rate not stored, show accommodation total only
+              return (
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">{nights} night{nights !== 1 ? 's' : ''}</span>
+                  <span className="font-medium">{formatPrice(Number(booking.basePrice), cur)}</span>
+                </div>
+              );
+            })()}
+            {/* Discount row */}
+            {Number(booking.discountAmount ?? 0) > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>
+                  {booking.discountType === 'monthly' ? 'Monthly discount' :
+                   booking.discountType === 'weekly' ? 'Weekly discount' :
+                   booking.discountType === 'new_listing_promotion' ? 'New listing promotion' :
+                   booking.discountType === 'last_minute' ? 'Last-minute discount' : 'Discount'}
+                  {Number(booking.discountPercent ?? 0) > 0 && ` (${booking.discountPercent}%)`}
+                </span>
+                <span>−{formatPrice(Number(booking.discountAmount), sourceCurrency)}</span>
+              </div>
+            )}
             {Number(booking.cleaningFee) > 0 && (
               <div className="flex justify-between">
                 <span className="text-neutral-600">Cleaning fee</span>
@@ -308,7 +428,58 @@ export default function BookingHistoryPage() {
               <span>Total</span>
               <span>{formatPrice(Number(total), sourceCurrency)}</span>
             </div>
+
+            {/* Deposit row — paid in cash, not included in total */}
+            {(booking.depositAmount ?? 0) > 0 && (
+              <div className="mt-2 flex justify-between text-sm text-neutral-500">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5 text-amber-500" />
+                  Security deposit <span className="text-xs italic">(cash, collected by host)</span>
+                </span>
+                <span>{formatPrice(Number(booking.depositAmount), sourceCurrency)}</span>
+              </div>
+            )}
           </div>
+
+          {/* Deposit status panel */}
+          {(booking.depositAmount ?? 0) > 0 && booking.depositStatus && booking.depositStatus !== 'none' && (() => {
+            const depositFmt = formatPrice(Number(booking.depositAmount), sourceCurrency);
+            const panels: Record<string, { bg: string; icon: JSX.Element; text: string }> = {
+              held: {
+                bg: 'bg-amber-50 border-amber-200',
+                icon: <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />,
+                text: `Security deposit of ${depositFmt} is payable in cash to your host at check-in. It will be returned if no damage occurs.`,
+              },
+              claimed: {
+                bg: 'bg-amber-50 border-amber-300',
+                icon: <ShieldAlert className="h-4 w-4 text-amber-700 shrink-0" />,
+                text: `Your host has submitted a damage claim for the security deposit (${depositFmt}). This is currently under admin review.`,
+              },
+              approved: {
+                bg: 'bg-red-50 border-red-200',
+                icon: <ShieldAlert className="h-4 w-4 text-red-600 shrink-0" />,
+                text: `The damage claim for ${depositFmt} has been approved. The host retains the security deposit.`,
+              },
+              rejected: {
+                bg: 'bg-green-50 border-green-200',
+                icon: <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />,
+                text: `The damage claim has been rejected. The host is required to return the ${depositFmt} security deposit to you.`,
+              },
+              released: {
+                bg: 'bg-emerald-50 border-emerald-200',
+                icon: <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />,
+                text: `Your host has confirmed that the ${depositFmt} security deposit has been returned to you.`,
+              },
+            };
+            const panel = panels[booking.depositStatus ?? 'held'];
+            if (!panel) return null;
+            return (
+              <div className={`mt-4 border rounded-xl px-4 py-3 flex items-start gap-2.5 text-sm ${panel.bg}`}>
+                {panel.icon}
+                <p className="text-neutral-700 leading-snug">{panel.text}</p>
+              </div>
+            );
+          })()}
 
           {/* Cancellation / refund block */}
           {booking.cancelledAt && (

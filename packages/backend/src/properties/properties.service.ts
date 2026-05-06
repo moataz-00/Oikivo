@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, DataSource } from 'typeorm';
+import { Repository, In, DataSource, IsNull } from 'typeorm';
 import { join } from 'path';
 import * as fs from 'fs';
 import { PropertyEntity } from '../entities/property.entity';
@@ -20,8 +20,14 @@ import { UpdateListingDto } from './dto/update-listing.dto';
 import { isEgyptianPublicHoliday } from '../common/holidays.util';
 import { localDateStr } from '../common/utils/date.util';
 import { MailService, tplAdminPropertyPendingReview } from '../mail/mail.service';
+import { PriceAlertsService } from '../price-alerts/price-alerts.service';
 
 const ADMIN_NOTIFY_EMAIL = 'oikivo.support@gmail.com';
+
+export interface NightlyRate {
+  date: string;
+  price: number;
+}
 
 export interface PriceBreakdown {
   nights: number;
@@ -39,6 +45,8 @@ export interface PriceBreakdown {
   discountType?: 'monthly' | 'weekly' | 'last_minute' | 'new_listing_promotion' | null;
   newListingPromotionActive?: boolean;
   lastMinuteDiscountActive?: boolean;
+  /** Per-night price breakdown array (one entry per night in the stay). */
+  nightlyBreakdown: NightlyRate[];
 }
 
 // ─── Egyptian holidays: imported from common/holidays.util.ts ────────────────
@@ -62,9 +70,21 @@ export class PropertiesService {
     private bookingsRepo: Repository<BookingEntity>,
     private dataSource: DataSource,
     private mail: MailService,
+    private priceAlertsService: PriceAlertsService,
   ) {}
 
   async create(hostId: number, dto: CreateListingDto): Promise<PropertyEntity> {
+    const host = await this.usersRepo.findOne({ where: { id: hostId } });
+    if (!host?.isEmailVerified) {
+      throw new ForbiddenException('VERIFICATION_EMAIL_REQUIRED');
+    }
+    if (!host?.isPhoneVerified) {
+      throw new ForbiddenException('VERIFICATION_PHONE_REQUIRED');
+    }
+    if (!host?.idVerificationStatus || host.idVerificationStatus === 'none') {
+      throw new ForbiddenException('VERIFICATION_ID_REQUIRED');
+    }
+
     const { amenityIds, ...propertyData } = dto;
 
     const property = this.propertiesRepo.create({
@@ -89,7 +109,7 @@ export class PropertiesService {
       relations: ['photos', 'amenities', 'host', 'houseRules', 'category'],
     });
 
-    if (!property) throw new NotFoundException('Property not found');
+    if (!property || property.deletedAt) throw new NotFoundException('Property not found');
     return property;
   }
 
@@ -108,7 +128,7 @@ export class PropertiesService {
       where: { uuid },
       relations: ['photos', 'amenities', 'host', 'houseRules', 'category'],
     });
-    if (!property) throw new NotFoundException('Property not found');
+    if (!property || property.deletedAt) throw new NotFoundException('Property not found');
     // Fire-and-forget view count increment (non-blocking)
     this.propertiesRepo.increment({ id: property.id }, 'viewCount', 1).catch(() => {});
     return property;
@@ -150,6 +170,13 @@ export class PropertiesService {
       property.wizardLastStep = Math.max(property.wizardLastStep ?? 0, incomingStep);
     }
     await this.propertiesRepo.save(property);
+
+    // If price changed, immediately check price alerts for this property
+    if (updateData.pricePerNight !== undefined) {
+      this.priceAlertsService
+        .checkAlertsForProperty(id, Number(updateData.pricePerNight))
+        .catch(() => {/* non-blocking */});
+    }
 
     // FIX P9: After saving, re-check photo count for live listings
     if (isLive && amenityIds === undefined) {
@@ -604,13 +631,16 @@ export class PropertiesService {
       if (fs.existsSync(propDir)) fs.rmSync(propDir, { recursive: true, force: true });
     } catch { /* non-fatal */ }
 
-    await this.propertiesRepo.remove(property);
+    // Soft-delete: mark deleted_at timestamp instead of hard-removing the row.
+    // This preserves all FK-referenced booking, review, and payout records.
+    property.deletedAt = new Date();
+    await this.propertiesRepo.save(property);
     return { message: 'Property permanently deleted' };
   }
 
   async getArchivedListings(hostId: number): Promise<PropertyEntity[]> {
     return this.propertiesRepo.find({
-      where: { hostId, status: 'archived' as any },
+      where: { hostId, status: 'archived' as any, deletedAt: IsNull() },
       relations: ['photos', 'category'],
       order: { archivedAt: 'DESC' },
     });
@@ -618,7 +648,7 @@ export class PropertiesService {
 
   async getHostListings(hostId: number, page = 1, limit = 200) {
     const [items, total] = await this.propertiesRepo.findAndCount({
-      where: { hostId },
+      where: { hostId, deletedAt: IsNull() },
       relations: ['photos', 'category', 'amenities', 'host'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
@@ -657,21 +687,25 @@ export class PropertiesService {
     // Delete existing rules
     await this.houseRulesRepo.delete({ propertyId });
 
-    // Insert new rules
-    const newRules = rules.map((r) =>
-      this.houseRulesRepo.create({ propertyId, rule: r.rule, ruleAr: r.ruleAr }),
+    if (!rules.length) return [];
+
+    // Use raw INSERT to avoid TypeORM nullifying property_id via the undefined
+    // `property` relation object when calling .save() on a new entity.
+    await this.dataSource.query(
+      `INSERT INTO property_house_rules (property_id, rule, rule_ar) VALUES ${rules.map(() => '(?,?,?)').join(', ')}`,
+      rules.flatMap((r) => [propertyId, r.rule, r.ruleAr ?? null]),
     );
 
-    return this.houseRulesRepo.save(newRules);
+    return this.houseRulesRepo.find({ where: { propertyId } });
   }
 
   /** Sum per-night prices accounting for weekend pricing */
-  private calculateNightlyBase(
+  private buildNightlyBreakdown(
     property: PropertyEntity,
     checkIn: string,
     checkOut: string,
     priceOverrides: Map<string, number> = new Map(),
-  ): number {
+  ): { amount: number; breakdown: NightlyRate[] } {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     const basePrice = Number(property.pricePerNight ?? 0);
@@ -679,6 +713,7 @@ export class PropertiesService {
       property.weekendPrice != null ? Number(property.weekendPrice) : null;
 
     let amount = 0;
+    const breakdown: NightlyRate[] = [];
     for (
       let d = new Date(checkInDate);
       d < checkOutDate;
@@ -686,15 +721,27 @@ export class PropertiesService {
     ) {
       const dateStr = localDateStr(d);
       const override = priceOverrides.get(dateStr);
+      let nightPrice: number;
       if (override != null) {
-        amount += override;
+        nightPrice = override;
       } else {
         const dow = d.getDay(); // 5=Friday, 6=Saturday
         const isPeak = dow === 5 || dow === 6 || isEgyptianPublicHoliday(d);
-        amount += isPeak && weekendPrice != null ? weekendPrice : basePrice;
+        nightPrice = isPeak && weekendPrice != null ? weekendPrice : basePrice;
       }
+      amount += nightPrice;
+      breakdown.push({ date: dateStr, price: nightPrice });
     }
-    return parseFloat(amount.toFixed(2));
+    return { amount: parseFloat(amount.toFixed(2)), breakdown };
+  }
+
+  private calculateNightlyBase(
+    property: PropertyEntity,
+    checkIn: string,
+    checkOut: string,
+    priceOverrides: Map<string, number> = new Map(),
+  ): number {
+    return this.buildNightlyBreakdown(property, checkIn, checkOut, priceOverrides).amount;
   }
 
   calculatePrice(
@@ -720,7 +767,7 @@ export class PropertiesService {
       property.weekendPrice != null ? Number(property.weekendPrice) : null;
 
     // Base amount using weekend pricing per night
-    const baseAmount = this.calculateNightlyBase(property, checkIn, checkOut, priceOverrides);
+    const { amount: baseAmount, breakdown: nightlyBreakdown } = this.buildNightlyBreakdown(property, checkIn, checkOut, priceOverrides);
 
     // Apply length-of-stay discounts (monthly wins over weekly)
     const weeklyDiscount = Number(property.weeklyDiscount ?? 0);
@@ -788,6 +835,7 @@ export class PropertiesService {
       discountType,
       newListingPromotionActive: isNewListingPromoActive,
       lastMinuteDiscountActive: isLastMinute && lastMinutePct > 0,
+      nightlyBreakdown,
     };
   }
 
@@ -806,7 +854,15 @@ export class PropertiesService {
       [propertyId, checkIn, checkOut],
     );
     const priceOverrides = new Map<string, number>(
-      rows.map((r) => [r.date, Number(r.price_override)]),
+      rows.map((r) => {
+        // MySQL2 returns DATE columns as JS Date objects (not YYYY-MM-DD strings),
+        // so we must normalise through localDateStr to match the keys used in buildNightlyBreakdown.
+        const dateKey =
+          typeof r.date === 'string' && r.date.length === 10
+            ? r.date
+            : localDateStr(new Date(r.date as unknown as string | Date));
+        return [dateKey, Number(r.price_override)];
+      }),
     );
 
     return this.calculatePrice(property, checkIn, checkOut, guests, priceOverrides);
@@ -904,6 +960,12 @@ export class PropertiesService {
 
         Object.assign(property, payload);
         await this.propertiesRepo.save(property);
+        // Immediately check price alerts if price changed
+        if (payload.pricePerNight !== undefined) {
+          this.priceAlertsService
+            .checkAlertsForProperty(id, Number(payload.pricePerNight))
+            .catch(() => {/* non-blocking */});
+        }
         updated.push(id);
       } catch {
         failed.push(id);
@@ -959,7 +1021,7 @@ export class PropertiesService {
         }
         if (
           settings.bookingMode != null
-          && !['instant_book', 'approve_first_three'].includes(settings.bookingMode)
+          && !['instant_book', 'approve_first_three', 'always_approve'].includes(settings.bookingMode)
         ) {
           throw new BadRequestException('Invalid booking mode');
         }
@@ -968,6 +1030,9 @@ export class PropertiesService {
         }
 
         Object.assign(property, settings);
+        // Keep the instantBook column in sync with bookingMode
+        if (settings.bookingMode === 'instant_book') property.instantBook = true;
+        else if (settings.bookingMode === 'approve_first_three' || settings.bookingMode === 'always_approve') property.instantBook = false;
         await this.propertiesRepo.save(property);
         updated.push(id);
       } catch {

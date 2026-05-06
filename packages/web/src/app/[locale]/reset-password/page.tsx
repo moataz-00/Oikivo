@@ -7,7 +7,8 @@ import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Home, Eye, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
+import { Eye, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { authApi } from '@/lib/api';
@@ -89,8 +90,7 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
             <Link href={`/${locale}`} className="flex items-center gap-2">
-              <Home className="h-8 w-8 text-neutral-900" strokeWidth={2.5} />
-              <span className="text-2xl font-bold text-neutral-900">sakan</span>
+              <Image src="/logo.png" alt="Oikivo" width={120} height={40} className="h-10 w-auto" />
             </Link>
           </div>
           <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-8 text-center">
@@ -120,8 +120,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
           <Link href={`/${locale}`} className="flex items-center gap-2">
-            <Home className="h-8 w-8 text-neutral-900" strokeWidth={2.5} />
-            <span className="text-2xl font-bold text-neutral-900">sakan</span>
+            <Image src="/logo.png" alt="Oikivo" width={120} height={40} className="h-10 w-auto" />
           </Link>
         </div>
 

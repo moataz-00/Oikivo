@@ -259,6 +259,26 @@ export class CreateListingDto {
   @Max(5.0)
   minGuestRating?: number;
 
+  @ApiProperty({ required: false, description: 'WiFi network name' })
+  @IsOptional()
+  @IsString()
+  wifiName?: string;
+
+  @ApiProperty({ required: false, description: 'WiFi password' })
+  @IsOptional()
+  @IsString()
+  wifiPassword?: string;
+
+  @ApiProperty({ required: false, description: 'Door/lockbox code' })
+  @IsOptional()
+  @IsString()
+  doorCode?: string;
+
+  @ApiProperty({ required: false, description: 'Check-in instructions for guests' })
+  @IsOptional()
+  @IsString()
+  checkInInstructions?: string;
+
   @ApiProperty({ required: false, type: [Number], description: 'Amenity IDs' })
   @IsOptional()
   @IsArray()

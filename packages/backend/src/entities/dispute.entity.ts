@@ -98,9 +98,13 @@ export class DisputeEntity {
   @Column({ name: 'additional_info', type: 'text', nullable: true })
   additionalInfo: string | null;
 
-  // FIX DISP-G1: Evidence upload support
+  // FIX DISP-G1: Evidence upload support – guest evidence
   @Column({ type: 'json', nullable: true })
   evidence: string[] | null; // Array of file paths: /uploads/disputes/{id}/evidence-*.jpg
+
+  // Host-uploaded evidence stored separately so each party only sees their own files
+  @Column({ name: 'host_evidence', type: 'json', nullable: true })
+  hostEvidence: string[] | null;
 
   // FIX DISP-G2: Appeal process support
   @Column({ name: 'appeal_requested', type: 'boolean', default: false })

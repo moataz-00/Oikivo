@@ -216,7 +216,7 @@ export default function HostDashboardPage() {
           className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-semibold text-neutral-900">🏠 {t('dashboard')}</h1>
-            <p className="mt-1 text-sm text-neutral-500">Your command center for listings, guests, and upcoming stays.</p>
+            <p className="mt-1 text-sm text-neutral-500">{t('dashboardDesc')}</p>
           </div>
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             <Link href={`/${locale}/hosting/new`}
@@ -238,10 +238,10 @@ export default function HostDashboardPage() {
               <span className="text-xl">💳</span>
               <div>
                 <p className="text-sm font-semibold text-amber-900">
-                  {pendingPayments.length} pending payment{pendingPayments.length > 1 ? 's' : ''} awaiting your confirmation
+                  {t('pendingPaymentsAlert', { count: pendingPayments.length })}
                 </p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Review submitted InstaPay proofs and confirm receipt to release the reservation.
+                  {t('pendingPaymentsAlertDesc')}
                 </p>
               </div>
             </div>
@@ -249,7 +249,7 @@ export default function HostDashboardPage() {
               href={`/${locale}/hosting/pending-payments`}
               className="shrink-0 rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-600"
             >
-              Review now →
+              {t('reviewNow')} <ChevronRight className="inline h-3 w-3 rtl:rotate-180" />
             </Link>
           </motion.div>
         )}
@@ -267,7 +267,7 @@ export default function HostDashboardPage() {
                   : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
               )}
             >
-              {tab === 'properties' ? '🏠 Properties' : tab === 'calendar' ? '📅 Calendar' : '🎭 Experiences'}
+              {tab === 'properties' ? `🏠 ${t('tabProperties')}` : tab === 'calendar' ? `📅 ${t('tabCalendar')}` : `🎭 ${t('tabExperiences')}`}
             </button>
           ))}
         </div>
@@ -300,10 +300,10 @@ export default function HostDashboardPage() {
           {/* Upcoming reservations */}
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-neutral-900">🗓️ Upcoming check-ins</h2>
+              <h2 className="text-lg font-semibold text-neutral-900">📅 {t('upcomingCheckins')}</h2>
               <Link href={`/${locale}/hosting/reservations`}
-                className="text-sm text-neutral-600 hover:text-neutral-900 font-medium transition-colors">
-                View all →
+                className="text-sm text-neutral-600 hover:text-neutral-900 font-medium transition-colors flex items-center gap-1">
+                {t('viewAll')} <ChevronRight className="h-3 w-3 rtl:rotate-180" />
               </Link>
             </div>
             {resLoading ? (
@@ -313,7 +313,7 @@ export default function HostDashboardPage() {
                 className="rounded-2xl border border-dashed border-neutral-200 p-10 text-center">
                 <p className="text-3xl mb-3">🌙</p>
                 <p className="text-neutral-500 text-sm">{t('noUpcomingReservations')}</p>
-                <p className="text-xs text-neutral-400 mt-1">New reservations will appear here</p>
+                <p className="text-xs text-neutral-400 mt-1">{t('newReservationsDesc')}</p>
               </motion.div>
             ) : (
               <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
@@ -330,7 +330,7 @@ export default function HostDashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-neutral-900 truncate">{res.property.title}</p>
                         <p className="text-xs text-neutral-500 mt-0.5">
-                          📅 {formatDate(res.checkIn, 'MMM d')} – {formatDate(res.checkOut, 'MMM d')} · 👥 {res.guests} guest{res.guests > 1 ? 's' : ''}
+                        📅 {formatDate(res.checkIn, 'MMM d')} – {formatDate(res.checkOut, 'MMM d')} · 👥 {res.guests} {res.guests > 1 ? t('guestPlural') : t('guestSingular')}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -349,11 +349,11 @@ export default function HostDashboardPage() {
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">⚡ {t('quickActions')}</h2>
             <div className="rounded-2xl border border-neutral-200 overflow-hidden bg-white max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-200 scrollbar-track-transparent">
               {[
-                { emoji: '🏠', label: t('listings'), href: `/${locale}/hosting/listings`, desc: `${listings?.length ?? 0} listings` },
-                { emoji: '🗓️', label: t('reservations'), href: `/${locale}/hosting/reservations`, desc: `${pendingReservations?.length ?? 0} pending` },
-                { emoji: '📊', label: 'Analytics', href: `/${locale}/hosting/analytics`, desc: 'Revenue & booking stats' },
-                { emoji: <img src="https://flagcdn.com/24x18/eg.png" width={24} height={18} alt="Egypt" className="rounded-sm object-cover" />, label: 'Egypt Regulations', href: `/${locale}/hosting/regulations/egypt`, desc: 'Holiday Home License (MoTA)' },
-                { emoji: '✨', label: t('createListing'), href: `/${locale}/hosting/new`, desc: 'Add a home or experience' },
+                { emoji: '🏠', label: t('listings'), href: `/${locale}/hosting/listings`, desc: t('listingsCountDesc', { count: listings?.length ?? 0 }) },
+                { emoji: '📅', label: t('reservations'), href: `/${locale}/hosting/reservations`, desc: t('pendingCountDesc', { count: pendingReservations?.length ?? 0 }) },
+                { emoji: '📊', label: t('analyticsTitle'), href: `/${locale}/hosting/analytics`, desc: t('analyticsQuickDesc') },
+                { emoji: <img src="https://flagcdn.com/24x18/eg.png" width={24} height={18} alt="Egypt" className="rounded-sm object-cover" />, label: t('egyptRegulations'), href: `/${locale}/hosting/regulations/egypt`, desc: t('egyptRegulationsDesc') },
+                { emoji: '✨', label: t('createListing'), href: `/${locale}/hosting/new`, desc: t('createListingDesc') },
               ].map(({ emoji, label, href, desc }, i, arr) => (
                 <motion.div key={label} whileHover={{ backgroundColor: 'rgba(249,250,251,1)', x: 2 }}>
                   <Link href={href}
@@ -365,7 +365,7 @@ export default function HostDashboardPage() {
                         <p className="text-xs text-neutral-500">{desc}</p>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-neutral-400" />
+                    <ChevronRight className="h-4 w-4 text-neutral-400 rtl:rotate-180" />
                   </Link>
                 </motion.div>
               ))}
@@ -383,9 +383,9 @@ export default function HostDashboardPage() {
             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-50">
               <Rocket className="h-8 w-8 text-rose-400" strokeWidth={1.5} />
             </div>
-            <h3 className="mb-2 text-xl font-bold text-neutral-900">Experiences — Coming Soon</h3>
+            <h3 className="mb-2 text-xl font-bold text-neutral-900">{t('experiencesComing')}</h3>
             <p className="max-w-sm text-sm text-neutral-500">
-              The ability to host and manage experiences is launching soon. You'll be able to offer workshops, guided tours, and activities to travellers worldwide.
+              {t('experiencesComingDesc')}
             </p>
           </div>
         )}

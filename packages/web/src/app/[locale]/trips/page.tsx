@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, CreditCard, AlertTriangle, Scale, Home, Compass, Star, MessageSquareWarning, Printer, QrCode, Download, RefreshCw, CheckCircle, ImagePlus, AlertCircle, ChevronDown, Check } from 'lucide-react';
+import { MapPin, CreditCard, AlertTriangle, Scale, Home, Compass, Star, MessageSquareWarning, Printer, QrCode, Download, RefreshCw, CheckCircle, ImagePlus, AlertCircle, ChevronDown, ChevronLeft, ChevronRight, Check, Pencil, Trash2, X } from 'lucide-react';
 import { PaymentMethodModal } from '@/components/payment/PaymentMethodModal';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -366,19 +366,19 @@ function getCancellationTierInfo(policy: string | null | undefined, checkIn: str
   switch (policy) {
     case 'flexible':
       // full refund if ≥1 day (24 h) before check-in
-      return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
+      return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', textKey: 'cancellationFree' as const };
     case 'moderate':
       if (daysUntil >= 5)
-        return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
-      return { tier: 'partial', color: 'text-amber-700 bg-amber-50 border-amber-200', dot: '🟡', text: 'Partial refund if cancelled' };
+        return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '\uD83D\uDFE2', textKey: 'cancellationFree' as const };
+      return { tier: 'partial', color: 'text-amber-700 bg-amber-50 border-amber-200', dot: '\uD83D\uDFE1', textKey: 'cancellationPartial' as const };
     case 'strict':
       if (daysUntil >= 14)
-        return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
+        return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '\uD83D\uDFE2', textKey: 'cancellationFree' as const };
       if (daysUntil >= 7)
-        return { tier: 'partial', color: 'text-amber-700 bg-amber-50 border-amber-200', dot: '🟡', text: 'Partial refund if cancelled' };
-      return { tier: 'none', color: 'text-red-700 bg-red-50 border-red-200', dot: '🔴', text: 'No refund if cancelled' };
+        return { tier: 'partial', color: 'text-amber-700 bg-amber-50 border-amber-200', dot: '\uD83D\uDFE1', textKey: 'cancellationPartial' as const };
+      return { tier: 'none', color: 'text-red-700 bg-red-50 border-red-200', dot: '\uD83D\uDD34', textKey: 'cancellationNone' as const };
     default:
-      return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '🟢', text: 'Free cancellation' };
+      return { tier: 'full', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: '\uD83D\uDFE2', textKey: 'cancellationFree' as const };
   }
 }
 
@@ -400,6 +400,11 @@ function BookingCard({
   const tCommon = useTranslations('common');
   const { formatPrice } = useCurrency();
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [deletingReview, setDeletingReview] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [overallRating, setOverallRating] = useState(5);
   const [cleanlinessRating, setCleanlinessRating] = useState(5);
   const [communicationRating, setCommunicationRating] = useState(5);
@@ -445,12 +450,42 @@ function BookingCard({
     withinCancellableWindow;
   const cancelTierInfo = canCancelStay ? getCancellationTierInfo(booking.cancellationPolicy, booking.checkIn) : null;
 
+  const openEditReview = () => {
+    const r = (booking as any).review;
+    if (!r) return;
+    setOverallRating(r.overallRating ?? r.rating ?? 5);
+    setCleanlinessRating(r.cleanlinessRating ?? 5);
+    setCommunicationRating(r.communicationRating ?? 5);
+    setLocationRating(r.locationRating ?? 5);
+    setValueRating(r.valueRating ?? 5);
+    setCheckinRating(r.checkinRating ?? 5);
+    setComment(r.comment ?? '');
+    setReviewPhotoFiles([]);
+    setIsEditMode(true);
+    setReviewOpen(true);
+  };
+
+  const handleDeleteReview = async () => {
+    const r = (booking as any).review;
+    if (!r || deletingReview) return;
+    setDeleteConfirmOpen(false);
+    setDeletingReview(true);
+    try {
+      await reviewsApi.deleteReview(r.id);
+      toast.success(t('reviewDeleted'));
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? t('failedDeleteReview'));
+    } finally {
+      setDeletingReview(false);
+    }
+  };
+
   const handleSubmitReview = async () => {
     if (submittingReview) return;
     setSubmittingReview(true);
     try {
-      const review = await reviewsApi.createReview({
-        bookingId: booking.id,
+      const basePayload = {
         overallRating,
         cleanlinessRating,
         communicationRating,
@@ -458,12 +493,21 @@ function BookingCard({
         valueRating,
         checkinRating,
         comment: comment || undefined,
-      });
-      if (reviewPhotoFiles.length > 0) {
-        await reviewsApi.uploadReviewPhotos(review.id, reviewPhotoFiles);
+      };
+      let reviewId: number;
+      if (isEditMode && (booking as any).review) {
+        const updated = await reviewsApi.updateReview((booking as any).review.id, basePayload);
+        reviewId = updated.id;
+      } else {
+        const created = await reviewsApi.createReview({ bookingId: booking.id, ...basePayload });
+        reviewId = created.id;
       }
-      toast.success(t('reviewSubmitted'));
+      if (reviewPhotoFiles.length > 0) {
+        await reviewsApi.uploadReviewPhotos(reviewId, reviewPhotoFiles);
+      }
+      toast.success(isEditMode ? t('reviewUpdated') : t('reviewSubmitted'));
       setReviewOpen(false);
+      setIsEditMode(false);
       setReviewPhotoFiles([]);
       onReviewSubmitted();
     } catch (err: any) {
@@ -511,16 +555,16 @@ function BookingCard({
           <span>
             {t('checkIn')}: <strong>{formatDate(booking.checkIn, 'MMM d, yyyy')}</strong>
             {((booking.property as any).checkInAfter || booking.property.checkInTime) && (
-              <span className="ml-1 text-neutral-400 font-normal">
-                from {((booking.property as any).checkInAfter || booking.property.checkInTime)?.slice(0, 5)}
+              <span className="ms-1 text-neutral-400 font-normal">
+                {t('checkInFrom', { time: ((booking.property as any).checkInAfter || booking.property.checkInTime)?.slice(0, 5) ?? '' })}
               </span>
             )}
           </span>
           <span>
             {t('checkOut')}: <strong>{formatDate(booking.checkOut, 'MMM d, yyyy')}</strong>
             {((booking.property as any).checkOutBefore || booking.property.checkOutTime) && (
-              <span className="ml-1 text-neutral-400 font-normal">
-                by {((booking.property as any).checkOutBefore || booking.property.checkOutTime)?.slice(0, 5)}
+              <span className="ms-1 text-neutral-400 font-normal">
+                {t('checkOutBy', { time: ((booking.property as any).checkOutBefore || booking.property.checkOutTime)?.slice(0, 5) ?? '' })}
               </span>
             )}
           </span>
@@ -534,7 +578,7 @@ function BookingCard({
           <div className="mt-2">
             <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${cancelTierInfo.color}`}>
               <span aria-hidden>{cancelTierInfo.dot}</span>
-              {cancelTierInfo.text}
+              {t(cancelTierInfo.textKey)}
               {booking.cancellationPolicy && (
                 <span className="opacity-60 font-normal capitalize">· {booking.cancellationPolicy}</span>
               )}
@@ -551,7 +595,7 @@ function BookingCard({
             {Number(booking.refundAmount) > 0 && booking.paymentStatus !== 'refunded' && booking.paymentMethod === 'instapay' && (
               <>
                 <p>⏳ {t('manualRefundPending', { amount: formatPrice(Number(booking.refundAmount!), booking.currency ?? 'EGP') })}</p>
-                <p className="text-xs text-neutral-500 mt-0.5">⏱ Refunds are typically processed within 5–7 business days.</p>
+                <p className="text-xs text-neutral-500 mt-0.5">⏱ {t('refundProcessingNote')}</p>
               </>
             )}
             {Number(booking.refundAmount) > 0 && booking.paymentStatus !== 'refunded' && booking.paymentMethod === 'opay-card' && (
@@ -634,7 +678,7 @@ function BookingCard({
             (booking.status === 'confirmed' && new Date(booking.checkOut) < new Date())) &&
             !(booking as any).review && (
             <button
-              onClick={() => setReviewOpen(true)}
+              onClick={() => { setIsEditMode(false); setReviewOpen(true); }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors"
             >
               <Star className="h-3.5 w-3.5 shrink-0" />
@@ -642,10 +686,14 @@ function BookingCard({
             </button>
           )}
           {(booking as any).review && (
-            <span className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-500">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />
-              {t('reviewedRating', { rating: (booking as any).review.overallRating ?? (booking as any).review.rating })}
-            </span>
+            <button
+              onClick={openEditReview}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+            >
+              <Star className="h-3.5 w-3.5 fill-indigo-500 text-indigo-500 shrink-0" />
+              {t('yourReview')}
+              <span className="ms-0.5 text-xs font-bold text-amber-500">★ {(booking as any).review.overallRating ?? (booking as any).review.rating}</span>
+            </button>
           )}
 
           {/* — Dispute / Report — */}
@@ -655,7 +703,7 @@ function BookingCard({
               className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
             >
               <Scale className="h-3.5 w-3.5 shrink-0" />
-              View dispute
+              {t('viewDispute')}
             </Link>
           ) : (
             <>
@@ -674,7 +722,7 @@ function BookingCard({
                   className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
                 >
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  Report a problem
+                  {t('reportProblem')}
                 </Link>
               )}
               {booking.status === 'in_progress' && (
@@ -683,7 +731,7 @@ function BookingCard({
                   className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
                 >
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  Report a problem during your stay
+                  {t('reportProblemDuringStay')}
                 </Link>
               )}
             </>
@@ -745,14 +793,14 @@ function BookingCard({
     </div>
 
     {/* Review Modal */}
-    <Modal open={reviewOpen} onOpenChange={setReviewOpen}>
+    <Modal open={reviewOpen} onOpenChange={(open) => { setReviewOpen(open); if (!open) setIsEditMode(false); }}>
       <div className="p-6 space-y-4 max-w-md">
         <div className="flex items-center gap-3 mb-1">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100">
             <Star className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-neutral-900">{t('reviewYourStay')}</h3>
+            <h3 className="text-lg font-bold text-neutral-900">{isEditMode ? t('editYourReview') : t('reviewYourStay')}</h3>
             <p className="text-sm text-indigo-500 font-medium">{booking.property.title}</p>
           </div>
         </div>
@@ -786,12 +834,33 @@ function BookingCard({
 
         {/* M-05: Review photo upload — file picker replaces raw URL input */}
         <div>
+          {/* Show existing saved photos when editing */}
+          {isEditMode && (() => {
+            const existingPhotos: string[] = (booking as any).review?.photos ?? [];
+            if (existingPhotos.length === 0) return null;
+            const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
+            const resolved = existingPhotos.map((url) => url.startsWith('http') ? url : `${backendUrl}${url}`);
+            return (
+              <div className="mb-3">
+                <p className="text-xs font-medium text-neutral-500 mb-2">Current photos</p>
+                <div className="flex flex-wrap gap-2">
+                  {resolved.map((src, i) => (
+                    <button key={i} type="button" onClick={() => { setLightboxPhotos(resolved); setLightboxIndex(i); }}
+                      className="rounded-xl overflow-hidden border border-indigo-100 hover:scale-105 transition-transform focus:outline-none">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`Review photo ${i + 1}`} className="h-16 w-16 object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">{t('reviewPhotosLabel')} <span className="font-normal text-neutral-400">({t('optional')})</span></label>
           <label className="flex items-center justify-center gap-2 w-full cursor-pointer rounded-xl border-2 border-dashed border-indigo-200 px-3 py-4 text-sm text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50/40 transition">
             <ImagePlus className="h-4 w-4" />
             {reviewPhotoFiles.length === 0
               ? t('uploadPhotos')
-              : `${reviewPhotoFiles.length} photo${reviewPhotoFiles.length !== 1 ? 's' : ''} selected`}
+              : t('photosSelected', { count: reviewPhotoFiles.length })}
             <input
               type="file"
               accept="image/*"
@@ -807,7 +876,7 @@ function BookingCard({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={URL.createObjectURL(file)} alt="" className="h-14 w-14 rounded-lg object-cover border border-indigo-100" />
                   <button type="button" onClick={() => setReviewPhotoFiles(p => p.filter((_, j) => j !== i))}
-                    className="absolute -top-1 -right-1 bg-white border border-neutral-200 rounded-full h-4 w-4 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-red-500">
+                    className="absolute -top-1 end-[-4px] bg-white border border-neutral-200 rounded-full h-4 w-4 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-red-500">
                     ×
                   </button>
                 </div>
@@ -816,9 +885,19 @@ function BookingCard({
           )}
         </div>
 
+        {isEditMode && (
+          <button
+            onClick={() => setDeleteConfirmOpen(true)}
+            disabled={deletingReview}
+            className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-40 transition flex items-center justify-center gap-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {deletingReview ? t('deletingReview') : t('deleteReview')}
+          </button>
+        )}
         <div className="flex gap-3 pt-1">
           <button
-            onClick={() => setReviewOpen(false)}
+            onClick={() => { setReviewOpen(false); setIsEditMode(false); }}
             className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition"
           >
             {tCommon('cancel')}
@@ -828,11 +907,98 @@ function BookingCard({
             disabled={submittingReview}
             className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-2.5 text-sm font-semibold text-white hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 transition shadow-sm"
           >
-            {submittingReview ? t('submittingReview') : t('submitReview')}
+            {submittingReview ? t('submittingReview') : isEditMode ? t('saveChangesReview') : t('submitReview')}
           </button>
         </div>
       </div>
     </Modal>
+
+    {/* Delete review confirm modal */}
+    <Modal open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <div className="flex flex-col gap-4 p-1">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+            <Trash2 className="h-5 w-5 text-red-500" />
+          </div>
+          <h3 className="text-base font-bold text-neutral-900">{t('deleteReviewTitle')}</h3>
+          <p className="text-sm text-neutral-500">{t('deleteReviewDesc')}</p>
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={() => setDeleteConfirmOpen(false)}
+            className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition"
+          >
+            {tCommon('cancel')}
+          </button>
+          <button
+            onClick={handleDeleteReview}
+            disabled={deletingReview}
+            className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50 transition"
+          >
+            {deletingReview ? t('deletingReview') : t('yesDelete')}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* Photo lightbox */}
+    <AnimatePresence>
+      {lightboxPhotos.length > 0 && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center"
+            onClick={() => setLightboxPhotos([])}
+          >
+            <button
+              className="absolute top-4 end-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+              onClick={() => setLightboxPhotos([])}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {lightboxPhotos.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + lightboxPhotos.length) % lightboxPhotos.length); }}
+                  className="absolute start-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+                >
+                  <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % lightboxPhotos.length); }}
+                  className="absolute end-14 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+                >
+                  <ChevronRight className="h-5 w-5 rtl:rotate-180" />
+                </button>
+              </>
+            )}
+            <motion.img
+              key={lightboxIndex}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              src={lightboxPhotos[lightboxIndex]}
+              alt="Review photo"
+              className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {lightboxPhotos.length > 1 && (
+              <div className="absolute bottom-4 flex gap-1.5">
+                {lightboxPhotos.map((_, i) => (
+                  <button key={i} onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === lightboxIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
 
     </>
   );
@@ -876,14 +1042,14 @@ export default function TripsPage() {
   const paymentBookingId = searchParams.get('bookingId');
 
   const CANCEL_REASONS = [
-    { value: 'plans_changed', label: 'My plans changed' },
-    { value: 'found_alternative', label: 'Found a better alternative' },
-    { value: 'host_unresponsive', label: 'Host is unresponsive' },
-    { value: 'pricing_issue', label: 'Pricing issue' },
-    { value: 'personal_emergency', label: 'Personal / family emergency' },
-    { value: 'travel_restrictions', label: 'Travel restrictions' },
-    { value: 'property_concerns', label: 'Concerns about the property' },
-    { value: 'other', label: 'Other' },
+    { value: 'plans_changed', label: t('reasonPlansChanged') },
+    { value: 'found_alternative', label: t('reasonFoundAlternative') },
+    { value: 'host_unresponsive', label: t('reasonHostUnresponsive') },
+    { value: 'pricing_issue', label: t('reasonPricingIssue') },
+    { value: 'personal_emergency', label: t('reasonPersonalEmergency') },
+    { value: 'travel_restrictions', label: t('reasonTravelRestrictions') },
+    { value: 'property_concerns', label: t('reasonPropertyConcerns') },
+    { value: 'other', label: t('reasonOther') },
   ];
 
   useEffect(() => {
@@ -1038,7 +1204,7 @@ export default function TripsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 sm:px-6 py-10">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex items-start justify-between mb-8 gap-4">
         <motion.h1
           className="text-3xl font-semibold text-neutral-900"
@@ -1054,7 +1220,7 @@ export default function TripsPage() {
             className="shrink-0 flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
           >
             <MessageSquareWarning className="h-4 w-4" />
-            My Disputes ({(myDisputes as any[]).length})
+            {t('myDisputesCount', { count: (myDisputes as any[]).length })}
           </Link>
         )}
         {(myDisputes as any[]).length === 0 && (
@@ -1063,7 +1229,7 @@ export default function TripsPage() {
             className="shrink-0 flex items-center gap-1.5 rounded-xl border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition-colors"
           >
             <MessageSquareWarning className="h-4 w-4" />
-            My Disputes
+            {t('myDisputes')}
           </Link>
         )}
       </div>
@@ -1077,9 +1243,9 @@ export default function TripsPage() {
         >
           <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-green-900">{t('paymentConfirmed') ?? 'Payment confirmed!'}</p>
+            <p className="text-sm font-semibold text-green-900">{t('paymentConfirmed')}</p>
             <p className="text-xs text-green-700 mt-0.5">
-              {t('paymentConfirmedDesc') ?? 'Your payment has been processed successfully. The booking status will update shortly.'}
+              {t('paymentConfirmedDesc')}
             </p>
           </div>
           <button onClick={() => setPaymentSuccessDismissed(true)} className="text-green-500 hover:text-green-700 text-sm font-medium">
@@ -1095,11 +1261,11 @@ export default function TripsPage() {
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-900">
               {pendingPaymentBookings.length === 1
-                ? t('oneBookingAwaitingPayment') ?? '1 booking is confirmed and awaiting payment'
-                : t('multipleBookingsAwaitingPayment') ?? `${pendingPaymentBookings.length} bookings are confirmed and awaiting payment`}
+                ? t('oneBookingAwaitingPayment')
+                : t('multipleBookingsAwaitingPayment')}
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              {t('goToUpcomingToPay') ?? 'Go to the Upcoming tab to complete your payment and secure your reservation.'}
+              {t('goToUpcomingToPay')}
             </p>
           </div>
         </div>
@@ -1129,7 +1295,7 @@ export default function TripsPage() {
 
       {/* Stays */}
       {listingType === 'stays' && (
-        <Tabs.Root defaultValue={active.length > 0 ? 'active' : 'upcoming'} className="mt-0">
+        <Tabs.Root defaultValue={active.length > 0 ? 'active' : 'upcoming'} className="mt-0" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
           <Tabs.List className="flex gap-0 border-b border-neutral-200 mb-8">
             {tabs.map((tab) => (
               <Tabs.Trigger
@@ -1139,7 +1305,7 @@ export default function TripsPage() {
               >
                 {tab.label}
                 {tab.value === 'active' && tab.data.length > 0 && (
-                  <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold w-4 h-4">
+                  <span className="ms-1.5 inline-flex items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold w-4 h-4">
                     {tab.data.length}
                   </span>
                 )}
@@ -1153,8 +1319,8 @@ export default function TripsPage() {
                 <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
                   <span className="text-2xl">🏠</span>
                   <div>
-                    <p className="text-sm font-semibold text-emerald-900">You're checked in!</p>
-                    <p className="text-xs text-emerald-700 mt-0.5">Your stay is in progress. Contact your host if you need anything.</p>
+                    <p className="text-sm font-semibold text-emerald-900">{t('checkedIn')}</p>
+                    <p className="text-xs text-emerald-700 mt-0.5">{t('checkedInDesc')}</p>
                   </div>
                 </div>
               )}
@@ -1171,7 +1337,7 @@ export default function TripsPage() {
                     <>
                       <div className="text-6xl">🛏️</div>
                       <h2 className="text-xl font-semibold text-neutral-900">{t('noActiveTrips')}</h2>
-                      <p className="text-neutral-500 max-w-xs">You have no ongoing stays right now.</p>
+                      <p className="text-neutral-500 max-w-xs">{t('noActiveTripsDesc')}</p>
                     </>
                   ) : (
                     <>
@@ -1223,7 +1389,7 @@ export default function TripsPage() {
 
       {/* Experiences */}
       {listingType === 'experiences' && (
-        <Tabs.Root defaultValue="upcoming" className="mt-0">
+        <Tabs.Root defaultValue="upcoming" className="mt-0" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
           <Tabs.List className="flex gap-0 border-b border-neutral-200 mb-8">
             {expTabs.map((tab) => (
               <Tabs.Trigger

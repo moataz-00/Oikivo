@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -35,6 +35,7 @@ function ArchivedCard({
   onRestore: () => void;
   onDelete: () => void;
 }) {
+  const t = useTranslations('hosting');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const images = property.images ?? [];
@@ -65,7 +66,7 @@ function ArchivedCard({
         <button
           type="button"
           onClick={onToggle}
-          className="absolute top-2.5 left-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 shadow-sm backdrop-blur-sm hover:bg-white transition-colors"
+          className="absolute top-2.5 start-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 shadow-sm backdrop-blur-sm hover:bg-white transition-colors"
         >
           {selected
             ? <CheckSquare className="h-4.5 w-4.5 text-indigo-600" strokeWidth={2.2} />
@@ -75,11 +76,11 @@ function ArchivedCard({
 
         {/* Days counter — top-right */}
         <div className={cn(
-          'absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1',
+          'absolute top-2.5 end-2.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1',
           urgent ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-neutral-100 text-neutral-600 ring-neutral-200'
         )}>
           <Clock className="h-3 w-3" />
-          {days}d left
+          {t('daysLeft', { count: days })}
         </div>
       </div>
 
@@ -93,13 +94,13 @@ function ArchivedCard({
         {urgent && (
           <p className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50 rounded-lg px-2.5 py-1.5">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            Deletes permanently in {days} day{days !== 1 ? 's' : ''}!
+            {t('deletesSoon', { count: days })}
           </p>
         )}
 
         {property.archivedAt && (
           <p className="text-xs text-neutral-400">
-            Archived {new Date(property.archivedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            {t('archivedOnDate')} {new Date(property.archivedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         )}
 
@@ -111,7 +112,7 @@ function ArchivedCard({
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
           >
             <ArchiveRestore className="h-3.5 w-3.5" />
-            Restore
+            {t('restore')}
           </button>
 
           {confirmDelete ? (
@@ -121,14 +122,14 @@ function ArchivedCard({
                 onClick={() => { setConfirmDelete(false); onDelete(); }}
                 className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 transition-colors"
               >
-                Confirm
+                {t('confirm')}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
                 className="rounded-xl border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
               >
-                Cancel
+                {t('cancel')}
               </button>
             </div>
           ) : (
@@ -138,7 +139,7 @@ function ArchivedCard({
               className="flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Delete
+              {t('delete')}
             </button>
           )}
         </div>
@@ -163,6 +164,7 @@ function BulkBar({
   onDeleteSelected: () => void;
   isDeleting: boolean;
 }) {
+  const t = useTranslations('hosting');
   const allSelected = selectedCount === total && total > 0;
   const someSelected = selectedCount > 0 && !allSelected;
 
@@ -180,19 +182,19 @@ function BulkBar({
           ? <Minus className="h-4 w-4 text-neutral-500" />
           : <Square className="h-4 w-4 text-neutral-400" />
         }
-        {allSelected ? 'Deselect all' : 'Select all'}
+        {allSelected ? t('deselectAll') : t('selectAll')}
       </button>
 
       {selectedCount > 0 && (
         <>
-          <span className="text-sm text-neutral-500">{selectedCount} selected</span>
+          <span className="text-sm text-neutral-500">{t('nSelected', { count: selectedCount })}</span>
 
           <button
             type="button"
             onClick={onClearAll}
             className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
           >
-            Clear
+            {t('clear')}
           </button>
 
           <div className="ml-auto">
@@ -206,7 +208,7 @@ function BulkBar({
               )}
             >
               <Trash2 className="h-4 w-4" />
-              {isDeleting ? 'Deleting…' : `Delete ${selectedCount} listing${selectedCount !== 1 ? 's' : ''} forever`}
+              {isDeleting ? t('deleting') : t('deleteForever', { count: selectedCount })}
             </button>
           </div>
         </>
@@ -224,6 +226,7 @@ function ArchivedExperienceCard({
   onRestore: () => void;
   onDelete: () => void;
 }) {
+  const t = useTranslations('hosting');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const coverPhoto = experience.photos?.find((p) => p.isCover) ?? experience.photos?.[0];
 
@@ -255,24 +258,24 @@ function ArchivedExperienceCard({
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
           >
             <ArchiveRestore className="h-3.5 w-3.5" />
-            Restore
+            {t('restore')}
           </button>
           {confirmDelete ? (
             <div className="flex items-center gap-1.5">
               <button type="button" onClick={() => { setConfirmDelete(false); onDelete(); }}
                 className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 transition-colors">
-                Confirm
+                {t('confirm')}
               </button>
               <button type="button" onClick={() => setConfirmDelete(false)}
                 className="rounded-xl border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors">
-                Cancel
+                {t('cancel')}
               </button>
             </div>
           ) : (
             <button type="button" onClick={() => setConfirmDelete(true)}
               className="flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors">
               <Trash2 className="h-3.5 w-3.5" />
-              Delete
+              {t('delete')}
             </button>
           )}
         </div>
@@ -283,6 +286,7 @@ function ArchivedExperienceCard({
 
 export default function ArchivePage() {
   const locale = useLocale();
+  const t = useTranslations('hosting');
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isLoggedIn, isHost, hasHydrated } = useAuth();
@@ -300,14 +304,16 @@ export default function ArchivePage() {
     queryKey: ['archived-listings'],
     queryFn: propertiesApi.getArchivedListings,
     enabled: isLoggedIn && isHost,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: allExperiences, isLoading: expLoading } = useQuery({
     queryKey: ['host-experiences'],
     queryFn: experiencesApi.getHostListings,
     enabled: isLoggedIn && isHost,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
   const archivedExperiences = (allExperiences ?? []).filter((e) => e.status === 'archived');
 
@@ -398,20 +404,20 @@ export default function ArchivePage() {
           href={`/${locale}/hosting/listings`}
           className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 mb-6 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to listings
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+          {t('backToListings')}
         </Link>
 
         <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 mb-8">
-          <h1 className="text-2xl font-semibold text-neutral-900">🗂️ Archive</h1>
+          <h1 className="text-2xl font-semibold text-neutral-900">🗂️ {t('archive')}</h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Archived listings are hidden from guests. They are permanently deleted after 30 days.
+            {t('archivePageDesc')}
           </p>
           <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="text-sm text-amber-800">
-              <p className="font-semibold">Auto-deletion notice</p>
-              <p className="mt-0.5 text-amber-700">Listings are permanently deleted 30 days after archiving. Restore them before the deadline.</p>
+              <p className="font-semibold">{t('autoDeletionNotice')}</p>
+              <p className="mt-0.5 text-amber-700">{t('autoDeletionDesc')}</p>
             </div>
           </div>
         </div>
@@ -420,8 +426,8 @@ export default function ArchivePage() {
       {/* Tab switcher */}
       <div className="mb-6 flex border-b border-neutral-200 bg-white rounded-t-2xl overflow-hidden">
         {([
-          { id: 'properties' as const, label: 'Homes', icon: Home, count: archived?.length ?? 0 },
-          { id: 'experiences' as const, label: 'Experiences', icon: Compass, count: archivedExperiences.length },
+          { id: 'properties' as const, label: t('tabHomes'), icon: Home, count: archived?.length ?? 0 },
+          { id: 'experiences' as const, label: t('tabExperiences'), icon: Compass, count: archivedExperiences.length },
         ] as const).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -455,13 +461,13 @@ export default function ArchivePage() {
             className="flex flex-col items-center rounded-3xl border border-dashed border-neutral-300 bg-white py-24 gap-4 text-center"
           >
             <span className="text-5xl">🗂️</span>
-            <h2 className="text-xl font-semibold text-neutral-900">Nothing archived</h2>
-            <p className="text-neutral-500 max-w-xs text-sm">When you archive a listing it will appear here.</p>
+            <h2 className="text-xl font-semibold text-neutral-900">{t('nothingArchived')}</h2>
+            <p className="text-neutral-500 max-w-xs text-sm">{t('nothingArchivedDesc')}</p>
             <Link
               href={`/${locale}/hosting/listings`}
               className="mt-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
             >
-              Back to listings
+              {t('backToListings')}
             </Link>
           </motion.div>
         ) : (
@@ -500,8 +506,8 @@ export default function ArchivePage() {
             className="flex flex-col items-center rounded-3xl border border-dashed border-neutral-300 bg-white py-24 gap-4 text-center"
           >
             <span className="text-5xl">🎭</span>
-            <h2 className="text-xl font-semibold text-neutral-900">No archived experiences</h2>
-            <p className="text-neutral-500 max-w-xs text-sm">Archived experiences will appear here.</p>
+            <h2 className="text-xl font-semibold text-neutral-900">{t('noArchivedExperiences')}</h2>
+            <p className="text-neutral-500 max-w-xs text-sm">{t('noArchivedExperiencesDesc')}</p>
           </motion.div>
         ) : (
           <AnimatePresence mode="popLayout">

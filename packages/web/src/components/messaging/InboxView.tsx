@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isYesterday, parseISO, isThisWeek } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,6 +43,28 @@ const GUEST_QUICK_REPLIES = [
   'Looking forward to staying here 🏡',
 ];
 
+const HOST_QUICK_REPLIES_AR = [
+  'مرحباً! شكراً على تواصلك 👋',
+  'نعم، متاح في هذه التواريخ ✅',
+  'عذراً، غير متاح في هذه التواريخ ❌',
+  'تسجيل الدخول: 3 م · تسجيل الخروج: 11 ص 🕒',
+  'سأؤكد حجزك قريباً ⏳',
+  'لا تتردد في السؤال!',
+  'هل يمكنك مشاركة وقت وصولك المتوقع? 📍',
+  'أهلاً! نأمل أن تستمتع بإقامتك 🏠',
+];
+
+const GUEST_QUICK_REPLIES_AR = [
+  'مرحباً، أنا مهتم بهذا العقار 👋',
+  'هل هو متاح في تواريخي? 📅',
+  'ما هي إجراءات تسجيل الدخول? 🔑',
+  'هل يوجد موقف سيارات? 🚗',
+  'هل الحيوانات الأليفة مسموح بها? 🐾',
+  'هل يمكنني تسجيل الدخول مبكراً? ⏰',
+  'شكراً على الرد السريع! 😊',
+  'أتطلع للإقامة هنا 🏡',
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function msgTime(str: string): string {
   try {
@@ -56,11 +78,11 @@ function msgTime(str: string): string {
   }
 }
 
-function dividerLabel(str: string): string {
+function dividerLabel(str: string, todayLabel = 'Today', yesterdayLabel = 'Yesterday'): string {
   try {
     const d = parseISO(str);
-    if (isToday(d)) return 'Today';
-    if (isYesterday(d)) return 'Yesterday';
+    if (isToday(d)) return todayLabel;
+    if (isYesterday(d)) return yesterdayLabel;
     if (isThisWeek(d)) return format(d, 'EEEE');
     return format(d, 'MMMM d, yyyy');
   } catch {
@@ -68,7 +90,7 @@ function dividerLabel(str: string): string {
   }
 }
 
-function groupByDate(msgs: Message[]) {
+function groupByDate(msgs: Message[], todayLabel = 'Today', yesterdayLabel = 'Yesterday') {
   const groups: Record<string, Message[]> = {};
   msgs.forEach((m) => {
     const key = m.createdAt.split('T')[0];
@@ -76,7 +98,7 @@ function groupByDate(msgs: Message[]) {
     groups[key].push(m);
   });
   return Object.entries(groups).map(([key, items]) => ({
-    label: dividerLabel(`${key}T12:00:00.000Z`),
+    label: dividerLabel(`${key}T12:00:00.000Z`, todayLabel, yesterdayLabel),
     items,
   }));
 }
@@ -88,6 +110,7 @@ interface InboxViewProps {
 
 export function InboxView({ requireHost = false }: InboxViewProps) {
   const locale = useLocale();
+  const t = useTranslations('inbox');
   const router = useRouter();
   const { isLoggedIn, isHost, hasHydrated, user } = useAuth();
   const queryClient = useQueryClient();
@@ -307,7 +330,9 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
   // ── Derived ──────────────────────────────────────────────────────────────────
   if (!hasHydrated || !isLoggedIn || (requireHost && !isHost)) return <FullPageSpinner />;
 
-  const quickReplies = requireHost ? HOST_QUICK_REPLIES : GUEST_QUICK_REPLIES;
+  const quickReplies = locale === 'ar'
+    ? (requireHost ? HOST_QUICK_REPLIES_AR : GUEST_QUICK_REPLIES_AR)
+    : (requireHost ? HOST_QUICK_REPLIES : GUEST_QUICK_REPLIES);
 
   const saveCustomTemplate = () => {
     const text = newTemplate.trim();
@@ -339,7 +364,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
     return name.includes(q) || prop.includes(q) || exp.includes(q) || last.includes(q);
   });
 
-  const msgGroups = groupByDate(messages ?? []);
+  const msgGroups = groupByDate(messages ?? [], t('today'), t('yesterday'));
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -360,7 +385,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold text-neutral-900 tracking-tight">
-                {requireHost ? 'Host Inbox' : 'Messages'}
+                {requireHost ? t('hostInbox') : t('messagesTitle')}
               </h1>
               {unreadTotal > 0 && (
                 <motion.span
@@ -374,7 +399,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
               <Wifi className="h-3 w-3" />
-              Live
+              {t('live')}
             </div>
           </div>
 
@@ -383,7 +408,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search conversations…"
+              placeholder={t('searchConversations')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-4 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
@@ -404,7 +429,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
           {convsLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-7 w-7 animate-spin text-indigo-400" />
-              <p className="text-xs text-neutral-400 animate-pulse">Loading conversations…</p>
+              <p className="text-xs text-neutral-400 animate-pulse">{t('loadingConversations')}</p>
             </div>
           ) : filteredConvs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
@@ -412,12 +437,12 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                 <MessageSquare className="h-6 w-6 text-neutral-300" />
               </div>
               <p className="text-sm font-semibold text-neutral-600">
-                {searchQuery ? 'No results found' : 'No conversations yet'}
+                {searchQuery ? t('noResultsFound') : t('noConversationsYet')}
               </p>
               <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
                 {searchQuery
-                  ? `No conversations match "${searchQuery}"`
-                  : "When guests message you, they'll appear here"}
+                  ? t('noConversationsMatch', { query: searchQuery })
+                  : t('whenGuestsMessage')}
               </p>
             </div>
           ) : (
@@ -486,9 +511,9 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                       )}>
                         {conv.lastMessage
                           ? conv.lastMessage.messageType === 'image'
-                            ? '📷 Photo'
+                            ? t('photoMessage')
                             : conv.lastMessage.content
-                          : 'Start a conversation'}
+                          : t('startConversation')}
                       </p>
                       {hasUnread && (
                         <span className="shrink-0 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-indigo-500 text-white text-[10px] font-bold px-1.5">
@@ -578,9 +603,9 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                     <Send className="h-3 w-3 text-white" />
                   </div>
                 </div>
-                <p className="text-base font-bold text-neutral-700">Say hello!</p>
+                <p className="text-base font-bold text-neutral-700">{t('sayHello')}</p>
                 <p className="text-sm text-neutral-400 mt-1.5 max-w-[260px] leading-relaxed">
-                  Start the conversation — use a quick reply below or type your own message
+                  {t('startConversationDesc')}
                 </p>
               </div>
             ) : (
@@ -725,7 +750,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                           <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                         </span>
-                        <span className="text-xs text-neutral-400 ml-1">typing</span>
+                        <span className="text-xs text-neutral-400 ml-1">{t('typing')}</span>
                       </div>
                     </motion.div>
                   )}
@@ -738,7 +763,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
           {/* Quick Replies Strip */}
           <div className="bg-white border-t border-neutral-100 px-4 py-2.5 overflow-x-auto shrink-0 scrollbar-hide">
             <div className="flex items-center gap-2 w-max">
-              <span className="text-[11px] font-semibold text-neutral-400 shrink-0 uppercase tracking-wide">Quick</span>
+              <span className="text-[11px] font-semibold text-neutral-400 shrink-0 uppercase tracking-wide">{t('quickLabel')}</span>
               <div className="w-px h-4 bg-neutral-200 shrink-0" />
               {quickReplies.map((qr) => (
                 <button
@@ -777,9 +802,9 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                 <button
                   onClick={() => setShowAddTemplate(true)}
                   className="shrink-0 flex items-center gap-1 text-xs border border-dashed border-neutral-300 text-neutral-400 hover:text-indigo-600 hover:border-indigo-300 rounded-full px-3 py-1.5 transition-all"
-                  title="Save custom template"
+                  title={t('saveTemplate')}
                 >
-                  <Plus className="h-3 w-3" /> Save template
+                  <Plus className="h-3 w-3" /> {t('saveTemplate')}
                 </button>
               ) : (
                 <span className="shrink-0 flex items-center gap-1.5">
@@ -788,7 +813,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                     value={newTemplate}
                     onChange={(e) => setNewTemplate(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveCustomTemplate(); if (e.key === 'Escape') setShowAddTemplate(false); }}
-                    placeholder="Type template…"
+                    placeholder={t('typeTemplate')}
                     className="text-xs rounded-full border border-indigo-300 px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 w-40"
                     maxLength={200}
                   />
@@ -797,7 +822,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                     disabled={!newTemplate.trim()}
                     className="text-xs bg-indigo-600 text-white rounded-full px-3 py-1.5 hover:bg-indigo-700 disabled:opacity-40"
                   >
-                    Save
+                    {t('saveBtn')}
                   </button>
                   <button
                     onClick={() => { setShowAddTemplate(false); setNewTemplate(''); }}
@@ -835,8 +860,8 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                   </button>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-neutral-700">Image ready to send</p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Click send or press Enter</p>
+                  <p className="text-xs font-semibold text-neutral-700">{t('imageReadyToSend')}</p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">{t('clickSendOrEnter')}</p>
                 </div>
               </motion.div>
             )}
@@ -869,7 +894,7 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
             {/* Textarea */}
             <textarea
               ref={textareaRef}
-              placeholder="Write a message…"
+              placeholder={t('writeAMessage')}
               value={message}
               onChange={(e) => {
                 setMessage(e.target.value);
@@ -934,11 +959,11 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
               </motion.div>
             </div>
 
-            <p className="text-lg font-bold text-neutral-800 mb-2">Your Messages</p>
+            <p className="text-lg font-bold text-neutral-800 mb-2">{t('yourMessages')}</p>
             <p className="text-sm text-neutral-500 max-w-[240px] leading-relaxed">
               {filteredConvs.length > 0
-                ? 'Select a conversation from the sidebar to start chatting'
-                : 'No conversations yet — messages from guests and hosts will appear here'}
+                ? t('selectConversation')
+                : t('noConversationsDesktop')}
             </p>
 
             {filteredConvs.length > 0 && (
@@ -948,8 +973,8 @@ export function InboxView({ requireHost = false }: InboxViewProps) {
                 transition={{ delay: 0.3 }}
                 className="mt-5 flex items-center gap-1.5 text-xs text-indigo-500 font-medium"
               >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Pick a conversation
+                <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />
+                {t('pickAConversation')}
               </motion.div>
             )}
           </motion.div>

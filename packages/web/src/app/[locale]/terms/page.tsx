@@ -1,23 +1,36 @@
 ﻿'use client';
 
 import { FadeIn } from '@/components/ui/Motion';
+import { useTranslations } from 'next-intl';
 import {
   Scale, FileText, UserCheck, CreditCard, XCircle,
   AlertTriangle, Shield, RefreshCw, CheckCircle2,
+  Home, CalendarDays, Wallet, ShieldCheck, Star,
 } from 'lucide-react';
 
-const sections = [
-  { id: 'acceptance', label: 'Acceptance of Terms', icon: CheckCircle2, iconBg: 'bg-emerald-50 text-emerald-600' },
-  { id: 'platform', label: 'Using Our Platform', icon: FileText, iconBg: 'bg-blue-50 text-blue-600' },
-  { id: 'account', label: 'Account Responsibilities', icon: UserCheck, iconBg: 'bg-violet-50 text-violet-600' },
-  { id: 'bookings', label: 'Bookings & Payments', icon: CreditCard, iconBg: 'bg-amber-50 text-amber-600' },
-  { id: 'cancellation', label: 'Cancellation Policy', icon: XCircle, iconBg: 'bg-orange-50 text-orange-600' },
-  { id: 'prohibited', label: 'Prohibited Uses', icon: AlertTriangle, iconBg: 'bg-red-50 text-red-600' },
-  { id: 'liability', label: 'Limitation of Liability', icon: Shield, iconBg: 'bg-neutral-100 text-neutral-600' },
-  { id: 'changes', label: 'Changes to Terms', icon: RefreshCw, iconBg: 'bg-sky-50 text-sky-600' },
-];
-
 export default function TermsPage() {
+  const t = useTranslations('terms');
+
+  const sections = [
+    { id: 'acceptance', label: t('sec1Label'), icon: CheckCircle2, iconBg: 'bg-emerald-50 text-emerald-600' },
+    { id: 'platform', label: t('sec2Label'), icon: FileText, iconBg: 'bg-blue-50 text-blue-600' },
+    { id: 'account', label: t('sec3Label'), icon: UserCheck, iconBg: 'bg-violet-50 text-violet-600' },
+    { id: 'bookings', label: t('sec4Label'), icon: CreditCard, iconBg: 'bg-amber-50 text-amber-600' },
+    { id: 'cancellation', label: t('sec5Label'), icon: XCircle, iconBg: 'bg-orange-50 text-orange-600' },
+    { id: 'prohibited', label: t('sec6Label'), icon: AlertTriangle, iconBg: 'bg-red-50 text-red-600' },
+    { id: 'liability', label: t('sec7Label'), icon: Shield, iconBg: 'bg-neutral-100 text-neutral-600' },
+    { id: 'changes', label: t('sec8Label'), icon: RefreshCw, iconBg: 'bg-sky-50 text-sky-600' },
+  ];
+
+  const hostSections = [
+    { id: 'host-overview', label: t('host1Label'), icon: Home, iconBg: 'bg-indigo-50 text-indigo-600' },
+    { id: 'host-listings', label: t('host2Label'), icon: FileText, iconBg: 'bg-teal-50 text-teal-600' },
+    { id: 'host-commission', label: t('host3Label'), icon: Wallet, iconBg: 'bg-emerald-50 text-emerald-600' },
+    { id: 'host-calendar', label: t('host4Label'), icon: CalendarDays, iconBg: 'bg-blue-50 text-blue-600' },
+    { id: 'host-deposit', label: t('host5Label'), icon: ShieldCheck, iconBg: 'bg-amber-50 text-amber-600' },
+    { id: 'host-conduct', label: t('host6Label'), icon: Star, iconBg: 'bg-violet-50 text-violet-600' },
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}
@@ -28,13 +41,13 @@ export default function TermsPage() {
               <Scale className="h-7 w-7 text-white" />
             </div>
             <div>
-              <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Legal</span>
-              <h1 className="font-display font-bold text-4xl text-white mb-3">Terms of Service</h1>
+              <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">{t('supportLabel')}</span>
+              <h1 className="font-display font-bold text-4xl text-white mb-3">{t('heroTitle')}</h1>
               <p className="text-indigo-100 text-sm max-w-xl leading-relaxed">
-                These terms form a binding agreement between you and Oikivo. Please read them carefully before using our platform.
+                {t('heroDesc')}
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
-                {['8 sections', 'Last updated Mar 2026', 'Governing law: Egypt'].map((chip) => (
+                {[t('chip1'), t('chip2'), t('chip3')].map((chip) => (
                   <span key={chip} className="rounded-full bg-white/15 px-3 py-1 text-xs text-white border border-white/20">{chip}</span>
                 ))}
               </div>
@@ -49,9 +62,24 @@ export default function TermsPage() {
           {/* Sticky TOC */}
           <aside className="hidden lg:block w-60 shrink-0">
             <div className="sticky top-28">
-              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Contents</p>
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">{t('tocTitle')}</p>
               <nav className="space-y-0.5">
                 {sections.map((item) => (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-neutral-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors group"
+                  >
+                    <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${item.iconBg}`}>
+                      <item.icon className="h-3 w-3" />
+                    </span>
+                    {item.label}
+                  </a>
+                ))}
+                <div className="pt-3 pb-1">
+                  <p className="text-xs font-semibold text-indigo-400 uppercase tracking-widest px-2">{t('tocForHosts')}</p>
+                </div>
+                {hostSections.map((item) => (
                   <a
                     key={item.id}
                     href={`#${item.id}`}
@@ -76,10 +104,10 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
                     <CheckCircle2 className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">1. Acceptance of Terms</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec1Title')}</h2>
                 </div>
                 <p>
-                  By accessing or using Oikivo's website, mobile application, or any of our services, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, you may not use our services. These terms constitute a legally binding agreement between you and Oikivo.
+                  {t('sec1Desc')}
                 </p>
               </section>
 
@@ -88,13 +116,13 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
                     <FileText className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">2. Using Our Platform</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec2Title')}</h2>
                 </div>
                 <p className="mb-3">
-                  Oikivo is an online marketplace connecting travelers with hosts offering accommodations and experiences across Egypt and the MENA region. We facilitate transactions but are not a party to any rental or service agreement between hosts and guests.
+                  {t('sec2Desc1')}
                 </p>
                 <p>
-                  You must be at least 18 years old to use our platform. You agree to provide accurate, current, and complete information during registration and to keep your account updated at all times.
+                  {t('sec2Desc2')}
                 </p>
               </section>
 
@@ -103,16 +131,16 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 shrink-0">
                     <UserCheck className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">3. Account Responsibilities</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec3Title')}</h2>
                 </div>
-                <p className="mb-3">You are responsible for:</p>
+                <p className="mb-3">{t('sec3Intro')}</p>
                 <ul className="space-y-2">
                   {[
-                    'Maintaining the confidentiality of your account credentials',
-                    'All activities that occur under your account',
-                    'Notifying us immediately of any unauthorized use',
-                    'Ensuring your account information is accurate and up to date',
-                    'Using strong, unique passwords for your account',
+                    t('sec3Item1'),
+                    t('sec3Item2'),
+                    t('sec3Item3'),
+                    t('sec3Item4'),
+                    t('sec3Item5'),
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
@@ -127,13 +155,13 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shrink-0">
                     <CreditCard className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">4. Bookings & Payments</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec4Title')}</h2>
                 </div>
                 <p className="mb-3">
-                  When you book through Oikivo, you agree to pay all fees associated with your booking — including accommodation fees, cleaning fees, service fees, and applicable taxes. Payment is processed securely at the time of booking.
+                  {t('sec4Desc1')}
                 </p>
                 <p>
-                  Hosts set their own pricing. Oikivo charges a service fee on each booking to cover platform costs, customer support, and payment processing. All fees are displayed before you confirm.
+                  {t('sec4Desc2')}
                 </p>
               </section>
 
@@ -142,13 +170,13 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-600 shrink-0">
                     <XCircle className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">5. Cancellation Policy</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec5Title')}</h2>
                 </div>
                 <p className="mb-3">
-                  Cancellation policies vary by listing and are set by individual hosts. The applicable policy is displayed on each listing page and during checkout.
+                  {t('sec5Desc1')}
                 </p>
                 <p>
-                  If you cancel a booking, any refund will be processed according to the cancellation policy in effect at the time of booking. Oikivo may offer resolution support in cases of disputes.
+                  {t('sec5Desc2')}
                 </p>
               </section>
 
@@ -157,19 +185,19 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 text-red-600 shrink-0">
                     <AlertTriangle className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">6. Prohibited Uses</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec6Title')}</h2>
                 </div>
-                <p className="mb-3">You agree not to:</p>
+                <p className="mb-3">{t('sec6Intro')}</p>
                 <div className="rounded-xl bg-red-50 border border-red-100 px-5 py-4">
                   <ul className="space-y-2">
                     {[
-                      'Use our platform for any illegal purpose',
-                      'Circumvent our payment system or pay outside Oikivo',
-                      'Post false, misleading, or fraudulent listings or reviews',
-                      'Harass, threaten, or harm other users',
-                      'Use automated tools to scrape or abuse our platform',
-                      'Impersonate any person or organization',
-                      'Discriminate based on race, religion, nationality, gender, or other protected characteristics',
+                      t('sec6Item1'),
+                      t('sec6Item2'),
+                      t('sec6Item3'),
+                      t('sec6Item4'),
+                      t('sec6Item5'),
+                      t('sec6Item6'),
+                      t('sec6Item7'),
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-2 text-red-800">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
@@ -185,13 +213,13 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 shrink-0">
                     <Shield className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">7. Limitation of Liability</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec7Title')}</h2>
                 </div>
                 <p className="mb-3">
-                  To the maximum extent permitted by law, Oikivo is not liable for indirect, incidental, special, consequential, or punitive damages — including loss of profits, data, or goodwill.
+                  {t('sec7Desc1')}
                 </p>
                 <p>
-                  Our liability to you for any cause shall be limited to the amount you paid Oikivo in the 12 months preceding the incident.
+                  {t('sec7Desc2')}
                 </p>
               </section>
 
@@ -200,10 +228,185 @@ export default function TermsPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-600 shrink-0">
                     <RefreshCw className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">8. Changes to Terms</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec8Title')}</h2>
                 </div>
                 <p>
-                  We may update these Terms at any time. We will notify you of significant changes via email or a notice on our platform. Continued use after the effective date constitutes acceptance. Questions?{' '}
+                  {t('sec8Desc')}{' '}
+                  <a href="mailto:oikivo.support@gmail.com" className="text-brand hover:underline">oikivo.support@gmail.com</a>
+                </p>
+              </section>
+
+              {/* ── Host Policies divider ── */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-200" /></div>
+                <div className="relative flex justify-center">
+                  <span className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-indigo-100 text-xs font-semibold text-indigo-600 uppercase tracking-widest shadow-sm">
+                    <Home className="h-3.5 w-3.5" /> {t('hostDividerLabel')}
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-neutral-500 -mt-2 mb-2">
+                {t('hostDividerDesc')}
+              </p>
+
+              <section id="host-overview" className="scroll-mt-28">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
+                    <Home className="h-4 w-4" />
+                  </span>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec9Title')}</h2>
+                </div>
+                <p className="mb-3">
+                  {t('sec9Desc1')}
+                </p>
+                <p>
+                  {t('sec9Desc2')}
+                </p>
+              </section>
+
+              <section id="host-listings" className="scroll-mt-28">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec10Title')}</h2>
+                </div>
+                <p className="mb-3">{t('sec10Intro')}</p>
+                <ul className="space-y-2 mb-4">
+                  {[
+                    t('sec10Item1'),
+                    t('sec10Item2'),
+                    t('sec10Item3'),
+                    t('sec10Item4'),
+                    t('sec10Item5'),
+                    t('sec10Item6'),
+                    t('sec10Item7'),
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-teal-400 mt-1.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-800">
+                  {t('sec10Warning')}
+                </div>
+              </section>
+
+              <section id="host-commission" className="scroll-mt-28">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+                    <Wallet className="h-4 w-4" />
+                  </span>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec11Title')}</h2>
+                </div>
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 mb-4">
+                  <p className="font-semibold text-emerald-800 text-sm mb-1">{t('sec11BoxTitle')}</p>
+                  <p className="text-emerald-700 text-sm">{t('sec11BoxDesc')}</p>
+                </div>
+                <p className="mb-3">{t('sec11PayoutIntro')}</p>
+                <ul className="space-y-2">
+                  {[
+                    t('sec11PayoutItem1'),
+                    t('sec11PayoutItem2'),
+                    t('sec11PayoutItem3'),
+                    t('sec11PayoutItem4'),
+                    t('sec11PayoutItem5'),
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section id="host-calendar" className="scroll-mt-28">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                    <CalendarDays className="h-4 w-4" />
+                  </span>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec12Title')}</h2>
+                </div>
+                <p className="mb-3">
+                  {t('sec12Desc1')}
+                </p>
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-5 py-4 space-y-2 text-sm text-blue-900 mb-4">
+                  <p className="font-semibold">{t('sec12BoxTitle')}</p>
+                  <ul className="space-y-1.5">
+                    {[
+                      t('sec12BoxItem1'),
+                      t('sec12BoxItem2'),
+                      t('sec12BoxItem3'),
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <p>
+                  {t('sec12Desc2')}
+                </p>
+              </section>
+
+              <section id="host-deposit" className="scroll-mt-28">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shrink-0">
+                    <ShieldCheck className="h-4 w-4" />
+                  </span>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec13Title')}</h2>
+                </div>
+                <p className="mb-3">
+                  {t('sec13Desc1')} <strong>{t('sec13DescBold')}</strong> {t('sec13Desc2')}
+                </p>
+                <ul className="space-y-2 mb-4">
+                  {[
+                    t('sec13Item1'),
+                    t('sec13Item2'),
+                    t('sec13Item3'),
+                    t('sec13Item4'),
+                    t('sec13Item5'),
+                    t('sec13Item6'),
+                    t('sec13Item7'),
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-800">
+                  {t('sec13Warning')}
+                </div>
+              </section>
+
+              <section id="host-conduct" className="scroll-mt-28">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 shrink-0">
+                    <Star className="h-4 w-4" />
+                  </span>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('sec14Title')}</h2>
+                </div>
+                <p className="mb-3">{t('sec14Intro')}</p>
+                <ul className="space-y-2 mb-4">
+                  {[
+                    t('sec14Item1'),
+                    t('sec14Item2'),
+                    t('sec14Item3'),
+                    t('sec14Item4'),
+                    t('sec14Item5'),
+                    t('sec14Item6'),
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <p>
+                  {t('sec14Desc')}{' '}
                   <a href="mailto:oikivo.support@gmail.com" className="text-brand hover:underline">oikivo.support@gmail.com</a>
                 </p>
               </section>

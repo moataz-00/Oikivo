@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams, useParams, usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import { X, Upload, Check, GripVertical } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent, DragOverlay } from '@dnd-kit/core';
@@ -40,22 +40,22 @@ interface Photo {
 }
 
 const STEP_FLOW = [
-  { slug: 'structure',           title: '🏠 What kind of place is it?',        description: 'Choose the structure type for your listing.' },
-  { slug: 'privacy-type',        title: '🔑 What type of place will guests have?', description: 'Set privacy level and space sharing details.' },
-  { slug: 'location',            title: '📍 Where is your place located?',      description: 'Add address and map coordinates for guests.' },
-  { slug: 'floor-plan',          title: '🛏️ Share your floor plan basics',      description: 'Tell guests about rooms and minimum stay.' },
-  { slug: 'stand-out',           title: '🏷️ Category & highlights',             description: 'Choose a category and highlight what makes your place special.' },
-  { slug: 'amenities',           title: '🎁 Select amenities',                  description: 'Choose what guests can use during their stay.' },
-  { slug: 'photos',              title: '📸 Add photos',                        description: 'Great photos increase conversion and trust.' },
-  { slug: 'title',               title: '✍️ Create your listing title',         description: 'Keep it clear, specific, and memorable.' },
-  { slug: 'description',         title: '📝 Write your listing description',    description: 'Describe the vibe, layout, and location benefits.' },
-  { slug: 'finish-setup',        title: '⚙️ Finish setup details',              description: 'Rules, check-in, and cancellation settings.' },
-  { slug: 'instant-book',        title: 'Pick your booking settings',           description: 'You can change this at any time.' },
-  { slug: 'price',               title: '💰 Set your price',                    description: 'Configure your rental rate and fees.' },
-  { slug: 'weekend-price',       title: '🎉 Set weekend pricing',               description: 'Adjust Friday/Saturday rates if needed.' },
-  { slug: 'discount',            title: 'Add discounts',                        description: 'Help your place stand out to get booked faster and earn your first reviews.' },
-  { slug: 'legal',               title: '📋 Review legal information',          description: 'Confirm hosting terms and local compliance.' },
-  { slug: 'know-your-customer',  title: '🎯 Almost there!',                     description: 'Confirm identity and publishing readiness.' },
+  { slug: 'structure',           titleKey: 'wizardStructureTitle',    descKey: 'wizardStructureDesc' },
+  { slug: 'privacy-type',        titleKey: 'wizardPrivacyTitle',      descKey: 'wizardPrivacyDesc' },
+  { slug: 'location',            titleKey: 'wizardLocationTitle',     descKey: 'wizardLocationDesc' },
+  { slug: 'floor-plan',          titleKey: 'wizardFloorPlanTitle',    descKey: 'wizardFloorPlanDesc' },
+  { slug: 'stand-out',           titleKey: 'wizardStandoutTitle',     descKey: 'wizardStandoutDesc' },
+  { slug: 'amenities',           titleKey: 'wizardAmenitiesTitle',    descKey: 'wizardAmenitiesDesc' },
+  { slug: 'photos',              titleKey: 'wizardPhotosTitle',       descKey: 'wizardPhotosDesc' },
+  { slug: 'title',               titleKey: 'wizardTitleTitle',        descKey: 'wizardTitleDesc' },
+  { slug: 'description',         titleKey: 'wizardDescTitle',         descKey: 'wizardDescDesc' },
+  { slug: 'finish-setup',        titleKey: 'wizardFinishSetupTitle',  descKey: 'wizardFinishSetupDesc' },
+  { slug: 'instant-book',        titleKey: 'wizardInstantBookTitle',  descKey: 'wizardInstantBookDesc' },
+  { slug: 'price',               titleKey: 'wizardPriceTitle',        descKey: 'wizardPriceDesc' },
+  { slug: 'weekend-price',       titleKey: 'wizardWeekendPriceTitle', descKey: 'wizardWeekendPriceDesc' },
+  { slug: 'discount',            titleKey: 'wizardDiscountTitle',     descKey: 'wizardDiscountDesc' },
+  { slug: 'legal',               titleKey: 'wizardLegalTitle',        descKey: 'wizardLegalDesc' },
+  { slug: 'know-your-customer',  titleKey: 'wizardKycTitle',          descKey: 'wizardKycDesc' },
 ] as const;
 
 type StepSlug = (typeof STEP_FLOW)[number]['slug'];
@@ -87,15 +87,15 @@ const HOTEL_SPACE_TYPES: { value: SpaceType; labelKey: string; descKey: string; 
   { value: 'hotel_suite', labelKey: 'hotelSuite', descKey: 'hotelSuiteDesc', icon: '👑' },
 ];
 
-const PROPERTY_KINDS: { value: PropertyKind; label: string; icon: string }[] = [
-  { value: 'house', label: 'House', icon: '🏡' },
-  { value: 'villa', label: 'Villa', icon: '🏖️' },
-  { value: 'apartment', label: 'Apartment', icon: '🏢' },
-  { value: 'hotel', label: 'Hotel', icon: '🏨' },
-  { value: 'chalet', label: 'Chalet', icon: '🏔️' },
-  { value: 'studio', label: 'Studio', icon: '🎨' },
-  { value: 'townhouse', label: 'Townhouse', icon: '🏘️' },
-  { value: 'cabin', label: 'Cabin', icon: '🌲' },
+const PROPERTY_KINDS: { value: PropertyKind; labelKey: string; icon: string }[] = [
+  { value: 'house', labelKey: 'kindHouse', icon: '🏡' },
+  { value: 'villa', labelKey: 'kindVilla', icon: '🏖️' },
+  { value: 'apartment', labelKey: 'kindApartment', icon: '🏢' },
+  { value: 'hotel', labelKey: 'kindHotel', icon: '🏨' },
+  { value: 'chalet', labelKey: 'kindChalet', icon: '🏔️' },
+  { value: 'studio', labelKey: 'kindStudio', icon: '🎨' },
+  { value: 'townhouse', labelKey: 'kindTownhouse', icon: '🏘️' },
+  { value: 'cabin', labelKey: 'kindCabin', icon: '🌲' },
 ];
 
 const WIZARD_KEY = 'listing_wizard';
@@ -112,6 +112,13 @@ function clearWizardState() {
 export default function NewListingPage() {
   const t = useTranslations('hosting');
   const locale = useLocale();
+  const isRTL = locale === 'ar';
+
+  const translatedSteps = useMemo(() => STEP_FLOW.map((s) => ({
+    slug: s.slug,
+    title: t(s.titleKey as any),
+    description: t(s.descKey as any),
+  })), [locale]); // eslint-disable-line react-hooks/exhaustive-deps
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -171,6 +178,8 @@ export default function NewListingPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [showExitModal, setShowExitModal] = useState(false);
+  // Tracks whether the initial sessionStorage hydration has completed
+  const [isHydrated, setIsHydrated] = useState(false);
   // True once we push the history sentinel (step >= 2); cleared on intentional exit
   const wizardGuardRef = useRef(false);
 
@@ -194,10 +203,18 @@ export default function NewListingPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Warn browser on tab close / refresh when wizard is active
+  // Warn browser on tab close / refresh when wizard is active.
+  // Skip the dialog when the user is just switching locale (flag set by LanguageCurrencyModal).
   useEffect(() => {
     if (step < 2) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    const handler = (e: BeforeUnloadEvent) => {
+      if (sessionStorage.getItem('oikivo_locale_switch')) {
+        sessionStorage.removeItem('oikivo_locale_switch');
+        return; // allow the locale-switch navigation without a dialog
+      }
+      e.preventDefault();
+      e.returnValue = '';
+    };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [step]);
@@ -228,11 +245,12 @@ export default function NewListingPage() {
       const url = new URL(window.location.href);
       url.searchParams.delete('fresh');
       window.history.replaceState(null, '', url.toString());
+      setIsHydrated(true);
       return;
     }
     try {
       const raw = sessionStorage.getItem(WIZARD_KEY);
-      if (!raw) return;
+      if (!raw) { setIsHydrated(true); return; }
       const d = JSON.parse(raw);
       if (d.spaceType) setSpaceType(d.spaceType);
       if (d.kind) setKind(d.kind);
@@ -271,8 +289,39 @@ export default function NewListingPage() {
       if (d.propertyId) { setPropertyId(d.propertyId); propertyIdRef.current = d.propertyId; }
       if (Array.isArray(d.completedSteps)) setCompletedSteps(new Set<number>(d.completedSteps));
     } catch { /* ignore corrupt storage */ }
+    setIsHydrated(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-save all wizard form state to sessionStorage on every change so that
+  // switching locale (which triggers a hard reload) never loses unsaved data.
+  useEffect(() => {
+    if (!isHydrated) return;
+    saveWizardState({
+      spaceType, kind, address, city, country, lat, lng,
+      maxGuests, bedrooms, beds, bathrooms, selectedAmenities,
+      title, description, standoutNote, categoryId,
+      price, weekendPrice, weeklyDiscount, monthlyDiscount, securityDeposit,
+      newListingPromoEnabled, lastMinuteDiscountPercent,
+      minNights,
+      houseRules, checkInTime, checkOutTime, cancellationPolicy, bookingMode, instantBook,
+      allowsSmoking, allowsParties, allowsChildren,
+      propertyId: propertyIdRef.current ?? propertyId,
+      completedSteps: Array.from(completedSteps),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isHydrated,
+    spaceType, kind, address, city, country, lat, lng,
+    maxGuests, bedrooms, beds, bathrooms, selectedAmenities,
+    title, description, standoutNote, categoryId,
+    price, weekendPrice, weeklyDiscount, monthlyDiscount, securityDeposit,
+    newListingPromoEnabled, lastMinuteDiscountPercent,
+    minNights,
+    houseRules, checkInTime, checkOutTime, cancellationPolicy, bookingMode, instantBook,
+    allowsSmoking, allowsParties, allowsChildren,
+    propertyId, completedSteps,
+  ]);
 
   // Restore photos from server when entering step 7 or step 16 with an empty photos list
   useEffect(() => {
@@ -351,10 +400,14 @@ export default function NewListingPage() {
     onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Failed to save'),
   });
 
+  const queryClient = useQueryClient();
+
   const publishListing = useMutation({
     mutationFn: (id: number) => propertiesApi.publishListing(String(id)),
     onSuccess: () => {
       clearWizardState();
+      queryClient.invalidateQueries({ queryKey: ['host-listings'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-listings'] });
       toast.success('Submitted for review! Our team will approve your listing shortly. 🎯');
       router.push(`/${locale}/hosting/listings`);
     },
@@ -364,23 +417,27 @@ export default function NewListingPage() {
   const uploadImages = useMutation({
     mutationFn: ({ id, files }: { id: number; files: File[] }) =>
       propertiesApi.uploadImages(id, files),
-    onError: () => toast.error('Failed to upload photos. Please try again.'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Please try again.';
+      toast.error(`Failed to upload photos: ${msg}`);
+    },
   });
 
   if (!hasHydrated || !isLoggedIn) return <FullPageSpinner />;
 
   if (!isHost) {
     return (
-      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center px-4 py-10">
+      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center px-4 py-10" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="w-full max-w-2xl rounded-3xl border border-neutral-200 bg-white p-8 sm:p-10">
           <p className="inline-flex rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
-            Host setup
+            {t('hostSetupBadge' as any)}
           </p>
           <h1 className="mt-4 text-3xl font-semibold text-neutral-900">
-            Start hosting and create your first listing
+            {t('hostSetupTitle' as any)}
           </h1>
           <p className="mt-3 text-neutral-600">
-            To publish a home, we need to activate hosting on your account first. This takes one click.
+            {t('hostSetupDesc' as any)}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
@@ -388,7 +445,7 @@ export default function NewListingPage() {
               onClick={() => router.push(`/${locale}/hosting/activation`)}
               className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
             >
-              Go to activation page
+              {t('goToActivation' as any)}
             </button>
             <Link
               href={`/${locale}/hosting`}
@@ -424,67 +481,69 @@ export default function NewListingPage() {
     {
       key: 'email',
       icon: '✉️',
-      title: 'Email address verified',
-      desc: 'Check your inbox for a verification link after signing up.',
+      title: t('gateEmailTitle' as any),
+      desc: t('gateEmailDesc' as any),
       done: emailVerified,
       pending: false,
-      ctaLabel: 'Verify email',
+      ctaLabel: t('verifyEmail' as any),
       ctaHref: `/${locale}/account/verification`,
     },
     {
       key: 'phone',
       icon: '📱',
-      title: 'Phone number verified',
+      title: t('gatePhoneTitle' as any),
       desc: !phoneAdded
-        ? 'Add a phone number in your account settings, then verify it.'
-        : 'Enter the code sent to your email to confirm your phone number.',
+        ? t('gatePhoneDescAdd' as any)
+        : t('gatePhoneDescVerify' as any),
       done: phoneVerified,
       pending: false,
-      ctaLabel: phoneAdded ? 'Verify phone' : 'Add phone number',
+      ctaLabel: phoneAdded ? t('verifyPhone' as any) : t('addPhoneNumber' as any),
       ctaHref: phoneAdded ? `/${locale}/account/verification` : `/${locale}/account`,
     },
     {
       key: 'avatar',
       icon: '📷',
-      title: 'Profile photo uploaded',
-      desc: 'A clear, well-lit face photo helps guests recognise and trust their host.',
+      title: t('gateAvatarTitle' as any),
+      desc: t('gateAvatarDesc' as any),
       done: hasAvatar,
       pending: false,
-      ctaLabel: 'Add profile photo',
+      ctaLabel: t('addProfilePhoto' as any),
       ctaHref: `/${locale}/account`,
     },
     {
       key: 'id',
       icon: '🪪',
-      title: 'Government ID verified by admin',
+      title: t('gateIdTitle' as any),
       desc:
         idStatus === 'pending'
-          ? 'Your ID has been submitted and is under review. You will be notified once approved (1–2 business days).'
+          ? t('gateIdDescPending' as any)
           : idStatus === 'rejected'
-          ? 'Your previous submission was rejected. Please upload a clearer document.'
-          : "Upload your passport, national ID, or driver's licence. Admin approval is required before your first listing can go live.",
+          ? t('gateIdDescRejected' as any)
+          : t('gateIdDescDefault' as any),
       done: idStatus === 'approved',
       pending: idStatus === 'pending',
       rejected: idStatus === 'rejected',
-      ctaLabel: idStatus === 'rejected' ? 'Re-upload ID' : 'Upload ID',
+      ctaLabel: idStatus === 'rejected' ? t('reuploadId' as any) : t('uploadId' as any),
       ctaHref: `/${locale}/account/verification`,
     },
   ];
 
-  const allDone = gateItems.every((item) => item.done);
+  // pending ID counts as "can proceed" — user submitted, awaiting admin review
+  // The actual publish gate (backend verifyListing) will block publishing until approved
+  const allDone = gateItems.every((item) => item.done || item.pending);
 
   if (!allDone) {
     return (
-      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center px-4 py-10">
+      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center px-4 py-10" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="w-full max-w-2xl rounded-3xl border border-brand/20 bg-white p-8 sm:p-10 shadow-lg shadow-brand/5">
           <p className="inline-flex rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
-            Required before listing
+            {t('requiredBeforeListing' as any)}
           </p>
           <h1 className="mt-4 text-2xl font-semibold text-neutral-900">
-            Verify your account to start hosting
+            {t('verifyAccountTitle' as any)}
           </h1>
           <p className="mt-2 text-sm text-neutral-500">
-            Complete all steps below. Refresh this page once you've finished each one to see your progress.
+            {t('verifyAccountDesc' as any)}
           </p>
 
           <ul className="mt-6 space-y-3">
@@ -539,7 +598,7 @@ export default function NewListingPage() {
                           : 'bg-brand text-white hover:bg-brand-dark'
                       )}
                     >
-                      {item.pending ? 'View status' : item.ctaLabel}
+                      {item.pending ? t('viewStatus' as any) : item.ctaLabel}
                     </Link>
                   )}
                 </div>
@@ -556,7 +615,7 @@ export default function NewListingPage() {
               />
             </div>
             <span className="text-xs font-medium text-neutral-500 shrink-0">
-              {gateItems.filter((i) => i.done).length} / {gateItems.length} complete
+              {gateItems.filter((i) => i.done).length} / {gateItems.length} {t('progressCompleted' as any)}
             </span>
           </div>
 
@@ -565,7 +624,7 @@ export default function NewListingPage() {
               href={`/${locale}/hosting`}
               className="text-sm font-medium text-brand/70 hover:text-brand transition"
             >
-              ← Back to hosting dashboard
+              {t('backToHostingDashboard' as any)}
             </Link>
           </div>
         </div>
@@ -713,7 +772,13 @@ export default function NewListingPage() {
           if (selectedAmenities.length === 0) return 'Please select at least one amenity';
           return null;
         case 7: // photos
-          if (photos.length < 3) return 'Please upload at least 3 photos';
+          if (photos.length < 5) return 'Please upload at least 5 photos';
+          {
+            const MAX = 10 * 1024 * 1024;
+            const oversized = photos.filter((p) => p.file instanceof File && p.file.size > MAX);
+            if (oversized.length > 0)
+              return `${oversized.length} photo(s) exceed 10 MB. Remove them and upload smaller files.`;
+          }
           return null;
         case 8: // title
           if (!title || title.trim().length < 3) return 'Title must be at least 3 characters';
@@ -814,7 +879,9 @@ export default function NewListingPage() {
       // never lost even if the metadata update fails.
       if (step === 7 && photos.length > 0 && photosDirty) {
         const pid = propertyIdRef.current ?? propertyId;
-        if (pid) {
+        if (!pid) {
+          toast.error('Photo upload failed: property ID not found. Please try saving as draft.');
+        } else {
           const files = photos.map((p) => p.file).filter((f): f is File => f instanceof File);
           if (files.length > 0) {
             try {
@@ -833,7 +900,10 @@ export default function NewListingPage() {
                 }
               } catch { /* non-critical */ }
               setPhotosDirty(false);
-            } catch { /* upload error already toasted */ }
+            } catch {
+              // upload error already toasted — do not advance
+              return;
+            }
           }
         }
       }
@@ -980,7 +1050,7 @@ export default function NewListingPage() {
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 left-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-neutral-700 shadow hover:bg-white cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 start-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-neutral-700 shadow hover:bg-white cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <GripVertical className="h-4 w-4" />
         </div>
@@ -988,14 +1058,14 @@ export default function NewListingPage() {
         {/* Remove Button */}
         <button
           onClick={() => removePhoto(photo.id)}
-          className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-neutral-700 shadow hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 end-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-neutral-700 shadow hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* Cover Badge */}
         {index === 0 && (
-          <div className="absolute bottom-2 left-2 rounded-md bg-white/90 px-2 py-1 text-xs font-medium text-neutral-700">
+          <div className="absolute bottom-2 start-2 rounded-md bg-white/90 px-2 py-1 text-xs font-medium text-neutral-700">
             Cover
           </div>
         )}
@@ -1008,7 +1078,7 @@ export default function NewListingPage() {
       case 1:
         return (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {PROPERTY_KINDS.map(({ value, label, icon }) => (
+            {PROPERTY_KINDS.map(({ value, labelKey, icon }) => (
               <HoverCard key={value}>
                 <button
                   onClick={() => setKind(value)}
@@ -1018,7 +1088,7 @@ export default function NewListingPage() {
                   )}
                 >
                   <span className="text-3xl">{icon}</span>
-                  <p className="text-sm font-medium text-neutral-900">{label}</p>
+                  <p className="text-sm font-medium text-neutral-900">{t(labelKey as any)}</p>
                 </button>
               </HoverCard>
             ))}
@@ -1039,7 +1109,7 @@ export default function NewListingPage() {
                 <button
                   onClick={() => setSpaceType(value)}
                   className={cn(
-                    'w-full flex items-start gap-4 rounded-2xl border-2 p-5 text-left transition-all hover:border-neutral-400',
+                    'w-full flex items-start gap-4 rounded-2xl border-2 p-5 text-start transition-all hover:border-neutral-400',
                     spaceType === value ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200'
                   )}
                 >
@@ -1049,7 +1119,7 @@ export default function NewListingPage() {
                     <p className="text-sm text-neutral-500 mt-0.5">{t(descKey as any)}</p>
                   </div>
                   {spaceType === value && (
-                    <Check className="ml-auto h-5 w-5 text-indigo-600 shrink-0" />
+                    <Check className="ms-auto h-5 w-5 text-indigo-600 shrink-0" />
                   )}
                 </button>
               </HoverCard>
@@ -1104,33 +1174,43 @@ export default function NewListingPage() {
       case 4:
         return (
           <div className="max-w-md">
-            <CounterField label="Guests" value={maxGuests} onChange={setMaxGuests} min={1} />
-            <CounterField label="Bedrooms" value={bedrooms} onChange={setBedrooms} min={0} />
-            <CounterField label="Beds" value={beds} onChange={setBeds} min={1} />
-            <CounterField label="Bathrooms" value={bathrooms} onChange={setBathrooms} min={1} />
-            <CounterField label="Minimum nights" value={minNights} onChange={setMinNights} min={1} max={30} />
+            {/* Calendar sync obligation */}
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <span className="text-xl shrink-0">📅</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-900 mb-1">{t('calendarObligationTitle' as any)}</p>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  {t('calendarObligationDesc' as any)}
+                </p>
+              </div>
+            </div>
+            <CounterField label={t('counterGuests' as any)} value={maxGuests} onChange={setMaxGuests} min={1} />
+            <CounterField label={t('counterBedrooms' as any)} value={bedrooms} onChange={setBedrooms} min={0} />
+            <CounterField label={t('counterBeds' as any)} value={beds} onChange={setBeds} min={1} />
+            <CounterField label={t('counterBathrooms' as any)} value={bathrooms} onChange={setBathrooms} min={1} />
+            <CounterField label={t('counterMinNights' as any)} value={minNights} onChange={setMinNights} min={1} max={30} />
           </div>
         );
 
       case 5: {
         const STANDOUT_OPTIONS = [
           // category selection is shown above
-          { label: 'Panoramic views', emoji: '🌅' },
-          { label: 'Private pool', emoji: '🏊' },
-          { label: 'Rooftop terrace', emoji: '🏙️' },
-          { label: 'Garden & outdoor space', emoji: '🌳' },
-          { label: 'Waterfront / beach access', emoji: '🏖️' },
-          { label: 'Smart home features', emoji: '🏠' },
-          { label: 'Luxury furnishings', emoji: '✨' },
-          { label: 'Private parking', emoji: '🅿️' },
-          { label: 'Pet-friendly', emoji: '🐕' },
-          { label: 'EV charger', emoji: '🔌' },
-          { label: 'Home cinema / projector', emoji: '🎬' },
-          { label: 'Game room', emoji: '🎮' },
-          { label: 'Hot tub / jacuzzi', emoji: '🛁' },
-          { label: 'Fireplace', emoji: '🔥' },
-          { label: '24/7 concierge', emoji: '🛎️' },
-          { label: 'Self check-in', emoji: '🔑' },
+          { label: 'Panoramic views', labelAr: 'إطلالات بانورامية', emoji: '🌅' },
+          { label: 'Private pool', labelAr: 'مسبح خاص', emoji: '🏊' },
+          { label: 'Rooftop terrace', labelAr: 'تراس علوي', emoji: '🏙️' },
+          { label: 'Garden & outdoor space', labelAr: 'حديقة وفضاء خارجي', emoji: '🌳' },
+          { label: 'Waterfront / beach access', labelAr: 'واجهة بحرية / وصول للشاطئ', emoji: '🏖️' },
+          { label: 'Smart home features', labelAr: 'ميزات المنزل الذكي', emoji: '🏠' },
+          { label: 'Luxury furnishings', labelAr: 'أثاث فاخر', emoji: '✨' },
+          { label: 'Private parking', labelAr: 'موقف خاص', emoji: '🅿️' },
+          { label: 'Pet-friendly', labelAr: 'مناسب للحيوانات الأليفة', emoji: '🐕' },
+          { label: 'EV charger', labelAr: 'شاحن سيارات كهربائية', emoji: '🔌' },
+          { label: 'Home cinema / projector', labelAr: 'سينما منزلية / بروجيكتور', emoji: '🎬' },
+          { label: 'Game room', labelAr: 'غرفة ألعاب', emoji: '🎮' },
+          { label: 'Hot tub / jacuzzi', labelAr: 'حوض ساخن / جاكوزي', emoji: '🛁' },
+          { label: 'Fireplace', labelAr: 'مدفأة', emoji: '🔥' },
+          { label: '24/7 concierge', labelAr: 'كونسيرج 24/7', emoji: '🛎️' },
+          { label: 'Self check-in', labelAr: 'تسجيل وصول ذاتي', emoji: '🔑' },
         ];
 
         const selectedStandouts = new Set(standoutNote ? standoutNote.split('\n').filter(Boolean) : []);
@@ -1146,7 +1226,7 @@ export default function NewListingPage() {
             {/* Category picker */}
             <div>
               <p className="text-sm font-semibold text-neutral-900 mb-3">
-                Select a category <span className="text-rose-500">*</span>
+                {t('selectCategoryLabel' as any)} <span className="text-rose-500">*</span>
               </p>
               {categories && categories.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1161,7 +1241,7 @@ export default function NewListingPage() {
                         )}
                       >
                         <span className="text-2xl">{cat.icon}</span>
-                        <span className="text-xs font-medium text-neutral-900 leading-tight">{cat.name}</span>
+                        <span className="text-xs font-medium text-neutral-900 leading-tight">{isRTL ? (cat.nameAr || cat.name) : cat.name}</span>
                         {categoryId === cat.id && <Check className="h-4 w-4 text-indigo-600" />}
                       </button>
                     </HoverCard>
@@ -1174,9 +1254,9 @@ export default function NewListingPage() {
 
             {/* Standout highlights (optional) */}
             <div>
-              <p className="text-sm font-semibold text-neutral-900 mb-3">Highlight what makes it special (optional)</p>
+              <p className="text-sm font-semibold text-neutral-900 mb-3">{t('highlightOptionalLabel' as any)}</p>
               <div className="grid grid-cols-2 gap-3">
-                {STANDOUT_OPTIONS.map(({ label, emoji }) => {
+                {STANDOUT_OPTIONS.map(({ label, labelAr, emoji }) => {
                   const selected = selectedStandouts.has(label);
                   return (
                     <HoverCard key={label}>
@@ -1184,13 +1264,13 @@ export default function NewListingPage() {
                         type="button"
                         onClick={() => toggleStandout(label)}
                         className={cn(
-                          'flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all hover:border-neutral-400 w-full',
+                          'flex items-center gap-3 rounded-xl border-2 p-4 text-start transition-all hover:border-neutral-400 w-full',
                           selected ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200'
                         )}
                       >
                         <span className="text-xl">{emoji}</span>
-                        <span className="text-sm font-medium text-neutral-900 flex-1">{label}</span>
-                        {selected && <Check className="ml-auto h-4 w-4 text-indigo-600 shrink-0" />}
+                        <span className="text-sm font-medium text-neutral-900 flex-1">{isRTL ? labelAr : label}</span>
+                        {selected && <Check className="ms-auto h-4 w-4 text-indigo-600 shrink-0" />}
                       </button>
                     </HoverCard>
                   );
@@ -1209,7 +1289,7 @@ export default function NewListingPage() {
                 {amenities.map((amenity) => {
                   const selected = selectedAmenities.includes(amenity.id);
                   return (
-                    <HoverCard key={amenity.id}>
+                    <HoverCard key={amenity.id} className="h-full">
                       <button
                         onClick={() =>
                           setSelectedAmenities((prev) =>
@@ -1219,13 +1299,13 @@ export default function NewListingPage() {
                           )
                         }
                         className={cn(
-                          'flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all hover:border-neutral-400',
+                          'flex flex-col items-center justify-center gap-2 rounded-xl border-2 p-3 text-center transition-all hover:border-neutral-400 w-full min-h-[5.5rem]',
                           selected ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200'
                         )}
                       >
-                        <span className="text-xl">{AMENITY_ICON_MAP[amenity.icon] ?? amenity.icon ?? '✨'}</span>
-                        <span className="text-sm font-medium text-neutral-900">{amenity.name}</span>
-                        {selected && <Check className="ml-auto h-4 w-4 text-indigo-600 shrink-0" />}
+                        <span className="text-2xl leading-none">{AMENITY_ICON_MAP[amenity.icon] ?? amenity.icon ?? '✨'}</span>
+                        <span className="text-xs font-medium text-neutral-900 leading-tight line-clamp-2">{isRTL ? (amenity.nameAr || amenity.name) : amenity.name}</span>
+                        {selected && <Check className="h-3.5 w-3.5 text-indigo-600 shrink-0" />}
                       </button>
                     </HoverCard>
                   );
@@ -1255,9 +1335,9 @@ export default function NewListingPage() {
                 className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-neutral-300 rounded-2xl hover:border-neutral-500 transition-colors"
               >
                 <Upload className="h-10 w-10 text-neutral-300 mb-3" />
-                <p className="text-base font-medium text-neutral-700">Upload photos</p>
-                <p className="text-sm text-neutral-400 mt-1">Drag & drop or click to browse</p>
-                <p className="text-xs text-neutral-400 mt-2">Minimum 5 photos required</p>
+                <p className="text-base font-medium text-neutral-700">{t('uploadPhotosLabel' as any)}</p>
+                <p className="text-sm text-neutral-400 mt-1">{t('uploadPhotosDragDrop' as any)}</p>
+                <p className="text-xs text-neutral-400 mt-2">{t('uploadPhotosMinimum' as any)}</p>
               </button>
             ) : (
               <div>
@@ -1278,7 +1358,7 @@ export default function NewListingPage() {
                         className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-neutral-300 rounded-xl hover:border-neutral-500 transition-colors"
                       >
                         <Upload className="h-6 w-6 text-neutral-300 mb-1" />
-                        <span className="text-xs text-neutral-400">Add more</span>
+                        <span className="text-xs text-neutral-400">{t('uploadPhotosAddMore' as any)}</span>
                       </button>
                     </div>
                   </SortableContext>
@@ -1300,11 +1380,14 @@ export default function NewListingPage() {
 
                 {photos.length < 5 && (
                   <p className="text-sm text-orange-500">
-                    Add {5 - photos.length} more photo{5 - photos.length > 1 ? 's' : ''} to continue
+                    {isRTL
+                      ? `أضف ${5 - photos.length} ${5 - photos.length > 1 ? t('wizardPhotoAddMoreWarningPlural' as any) : t('wizardPhotoAddMoreWarning' as any)}`
+                      : `Add ${5 - photos.length} more photo${5 - photos.length > 1 ? 's' : ''} to continue`
+                    }
                   </p>
                 )}
                 <p className="text-xs text-neutral-500 mt-3">
-                  💡 Tip: Drag photos to reorder. The first photo will be your cover image.
+                  💡 {t('wizardPhotoDragTip' as any)}
                 </p>
               </div>
             )}
@@ -1335,63 +1418,68 @@ export default function NewListingPage() {
         return (
           <div className="space-y-4">
             <Textarea
-              label="Description"
-              placeholder="Share what makes your place special. Guests will see this on your listing page."
+              label={t('wizardDescriptionLabel' as any)}
+              placeholder={t('wizardDescriptionPlaceholder' as any)}
               rows={8}
               value={description}
               onChange={(e) => handleFieldChange('description', e.target.value, setDescription)}
               onBlur={(e) => handleFieldBlur('description', e.target.value)}
               error={touched.description ? errors.description : ''}
-              hint={`${description.length} characters ${
-                description.length >= 50 ? '✓' : `(${50 - description.length} more needed)`
-              }`}
+              hint={isRTL
+                ? `${description.length} ${t('wizardDescriptionChars' as any)} ${description.length >= 50 ? '✓' : `(${50 - description.length} ${t('wizardDescriptionMoreNeeded' as any)})`}`
+                : `${description.length} characters ${description.length >= 50 ? '✓' : `(${50 - description.length} more needed)`}`
+              }
             />
 
             {/* Description Helper */}
             <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-3">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Need help? Tap to add to your description</p>
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{t('descriptionHelperTitle' as any)}</p>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { emoji: '🌊', text: 'Our place offers a stunning view that guests love.' },
-                  { emoji: '🏠', text: 'A cozy and well-furnished space perfect for families.' },
-                  { emoji: '📍', text: 'Located in a prime area, close to restaurants and shops.' },
-                  { emoji: '🅿️', text: 'Free private parking is available on site.' },
-                  { emoji: '🌿', text: 'Enjoy a peaceful and quiet neighborhood.' },
-                  { emoji: '🏖️', text: 'Just a short walk to the beach.' },
-                  { emoji: '🛏️', text: 'Freshly cleaned linens and towels are provided.' },
-                  { emoji: '📶', text: 'High-speed Wi-Fi available throughout the property.' },
-                  { emoji: '❄️', text: 'Fully air-conditioned for your comfort.' },
-                  { emoji: '🍳', text: 'A fully equipped kitchen for preparing your own meals.' },
-                ].map((item) => (
-                  <button
-                    key={item.text}
-                    type="button"
-                    onClick={() => {
-                      const separator = description && !description.endsWith(' ') && !description.endsWith('\n') ? ' ' : '';
-                      handleFieldChange('description', description + separator + item.text, setDescription);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition-colors shadow-sm"
-                  >
-                    <span>{item.emoji}</span>
-                    <span>{item.text.slice(0, 40)}{item.text.length > 40 ? '…' : ''}</span>
-                  </button>
-                ))}
+                  { emoji: '🌊', text: 'Our place offers a stunning view that guests love.', textAr: 'تقدم وحدتنا إطلالة رائعة يحبها الضيوف.' },
+                  { emoji: '🏠', text: 'A cozy and well-furnished space perfect for families.', textAr: 'مساحة مريحة ومؤثثة جيدًا مثالية للعائلات.' },
+                  { emoji: '📍', text: 'Located in a prime area, close to restaurants and shops.', textAr: 'تقع في موقع مميز بالقرب من المطاعم والمحلات.' },
+                  { emoji: '🅿️', text: 'Free private parking is available on site.', textAr: 'يتوفر موقف سيارات خاص مجاني في الموقع.' },
+                  { emoji: '🌿', text: 'Enjoy a peaceful and quiet neighborhood.', textAr: 'استمتع بحي هادئ ومريح.' },
+                  { emoji: '🏖️', text: 'Just a short walk to the beach.', textAr: 'على بُعد دقائق مشيًا من الشاطئ.' },
+                  { emoji: '🛏️', text: 'Freshly cleaned linens and towels are provided.', textAr: 'تُوفَّر ملاءات ومناشف نظيفة.' },
+                  { emoji: '📶', text: 'High-speed Wi-Fi available throughout the property.', textAr: 'إنترنت واي فاي عالي السرعة في جميع أنحاء العقار.' },
+                  { emoji: '❄️', text: 'Fully air-conditioned for your comfort.', textAr: 'تكييف هواء كامل لراحتك.' },
+                  { emoji: '🍳', text: 'A fully equipped kitchen for preparing your own meals.', textAr: 'مطبخ مجهز بالكامل لإعداد وجباتك.' },
+                ].map((item) => {
+                  const displayText = isRTL ? item.textAr : item.text;
+                  const insertText = isRTL ? item.textAr : item.text;
+                  return (
+                    <button
+                      key={item.text}
+                      type="button"
+                      onClick={() => {
+                        const separator = description && !description.endsWith(' ') && !description.endsWith('\n') ? ' ' : '';
+                        handleFieldChange('description', description + separator + insertText, setDescription);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition-colors shadow-sm"
+                    >
+                      <span>{item.emoji}</span>
+                      <span>{displayText.slice(0, 40)}{displayText.length > 40 ? '…' : ''}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-[11px] text-neutral-400">Tip: Combine several suggestions and edit them to match your property.</p>
+              <p className="text-[11px] text-neutral-400">{t('descriptionHelperTip' as any)}</p>
             </div>
           </div>
         );
 
       case 10: {
         const HOUSE_RULES = [
-          { key: 'no_smoking', label: 'No smoking', emoji: '🚭', stateKey: 'allowsSmoking' as const, inverted: true },
-          { key: 'no_parties', label: 'No parties or events', emoji: '🎉', stateKey: 'allowsParties' as const, inverted: true },
-          { key: 'no_pets', label: 'No pets', emoji: '🐾', stateKey: null, inverted: true },
-          { key: 'children_allowed', label: 'Suitable for children (2-12)', emoji: '👶', stateKey: 'allowsChildren' as const, inverted: false },
-          { key: 'quiet_hours', label: 'Quiet hours (10 PM – 8 AM)', emoji: '🤫' },
-          { key: 'no_shoes', label: 'No shoes inside', emoji: '👟' },
-          { key: 'no_unregistered', label: 'No unregistered guests', emoji: '🚷' },
-          { key: 'id_required', label: 'Government ID required at check-in', emoji: '🪪' },
+          { key: 'no_smoking', label: 'No smoking', labelAr: 'ممنوع التدخين', emoji: '🚭', stateKey: 'allowsSmoking' as const, inverted: true },
+          { key: 'no_parties', label: 'No parties or events', labelAr: 'ممنوع الحفلات أو الفعاليات', emoji: '🎉', stateKey: 'allowsParties' as const, inverted: true },
+          { key: 'no_pets', label: 'No pets', labelAr: 'ممنوع الحيوانات الأليفة', emoji: '🐾', stateKey: null, inverted: true },
+          { key: 'children_allowed', label: 'Suitable for children (2-12)', labelAr: 'مناسب للأطفال (2-12)', emoji: '👶', stateKey: 'allowsChildren' as const, inverted: false },
+          { key: 'quiet_hours', label: 'Quiet hours (10 PM – 8 AM)', labelAr: 'ساعات هدوء (10 م – 8 ص)', emoji: '🤫' },
+          { key: 'no_shoes', label: 'No shoes inside', labelAr: 'ممنوع الأحذية داخل المنزل', emoji: '👟' },
+          { key: 'no_unregistered', label: 'No unregistered guests', labelAr: 'ممنوع الضيوف غير المسجلين', emoji: '🚷' },
+          { key: 'id_required', label: 'Government ID required at check-in', labelAr: 'هوية حكومية مطلوبة عند تسجيل الوصول', emoji: '🪪' },
         ];
 
         const ruleSet = new Set(houseRules ? houseRules.split('\n').filter(Boolean) : []);
@@ -1406,9 +1494,9 @@ export default function NewListingPage() {
           <div className="space-y-6">
             {/* House rules checkboxes */}
             <div>
-              <p className="text-sm font-medium text-neutral-700 mb-3">House rules</p>
+              <p className="text-sm font-medium text-neutral-700 mb-3">{t('houseRulesLabel' as any)}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {HOUSE_RULES.map(({ key, label, emoji, stateKey, inverted }) => {
+                {HOUSE_RULES.map(({ key, label, labelAr, emoji, stateKey, inverted }) => {
                   const checked = stateKey
                     ? (inverted
                       ? (stateKey === 'allowsSmoking' ? !allowsSmoking : stateKey === 'allowsParties' ? !allowsParties : false)
@@ -1428,12 +1516,12 @@ export default function NewListingPage() {
                         type="button"
                         onClick={handleToggle}
                         className={cn(
-                          'flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all hover:border-neutral-400 w-full',
+                          'flex items-center gap-3 rounded-xl border-2 p-4 text-start transition-all hover:border-neutral-400 w-full',
                           checked ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200'
                         )}
                       >
                         <span className="text-xl">{emoji}</span>
-                        <span className="text-sm font-medium text-neutral-900 flex-1">{label}</span>
+                        <span className="text-sm font-medium text-neutral-900 flex-1">{isRTL ? (labelAr ?? label) : label}</span>
                         {checked && <Check className="h-4 w-4 text-indigo-600 shrink-0" />}
                       </button>
                     </HoverCard>
@@ -1465,40 +1553,11 @@ export default function NewListingPage() {
               </label>
               <div className="space-y-3">
                 {([
-                  {
-                    value: 'flexible',
-                    label: 'Flexible',
-                    icon: '🟢',
-                    color: 'emerald',
-                    badge: 'Guest-friendly',
-                    freeWindow: 'Full refund up to 24 hours before check-in',
-                    partialWindow: 'After that: first night non-refundable, 50% of remaining nights refunded',
-                    noRefund: 'No refund after check-in begins',
-                    bestFor: 'Best for attracting more bookings and guests who may need flexibility',
-                  },
-                  {
-                    value: 'moderate',
-                    label: 'Moderate',
-                    icon: '🟡',
-                    color: 'amber',
-                    badge: 'Balanced',
-                    freeWindow: 'Full refund up to 5 days before check-in',
-                    partialWindow: '1–4 days before: first night non-refundable, 50% of remaining nights refunded',
-                    noRefund: 'No refund on check-in day or after',
-                    bestFor: 'Balanced protection — good for most hosts',
-                  },
-                  {
-                    value: 'strict',
-                    label: 'Strict',
-                    icon: '🔴',
-                    color: 'rose',
-                    badge: 'Host-protective',
-                    freeWindow: 'Full refund up to 14 days before check-in',
-                    partialWindow: '7–13 days before: first night non-refundable, 50% of remaining nights refunded',
-                    noRefund: 'No refund within 7 days of check-in',
-                    bestFor: 'Best for high-demand listings or non-refundable preparation costs',
-                  },
+                  { value: 'flexible', icon: '🟢', color: 'emerald' },
+                  { value: 'moderate', icon: '🟡', color: 'amber' },
+                  { value: 'strict', icon: '🔴', color: 'rose' },
                 ] as const).map((policy) => {
+                  const vc = (policy.value.charAt(0).toUpperCase() + policy.value.slice(1)) as string;
                   const isSelected = cancellationPolicy === policy.value;
                   return (
                     <button
@@ -1506,21 +1565,21 @@ export default function NewListingPage() {
                       type="button"
                       onClick={() => setCancellationPolicy(policy.value)}
                       className={cn(
-                        'w-full text-left rounded-2xl border-2 p-5 transition-all',
+                        'w-full text-start rounded-2xl border-2 p-5 transition-all',
                         isSelected ? 'border-indigo-600 bg-indigo-50' : 'border-neutral-200 hover:border-neutral-400'
                       )}
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{policy.icon}</span>
-                          <p className="font-semibold text-neutral-900 text-base">{policy.label}</p>
+                          <p className="font-semibold text-neutral-900 text-base">{t(`editCancel${vc}` as any)}</p>
                           <span className={cn(
                             'rounded-full px-2.5 py-0.5 text-xs font-medium',
                             policy.color === 'emerald' && 'bg-emerald-100 text-emerald-700',
                             policy.color === 'amber' && 'bg-amber-100 text-amber-700',
                             policy.color === 'rose' && 'bg-rose-100 text-rose-700',
                           )}>
-                            {policy.badge}
+                            {t(`editCancel${vc}Badge` as any)}
                           </span>
                         </div>
                         {isSelected && <Check className="h-5 w-5 text-indigo-600 shrink-0" />}
@@ -1528,24 +1587,24 @@ export default function NewListingPage() {
                       <ul className="space-y-1.5 text-sm">
                         <li className="flex items-start gap-2 text-neutral-700">
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-                          {policy.freeWindow}
+                          {t(`editCancel${vc}FreeWindow` as any)}
                         </li>
                         <li className="flex items-start gap-2 text-neutral-700">
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                          {policy.partialWindow}
+                          {t(`editCancel${vc}PartialWindow` as any)}
                         </li>
                         <li className="flex items-start gap-2 text-neutral-700">
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
-                          {policy.noRefund}
+                          {t(`editCancel${vc}NoRefund` as any)}
                         </li>
                       </ul>
-                      <p className="mt-2.5 text-xs text-neutral-500 italic">{policy.bestFor}</p>
+                      <p className="mt-2.5 text-xs text-neutral-500 italic">{t(`editCancel${vc}BestFor` as any)}</p>
                     </button>
                   );
                 })}
               </div>
               <p className="mt-3 text-xs text-neutral-400">
-                ℹ️ Service fee and cleaning fee are never refundable regardless of the policy.
+                {t('editCancelDisclaimer' as any)}
               </p>
             </div>
           </div>
@@ -1555,14 +1614,14 @@ export default function NewListingPage() {
       case 11:
         return (
           <div className="space-y-4">
-            <p className="text-sm text-neutral-500">You can change this at any time.</p>
+            <p className="text-sm text-neutral-500">{t('wizardBookingHint' as any)}</p>
 
             {/* Approve first 3 bookings — Recommended */}
             <button
               type="button"
               onClick={() => { setBookingMode('approve_first_three'); setInstantBook(false); }}
               className={cn(
-                'w-full text-left rounded-2xl border-2 p-5 transition-all',
+                'w-full text-start rounded-2xl border-2 p-5 transition-all',
                 bookingMode === 'approve_first_three'
                   ? 'border-indigo-600 bg-indigo-50'
                   : 'border-neutral-200 hover:border-neutral-400'
@@ -1572,13 +1631,13 @@ export default function NewListingPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xl">📅</span>
-                    <p className="font-semibold text-neutral-900">Approve your first 3 bookings</p>
+                    <p className="font-semibold text-neutral-900">{t('wizardApproveFirstTitle' as any)}</p>
                     <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                      Recommended
+                      {t('editBmApproveFirstBadge' as any)}
                     </span>
                   </div>
                   <p className="text-sm text-neutral-500">
-                    Start by reviewing reservation requests, then switch to Instant Book, so guests can book automatically.
+                    {t('wizardApproveFirstDesc' as any)}
                   </p>
                 </div>
                 {bookingMode === 'approve_first_three' && (
@@ -1592,7 +1651,7 @@ export default function NewListingPage() {
               type="button"
               onClick={() => { setBookingMode('always_approve'); setInstantBook(false); }}
               className={cn(
-                'w-full text-left rounded-2xl border-2 p-5 transition-all',
+                'w-full text-start rounded-2xl border-2 p-5 transition-all',
                 bookingMode === 'always_approve'
                   ? 'border-indigo-600 bg-indigo-50'
                   : 'border-neutral-200 hover:border-neutral-400'
@@ -1602,10 +1661,10 @@ export default function NewListingPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xl">✅</span>
-                    <p className="font-semibold text-neutral-900">Always approve manually</p>
+                    <p className="font-semibold text-neutral-900">{t('wizardAlwaysApproveTitle' as any)}</p>
                   </div>
                   <p className="text-sm text-neutral-500">
-                    Review and approve every reservation request yourself. You&apos;ll have 24 hours to respond to each request.
+                    {t('wizardAlwaysApproveDesc' as any)}
                   </p>
                 </div>
                 {bookingMode === 'always_approve' && (
@@ -1619,7 +1678,7 @@ export default function NewListingPage() {
               type="button"
               onClick={() => { setBookingMode('instant_book'); setInstantBook(true); }}
               className={cn(
-                'w-full text-left rounded-2xl border-2 p-5 transition-all',
+                'w-full text-start rounded-2xl border-2 p-5 transition-all',
                 bookingMode === 'instant_book'
                   ? 'border-indigo-600 bg-indigo-50'
                   : 'border-neutral-200 hover:border-neutral-400'
@@ -1629,9 +1688,9 @@ export default function NewListingPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xl">⚡</span>
-                    <p className="font-semibold text-neutral-900">Use Instant Book</p>
+                    <p className="font-semibold text-neutral-900">{t('wizardInstantBookTitle' as any)}</p>
                   </div>
-                  <p className="text-sm text-neutral-500">Let guests book automatically without waiting for your approval.</p>
+                  <p className="text-sm text-neutral-500">{t('wizardInstantBookDesc' as any)}</p>
                 </div>
                 {bookingMode === 'instant_book' && (
                   <Check className="h-5 w-5 text-indigo-600 shrink-0 mt-1" />
@@ -1656,7 +1715,7 @@ export default function NewListingPage() {
                 <button type="button" onClick={() => handleFieldChange('price', Math.min(500000, price + 50), setPrice)}
                   className="h-12 w-12 rounded-full border-2 border-neutral-300 text-2xl font-light text-neutral-600 hover:border-indigo-600 hover:text-indigo-600 transition-colors flex items-center justify-center">+</button>
               </div>
-              <p className="text-sm text-neutral-500">per night</p>
+              <p className="text-sm text-neutral-500">{t('wizardPerNight' as any)}</p>
               {touched.price && errors.price && (<p className="text-xs text-red-600">{errors.price}</p>)}
             </div>
 
@@ -1683,27 +1742,23 @@ export default function NewListingPage() {
 
             {/* Earnings estimate */}
             <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-5">
-              <p className="text-sm font-semibold text-neutral-900 mb-3">Earnings estimate</p>
+              <p className="text-sm font-semibold text-neutral-900 mb-3">{t('wizardEarningsEstimate' as any)}</p>
               <div className="flex justify-between text-sm py-1.5">
-                <span className="text-neutral-500">{price} × 5 nights</span>
+                <span className="text-neutral-500">{price} {t('wizardEarningsNightsLabel' as any)}</span>
                 <span className="text-neutral-700">EGP {(price * 5).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-sm py-1.5 text-red-500">
-                <span>Platform commission (5%)</span>
-                <span>− EGP {(price * 5 * 0.05).toLocaleString()}</span>
-              </div>
               <div className="flex justify-between text-sm py-1.5 border-t border-neutral-200 mt-1 pt-2.5 font-semibold">
-                <span className="text-neutral-900">Your estimated earnings</span>
-                <span className="text-neutral-900">EGP {(price * 5 * 0.95).toLocaleString()}</span>
+                <span className="text-neutral-900">{t('wizardEarningsTotal' as any)}</span>
+                <span className="text-neutral-900">EGP {(price * 5).toLocaleString()}</span>
               </div>
-              <p className="text-xs text-neutral-400 mt-2">A 5% service fee is added to the guest&apos;s total. A 5% commission is deducted from your payout.</p>
+              <p className="text-xs text-neutral-400 mt-2">{t('wizardEarningsNote' as any)}</p>
             </div>
           </div>
         );
 
       case 13: {
         const weekendMultipliers = [
-          { label: 'Same as base', pct: 0 },
+          { label: 'Same as base', labelAr: 'مماثل للأساسي', pct: 0 },
           { label: '+10%', pct: 10 },
           { label: '+15%', pct: 15 },
           { label: '+20%', pct: 20 },
@@ -1716,7 +1771,7 @@ export default function NewListingPage() {
           <div className="space-y-8">
             {/* Big price display */}
             <div className="flex flex-col items-center gap-5 py-4">
-              <p className="text-sm font-medium text-neutral-500 uppercase tracking-widest">Fri & Sat price</p>
+              <p className="text-sm font-medium text-neutral-500 uppercase tracking-widest">{t('wizardWeekendFriSat' as any)}</p>
               <div className="flex items-center gap-4">
                 <button
                   type="button"
@@ -1738,10 +1793,10 @@ export default function NewListingPage() {
                 </button>
               </div>
               {weekendPrice > price && (
-                <p className="text-sm text-emerald-600 font-medium">+{Math.round(((weekendPrice - price) / price) * 100)}% above base price</p>
+                <p className="text-sm text-emerald-600 font-medium">+{Math.round(((weekendPrice - price) / price) * 100)}% {t('wizardWeekendAboveBase' as any)}</p>
               )}
               {weekendPrice === price && (
-                <p className="text-sm text-neutral-400">Same as your base price</p>
+                <p className="text-sm text-neutral-400">{t('wizardWeekendSameAsBase' as any)}</p>
               )}
             </div>
 
@@ -1764,7 +1819,7 @@ export default function NewListingPage() {
 
             {/* Quick multiplier chips */}
             <div className="grid grid-cols-4 gap-2">
-              {weekendMultipliers.map(({ label, pct }) => {
+              {weekendMultipliers.map(({ label, labelAr, pct }) => {
                 const targetPrice = Math.round(price * (1 + pct / 100));
                 const isActive = activePct === pct || (pct === 0 && weekendPrice === price);
                 return (
@@ -1779,7 +1834,7 @@ export default function NewListingPage() {
                         : 'border-neutral-200 hover:border-neutral-400'
                     )}
                   >
-                    <p className={cn('text-sm font-semibold', isActive ? 'text-white' : 'text-neutral-900')}>{label}</p>
+                    <p className={cn('text-sm font-semibold', isActive ? 'text-white' : 'text-neutral-900')}>{pct === 0 ? (isRTL ? (labelAr ?? label) : label) : label}</p>
                     <p className={cn('text-xs mt-0.5', isActive ? 'text-neutral-300' : 'text-neutral-500')}>EGP {targetPrice}</p>
                   </button>
                 );
@@ -1788,21 +1843,17 @@ export default function NewListingPage() {
 
           {/* Fee breakdown note for weekend price */}
           <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-4">
-            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-2">Fee breakdown (per weekend night)</p>
+            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-2">{t('wizardWeekendFeeTitle' as any)}</p>
             <div className="flex justify-between text-sm py-1">
-              <span className="text-neutral-500">Your weekend price</span>
+              <span className="text-neutral-500">{t('wizardWeekendYourPrice' as any)}</span>
               <span className="text-neutral-700">EGP {weekendPrice}</span>
             </div>
-            <div className="flex justify-between text-sm py-1 text-red-500">
-              <span>Platform commission (5%)</span>
-              <span>− EGP {Math.round(weekendPrice * 0.05)}</span>
-            </div>
             <div className="flex justify-between text-sm py-1 border-t border-neutral-200 mt-1 pt-2 font-semibold">
-              <span className="text-neutral-900">You receive per night</span>
-              <span className="text-neutral-900">EGP {Math.round(weekendPrice * 0.95)}</span>
+              <span className="text-neutral-900">{t('wizardWeekendYouReceive' as any)}</span>
+              <span className="text-neutral-900">EGP {weekendPrice}</span>
             </div>
             <div className="flex justify-between text-sm py-1 border-t border-neutral-200 mt-1 pt-2">
-              <span className="text-neutral-500">Guest pays (incl. 5% service fee)</span>
+              <span className="text-neutral-500">{t('wizardWeekendGuestPays' as any)}</span>
               <span className="text-neutral-700 font-medium">EGP {Math.round(weekendPrice * 1.05)}</span>
             </div>
           </div>
@@ -1819,13 +1870,13 @@ export default function NewListingPage() {
             {/* New listing promotion */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-indigo-600 mb-3">
-                Help your place stand out to get booked faster and earn your first reviews.
+                {t('wizardNewListingPromoHint' as any)}
               </p>
               <button
                 type="button"
                 onClick={() => setNewListingPromoEnabled((v) => !v)}
                 className={cn(
-                  'w-full flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-all',
+                  'w-full flex items-center gap-4 rounded-2xl border-2 p-5 text-start transition-all',
                   newListingPromoEnabled
                     ? 'border-indigo-600 bg-indigo-50'
                     : 'border-neutral-200 hover:border-neutral-400'
@@ -1835,8 +1886,8 @@ export default function NewListingPage() {
                   <span className="text-lg font-bold text-neutral-900">20%</span>
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-neutral-900">New listing promotion</p>
-                  <p className="text-sm text-neutral-500 mt-0.5">Offer 20% off your first 3 bookings</p>
+                  <p className="font-semibold text-neutral-900">{t('wizardNewListingPromoTitle' as any)}</p>
+                  <p className="text-sm text-neutral-500 mt-0.5">{t('wizardNewListingPromoOffer' as any)}</p>
                 </div>
                 <div className={cn(
                   'h-6 w-6 rounded-md border-2 flex items-center justify-center transition-colors',
@@ -1853,8 +1904,8 @@ export default function NewListingPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-base font-semibold text-neutral-900">Last-minute discount</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">For stays booked 14 days or less before arrival</p>
+                  <p className="text-base font-semibold text-neutral-900">{t('wizardLastMinuteTitle' as any)}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">{t('wizardLastMinuteSubtitle' as any)}</p>
                 </div>
                 {lastMinuteDiscountPercent > 0 && (
                   <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">
@@ -1875,13 +1926,16 @@ export default function NewListingPage() {
                         : 'border-neutral-200 text-neutral-700 hover:border-neutral-500'
                     )}
                   >
-                    {pct === 0 ? 'None' : `${pct}%`}
+                    {pct === 0 ? t('wizardDiscountNone' as any) : `${pct}%`}
                   </button>
                 ))}
               </div>
               {lastMinuteDiscountPercent > 0 && (
                 <p className="mt-2 text-xs text-neutral-500">
-                  Guests who book within 14 days of arrival pay EGP {Math.round(price * (1 - lastMinuteDiscountPercent / 100))} per night
+                  {isRTL
+                    ? `يدفع الضيوف الذين يحجزون خلال 14 يومًا من الوصول ${Math.round(price * (1 - lastMinuteDiscountPercent / 100))} جنيه لكل ليلة`
+                    : `Guests who book within 14 days of arrival pay EGP ${Math.round(price * (1 - lastMinuteDiscountPercent / 100))} per night`
+                  }
                 </p>
               )}
             </div>
@@ -1890,8 +1944,8 @@ export default function NewListingPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-base font-semibold text-neutral-900">Weekly discount</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">For stays of 7 nights or more</p>
+                  <p className="text-base font-semibold text-neutral-900">{t('wizardWeeklyTitle' as any)}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">{t('wizardWeeklySubtitle' as any)}</p>
                 </div>
                 {weeklyDiscount > 0 && (
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
@@ -1912,13 +1966,16 @@ export default function NewListingPage() {
                         : 'border-neutral-200 text-neutral-700 hover:border-neutral-500'
                     )}
                   >
-                    {pct === 0 ? 'None' : `${pct}%`}
+                    {pct === 0 ? t('wizardDiscountNone' as any) : `${pct}%`}
                   </button>
                 ))}
               </div>
               {weeklyDiscount > 0 && (
                 <p className="mt-2 text-xs text-neutral-500">
-                  Guests pay EGP {Math.round(price * 7 * (1 - weeklyDiscount / 100))} for a week instead of EGP {price * 7}
+                  {isRTL
+                    ? `يدفع الضيوف ${Math.round(price * 7 * (1 - weeklyDiscount / 100))} جنيه لأسبوع بدلاً من ${price * 7} جنيه`
+                    : `Guests pay EGP ${Math.round(price * 7 * (1 - weeklyDiscount / 100))} for a week instead of EGP ${price * 7}`
+                  }
                 </p>
               )}
             </div>
@@ -1927,8 +1984,8 @@ export default function NewListingPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-base font-semibold text-neutral-900">Monthly discount</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">For stays of 28 nights or more</p>
+                  <p className="text-base font-semibold text-neutral-900">{t('wizardMonthlyTitle' as any)}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">{t('wizardMonthlySubtitle' as any)}</p>
                 </div>
                 {monthlyDiscount > 0 && (
                   <span className="rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-700">
@@ -1949,24 +2006,35 @@ export default function NewListingPage() {
                         : 'border-neutral-200 text-neutral-700 hover:border-neutral-500'
                     )}
                   >
-                    {pct === 0 ? 'None' : `${pct}%`}
+                    {pct === 0 ? t('wizardDiscountNone' as any) : `${pct}%`}
                   </button>
                 ))}
               </div>
               {monthlyDiscount > 0 && (
                 <p className="mt-2 text-xs text-neutral-500">
-                  Guests pay EGP {Math.round(price * 28 * (1 - monthlyDiscount / 100))} for a month instead of EGP {price * 28}
+                  {isRTL
+                    ? `يدفع الضيوف ${Math.round(price * 28 * (1 - monthlyDiscount / 100))} جنيه لشهر بدلاً من ${price * 28} جنيه`
+                    : `Guests pay EGP ${Math.round(price * 28 * (1 - monthlyDiscount / 100))} for a month instead of EGP ${price * 28}`
+                  }
                 </p>
               )}
             </div>
 
-            <p className="text-xs text-neutral-400">Discounts help increase occupancy and attract more bookings.</p>
+            <p className="text-xs text-neutral-400">{t('wizardDiscountsFooter' as any)}</p>
 
             {/* Fee reminder */}
             <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-4">
-              <p className="text-xs font-semibold text-indigo-700 uppercase tracking-widest mb-1">Pricing reminder</p>
+              <p className="text-xs font-semibold text-indigo-700 uppercase tracking-widest mb-1">{t('wizardPricingReminderTitle' as any)}</p>
               <p className="text-xs text-indigo-600 leading-relaxed">
-                Oikivo takes a <strong>5% commission</strong> from your payout per booking. Guests are also charged a <strong>5% service fee</strong> on top of your listed price. For example, at your base price of <strong>EGP {price}/night</strong>, you receive <strong>EGP {Math.round(price * 0.95)}</strong> and the guest pays <strong>EGP {Math.round(price * 1.05)}</strong>.
+                {isRTL ? (
+                  <>
+                    تفرض أويكيفو <strong>عمولة 0%</strong> من المضيفين — تحتفظ بـ 100% من سعرك المدرج. يُفرض على الضيوف <strong>رسوم خدمة 5%</strong> فوق سعرك المدرج. على سبيل المثال، بسعرك الأساسي <strong>{price} جنيه/ليلة</strong>، تستلم <strong>{price} جنيه</strong> ويدفع الضيف <strong>{Math.round(price * 1.05)} جنيه</strong>.
+                  </>
+                ) : (
+                  <>
+                    Oikivo charges <strong>0% commission</strong> from hosts — you keep 100% of your listed price. Guests are charged a <strong>5% service fee</strong> on top of your listed price. For example, at your base price of <strong>EGP {price}/night</strong>, you receive <strong>EGP {price}</strong> and the guest pays <strong>EGP {Math.round(price * 1.05)}</strong>.
+                  </>
+                )}
               </p>
             </div>
 
@@ -1974,14 +2042,14 @@ export default function NewListingPage() {
             <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-5">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">Security deposit</p>
+                  <p className="text-sm font-semibold text-neutral-900">{t('wizardSecurityDepositTitle' as any)}</p>
                   <p className="text-xs text-neutral-500 mt-1">
-                    Held during the stay. Returned within 48 h of checkout if no damage is reported.
+                    {t('wizardSecurityDepositDesc' as any)}
                   </p>
                 </div>
                 <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold',
                   securityDeposit > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-200 text-neutral-500')}>
-                  {securityDeposit > 0 ? `EGP ${securityDeposit.toLocaleString()}` : 'None'}
+                  {securityDeposit > 0 ? `EGP ${securityDeposit.toLocaleString()}` : t('wizardDiscountNone' as any)}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1991,7 +2059,7 @@ export default function NewListingPage() {
                       securityDeposit === amt
                         ? 'border-indigo-600 bg-indigo-600 text-white'
                         : 'border-neutral-300 text-neutral-600 hover:border-neutral-600')}>
-                    {amt === 0 ? 'None' : `EGP ${amt.toLocaleString()}`}
+                    {amt === 0 ? t('wizardDiscountNone' as any) : `EGP ${amt.toLocaleString()}`}
                   </button>
                 ))}
               </div>
@@ -2004,7 +2072,7 @@ export default function NewListingPage() {
         return (
           <div className="space-y-4">
             <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
-              By publishing, you confirm this listing follows local laws, building rules, and hosting regulations.
+              {t('legalDisclaimerText' as any)}
             </div>
             <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-neutral-200 p-4">
               <input
@@ -2013,7 +2081,7 @@ export default function NewListingPage() {
                 onChange={(e) => setLegalAccepted(e.target.checked)}
                 className="mt-1 h-4 w-4 rounded border-neutral-300 text-indigo-600"
               />
-              <span className="text-sm text-neutral-800">I confirm that my listing complies with legal and regulatory requirements.</span>
+              <span className="text-sm text-neutral-800">{t('legalConfirmText' as any)}</span>
             </label>
           </div>
         );
@@ -2029,8 +2097,8 @@ export default function NewListingPage() {
                   {/* Cover photo - takes left half */}
                   <div className="relative col-span-2 row-span-2 bg-neutral-200">
                     <Image src={photos[0].preview} alt="Cover" fill className="object-cover" />
-                    <div className="absolute top-2 left-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
-                      Cover
+                    <div className="absolute top-2 start-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
+                      {t('coverPhotoLabel' as any)}
                     </div>
                   </div>
                   {/* Next 4 photos fill the right side */}
@@ -2067,25 +2135,25 @@ export default function NewListingPage() {
 
             {/* Review Your Listing Section */}
             <div>
-              <h3 className="text-lg font-semibold text-neutral-900 mb-3">Review your listing details</h3>
+              <h3 className="text-lg font-semibold text-neutral-900 mb-3">{t('reviewListingTitle' as any)}</h3>
               <div className="space-y-3">
                 <StepSummaryCard
                   icon="🏠"
-                  label="Property Type"
-                  value={`${PROPERTY_KINDS.find((k) => k.value === kind)?.label || kind} • ${[...SPACE_TYPES, ...HOTEL_SPACE_TYPES].find((s) => s.value === spaceType)?.labelKey || spaceType}`}
+                  label={t('stepType' as any)}
+                  value={`${t((PROPERTY_KINDS.find((k) => k.value === kind)?.labelKey ?? 'kindHouse') as any)} • ${[...SPACE_TYPES, ...HOTEL_SPACE_TYPES].find((s) => s.value === spaceType)?.labelKey || spaceType}`}
                   onEdit={() => handleStepClick(1)}
                 />
 
                 <StepSummaryCard
                   icon="📍"
-                  label="Location"
+                  label={t('stepLocation' as any)}
                   value={`${address}, ${city}, ${country}`}
                   onEdit={() => handleStepClick(3)}
                 />
 
                 <StepSummaryCard
                   icon="📐"
-                  label="Floor Plan"
+                  label={t('stepDetails' as any)}
                   value={`${maxGuests} guests • ${bedrooms} bedroom${bedrooms !== 1 ? 's' : ''} • ${beds} bed${beds !== 1 ? 's' : ''} • ${bathrooms} bath${bathrooms !== 1 ? 's' : ''}`}
                   onEdit={() => handleStepClick(4)}
                 />
@@ -2093,7 +2161,7 @@ export default function NewListingPage() {
                 {categoryId && categories && (
                   <StepSummaryCard
                     icon="🏷️"
-                    label="Category"
+                    label={t('category' as any)}
                     value={categories.find((c) => c.id === categoryId)?.name ?? '—'}
                     onEdit={() => handleStepClick(5)}
                   />
@@ -2102,7 +2170,7 @@ export default function NewListingPage() {
                 {selectedAmenities.length > 0 && (
                   <StepSummaryCard
                     icon="🎯"
-                    label="Amenities"
+                    label={t('stepAmenities' as any)}
                     value={`${selectedAmenities.length} amenity${selectedAmenities.length !== 1 ? 'ies' : ''} selected`}
                     onEdit={() => handleStepClick(6)}
                   />
@@ -2110,7 +2178,7 @@ export default function NewListingPage() {
 
                 <StepSummaryCard
                   icon="📸"
-                  label="Photos"
+                  label={t('stepPhotos' as any)}
                   value={`${photos.length} photo${photos.length !== 1 ? 's' : ''}`}
                   photos={photos.map((p) => p.preview)}
                   onEdit={() => handleStepClick(7)}
@@ -2118,7 +2186,7 @@ export default function NewListingPage() {
 
                 <StepSummaryCard
                   icon="💰"
-                  label="Pricing"
+                  label={t('stepPrice' as any)}
                   value={`EGP ${price}/night • EGP ${weekendPrice} weekends${weeklyDiscount ? ` • ${weeklyDiscount}% weekly` : ''}${monthlyDiscount ? ` • ${monthlyDiscount}% monthly` : ''}`}
                   onEdit={() => handleStepClick(12)}
                 />
@@ -2126,7 +2194,7 @@ export default function NewListingPage() {
                 {(weeklyDiscount > 0 || monthlyDiscount > 0) && (
                     <StepSummaryCard
                       icon="🎁"
-                      label="Discounts"
+                      label={t('stepReview' as any)}
                       value={`${weeklyDiscount}% weekly • ${monthlyDiscount}% monthly`}
                       onEdit={() => handleStepClick(14)}
                     />
@@ -2134,7 +2202,7 @@ export default function NewListingPage() {
 
                 <StepSummaryCard
                   icon="⚙️"
-                  label="House Rules & Policies"
+                  label={t('stepRules' as any)}
                   value={`Check-in: ${checkInTime} • Check-out: ${checkOutTime} • ${cancellationPolicy} cancellation${instantBook ? ' • Instant book' : ''}`}
                   onEdit={() => handleStepClick(10)}
                 />
@@ -2152,10 +2220,10 @@ export default function NewListingPage() {
                 />
                 <div>
                   <p className="text-sm font-semibold text-neutral-900">
-                    I confirm my listing is ready to publish
+                    {t('confirmReadyTitle' as any)}
                   </p>
                   <p className="text-xs text-neutral-600 mt-1">
-                    I confirm identity verification, payout profile setup, and that all guest-facing information is accurate and complies with local laws.
+                    {t('confirmReadyDesc' as any)}
                   </p>
                 </div>
               </label>
@@ -2181,11 +2249,11 @@ export default function NewListingPage() {
     return false;
   };
 
-  const currentStepMeta = STEP_FLOW[step - 1] ?? STEP_FLOW[0];
+  const currentStepMeta = translatedSteps[step - 1] ?? translatedSteps[0];
   const direction: 'forward' | 'backward' = step > prevStep ? 'forward' : 'backward';
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* ── Wizard top bar ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 shrink-0 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3 sm:px-6">
         <span className="text-sm font-bold text-neutral-800 tracking-tight">Oikivo</span>
@@ -2194,7 +2262,7 @@ export default function NewListingPage() {
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition-colors"
         >
           <X className="h-4 w-4" />
-          Exit
+          {t('wizardExitBtn' as any)}
         </button>
       </header>
 
@@ -2202,7 +2270,7 @@ export default function NewListingPage() {
       <div className="flex flex-1 min-h-0">
         {/* Progress Tracker - Desktop Sidebar (in-flow, not fixed) */}
         <ProgressTracker
-          steps={STEP_FLOW}
+          steps={translatedSteps}
           currentStep={step}
           completedSteps={completedSteps}
           onStepClick={handleStepClick}
@@ -2213,7 +2281,7 @@ export default function NewListingPage() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile Progress Bar */}
           <MobileProgressBar
-            steps={STEP_FLOW}
+            steps={translatedSteps}
             currentStep={step}
             completedSteps={completedSteps}
             onStepClick={handleStepClick}
@@ -2228,7 +2296,7 @@ export default function NewListingPage() {
             onBack={step > 1 ? handleBack : undefined}
             onNext={handleNext}
             onSaveDraft={saveDraft}
-            nextLabel={step === TOTAL_STEPS ? '🎯 Submit for Review' : undefined}
+            nextLabel={step === TOTAL_STEPS ? `🎯 ${t('wizardSubmitForReview' as any)}` : undefined}
             nextDisabled={isNextDisabled()}
             isLastStep={step === TOTAL_STEPS}
             isLoading={createListing.isPending || updateListing.isPending || publishListing.isPending || uploadImages.isPending}
@@ -2243,10 +2311,10 @@ export default function NewListingPage() {
       {/* ── Exit confirmation modal ──────────────────────────────────── */}
       {showExitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-neutral-900">Leave without saving?</h2>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" dir={isRTL ? 'rtl' : 'ltr'}>
+            <h2 className="text-lg font-semibold text-neutral-900">{t('wizardExitTitle' as any)}</h2>
             <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
-              Your progress won&apos;t be lost — save as draft to continue later from your listings page.
+              {t('wizardExitDesc' as any)}
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <button
@@ -2256,19 +2324,25 @@ export default function NewListingPage() {
                 }}
                 className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
               >
-                Save as draft &amp; leave
+                {t('wizardSaveDraftLeave' as any)}
               </button>
               <button
-                onClick={() => releaseGuardAndLeave(`/${locale}/hosting/listings`)}
+                onClick={async () => {
+                  const pid = propertyIdRef.current ?? propertyId;
+                  if (pid) {
+                    try { await propertiesApi.deleteListing(pid); } catch { /* silent — draft already gone or network error */ }
+                  }
+                  releaseGuardAndLeave(`/${locale}/hosting/listings`);
+                }}
                 className="w-full rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
               >
-                Discard &amp; leave
+                {t('wizardDiscardLeave' as any)}
               </button>
               <button
                 onClick={() => setShowExitModal(false)}
                 className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
               >
-                Cancel — keep editing
+                {t('wizardCancelKeepEditing' as any)}
               </button>
             </div>
           </div>

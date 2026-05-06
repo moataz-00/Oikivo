@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Star, X, Send, Smile } from 'lucide-react';
+import { Star, X, Send, Smile, Edit3 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { reviewsApi } from '@/lib/api';
 import { toast } from '@/components/ui/Toast';
+import type { Review } from '@/types';
 
 interface PendingBooking {
   id: number;
@@ -29,6 +30,8 @@ interface WriteGuestReviewModalProps {
   booking: PendingBooking;
   onClose: () => void;
   onSuccess: () => void;
+  /** When provided, modal is in edit mode — pre-fills fields, calls updateReview */
+  existingReview?: Review;
 }
 
 const SUB_RATINGS = [
@@ -83,31 +86,44 @@ function StarRating({
   );
 }
 
-export function WriteGuestReviewModal({ booking, onClose, onSuccess }: WriteGuestReviewModalProps) {
+export function WriteGuestReviewModal({ booking, onClose, onSuccess, existingReview }: WriteGuestReviewModalProps) {
   const queryClient = useQueryClient();
-  const [overallRating, setOverallRating] = useState(0);
-  const [subRatings, setSubRatings] = useState<Record<string, number>>({});
-  const [comment, setComment] = useState('');
+  const isEditMode = !!existingReview;
+  const [overallRating, setOverallRating] = useState(existingReview?.overallRating ?? 0);
+  const [subRatings, setSubRatings] = useState<Record<string, number>>({
+    communicationRating: existingReview?.communicationRating ?? 0,
+    cleanlinessRating: existingReview?.cleanlinessRating ?? 0,
+    checkinRating: existingReview?.checkinRating ?? 0,
+  });
+  const [comment, setComment] = useState(existingReview?.comment ?? '');
 
   const mutation = useMutation({
     mutationFn: () =>
-      reviewsApi.createReview({
-        bookingId: booking.id,
-        overallRating,
-        communicationRating: subRatings.communicationRating,
-        cleanlinessRating: subRatings.cleanlinessRating,
-        checkinRating: subRatings.checkinRating,
-        comment: comment.trim() || undefined,
-        reviewerRole: 'host',
-      }),
+      isEditMode
+        ? reviewsApi.updateReview(existingReview!.id, {
+            overallRating,
+            communicationRating: subRatings.communicationRating || undefined,
+            cleanlinessRating: subRatings.cleanlinessRating || undefined,
+            checkinRating: subRatings.checkinRating || undefined,
+            comment: comment.trim() || undefined,
+          })
+        : reviewsApi.createReview({
+            bookingId: booking.id,
+            overallRating,
+            communicationRating: subRatings.communicationRating || undefined,
+            cleanlinessRating: subRatings.cleanlinessRating || undefined,
+            checkinRating: subRatings.checkinRating || undefined,
+            comment: comment.trim() || undefined,
+            reviewerRole: 'host',
+          }),
     onSuccess: () => {
-      toast.success('Guest review posted!');
+      toast.success(isEditMode ? 'Review updated!' : 'Guest review posted!');
       queryClient.invalidateQueries({ queryKey: ['pending-guest-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['host-guest-reviews'] });
       onSuccess();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to post review');
+      toast.error(err?.response?.data?.message ?? (isEditMode ? 'Failed to update review' : 'Failed to post review'));
     },
   });
 
@@ -133,20 +149,23 @@ export function WriteGuestReviewModal({ booking, onClose, onSuccess }: WriteGues
 
         {/* Modal */}
         <motion.div
-          className="relative z-10 w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden"
+          className="relative z-10 w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
           initial={{ opacity: 0, y: 32, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 32, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 300, damping: 26 }}
         >
           {/* Header accent */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-violet-500 to-indigo-500" />
+          <div className={`h-1.5 w-full ${isEditMode ? 'bg-gradient-to-r from-amber-400 to-orange-400' : 'bg-gradient-to-r from-violet-500 to-indigo-500'}`} />
 
-          <div className="p-6 space-y-5">
+          <div className="flex-1 overflow-y-auto p-6 space-y-5">
             {/* Title + close */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-neutral-900">Review your guest</h2>
+                <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                  {isEditMode && <Edit3 className="h-4 w-4 text-amber-500" />}
+                  {isEditMode ? 'Edit Guest Review' : 'Review your guest'}
+                </h2>
                 <p className="text-xs text-neutral-500 mt-0.5">{booking.property?.title}</p>
               </div>
               <button
@@ -226,7 +245,7 @@ export function WriteGuestReviewModal({ booking, onClose, onSuccess }: WriteGues
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 <Send className="h-4 w-4" />
-                {mutation.isPending ? 'Posting…' : 'Post Review'}
+                {mutation.isPending ? (isEditMode ? 'Saving…' : 'Posting…') : (isEditMode ? 'Save Changes' : 'Post Review')}
               </motion.button>
             </div>
           </div>

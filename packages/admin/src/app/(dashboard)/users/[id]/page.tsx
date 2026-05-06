@@ -22,6 +22,8 @@ export default function UserDetailPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [banReason, setBanReason] = useState('');
   const [showBan, setShowBan] = useState(false);
+  const [showSuspend, setShowSuspend] = useState(false);
+  const [suspendReason, setSuspendReason] = useState('');
   const [showNotify, setShowNotify] = useState(false);
   const [notifyForm, setNotifyForm] = useState({ title: '', message: '' });
 
@@ -59,6 +61,19 @@ export default function UserDetailPage() {
     mutationFn: () => adminApi.toggleUserAdmin(userId),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-user', userId] }); qc.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('Admin role toggled'); },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Failed to toggle admin'),
+  });
+
+  const suspendMut = useMutation({
+    mutationFn: (reason: string) => adminApi.suspendUser(userId, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-user', userId] });
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      qc.invalidateQueries({ queryKey: ['admin-badge-counts'] });
+      setShowSuspend(false);
+      setSuspendReason('');
+      toast.success('User suspended — email notification sent');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Failed to suspend user'),
   });
 
   const notifyMut = useMutation({
@@ -195,9 +210,28 @@ export default function UserDetailPage() {
           {user.idDocumentUrl && (
             <div className="pt-2">
               <label className="text-xs text-gray-500 uppercase tracking-wide">ID Document</label>
-              <div className="mt-1">
-                <img src={getUploadUrl(user.idDocumentUrl)} alt="ID" className="max-w-xs rounded-lg border border-gray-300 dark:border-gray-700" />
-                <p className="text-xs text-gray-500 mt-1">Status: <span className={user.idVerificationStatus === 'approved' ? 'text-emerald-400' : user.idVerificationStatus === 'rejected' ? 'text-red-400' : 'text-yellow-400'}>{user.idVerificationStatus}</span></p>
+              {user.idDocumentType && (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Type: <span className="font-medium text-gray-700 dark:text-gray-300">{user.idDocumentType === 'national_id' ? 'National ID' : 'Passport'}</span>
+                </p>
+              )}
+              <div className="mt-1 space-y-2">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">{user.idDocumentType === 'national_id' ? 'Front side' : 'Photo page'}</p>
+                  <img src={getUploadUrl(user.idDocumentUrl)} alt="ID Front" className="max-w-xs rounded-lg border border-gray-300 dark:border-gray-700" />
+                </div>
+                {user.idDocumentBackUrl && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Back side</p>
+                    <img src={getUploadUrl(user.idDocumentBackUrl)} alt="ID Back" className="max-w-xs rounded-lg border border-gray-300 dark:border-gray-700" />
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Status: <span className={user.idVerificationStatus === 'approved' ? 'text-emerald-400' : user.idVerificationStatus === 'rejected' ? 'text-red-400' : 'text-yellow-400'}>{user.idVerificationStatus}</span>
+                </p>
+                {user.idRejectionReason && (
+                  <p className="text-xs text-red-400">Rejection reason: {user.idRejectionReason}</p>
+                )}
               </div>
             </div>
           )}
@@ -207,10 +241,17 @@ export default function UserDetailPage() {
         <div className="space-y-4">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-3">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Quick Actions</h2>
-            <button onClick={() => toggleActiveMut.mutate()} disabled={toggleActiveMut.isPending} className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm transition-colors disabled:opacity-50">
-              {user.isActive ? <ShieldOff className="h-4 w-4 text-yellow-400" /> : <Shield className="h-4 w-4 text-emerald-400" />}
-              <span className="text-gray-900 dark:text-white">{user.isActive ? 'Suspend User' : 'Activate User'}</span>
-            </button>
+            {user.isActive ? (
+              <button onClick={() => setShowSuspend(true)} className="w-full flex items-center gap-2 px-4 py-2.5 bg-yellow-900/20 hover:bg-yellow-900/40 rounded-lg text-sm transition-colors">
+                <ShieldOff className="h-4 w-4 text-yellow-400" />
+                <span className="text-yellow-400">Suspend User</span>
+              </button>
+            ) : (
+              <button onClick={() => toggleActiveMut.mutate()} disabled={toggleActiveMut.isPending} className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm transition-colors disabled:opacity-50">
+                <Shield className="h-4 w-4 text-emerald-400" />
+                <span className="text-gray-900 dark:text-white">Activate User</span>
+              </button>
+            )}
             <button onClick={() => toggleAdminMut.mutate()} disabled={toggleAdminMut.isPending} className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm transition-colors disabled:opacity-50">
               {user.isAdmin ? <ShieldOff className="h-4 w-4 text-red-400" /> : <Shield className="h-4 w-4 text-indigo-400" />}
               <span className="text-gray-900 dark:text-white">{user.isAdmin ? 'Revoke Admin' : 'Grant Admin'}</span>
@@ -328,16 +369,51 @@ export default function UserDetailPage() {
         </div>
       )}
 
+      {/* Suspend Modal */}
+      {showSuspend && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center gap-2 text-yellow-400 mb-3"><ShieldOff className="h-5 w-5" /><h3 className="text-lg font-semibold">Suspend User</h3></div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">This will deactivate <strong className="text-gray-900 dark:text-white">{user.firstName} {user.lastName}</strong>'s account. An email will be sent to the user with your message.</p>
+            <textarea
+              value={suspendReason}
+              onChange={e => setSuspendReason(e.target.value)}
+              placeholder="Reason for suspension (e.g. violation of community guidelines)..."
+              rows={4}
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm mb-3 resize-none"
+            />
+            <div className="flex items-center gap-2 bg-yellow-900/20 border border-yellow-800/40 rounded-lg px-3 py-2 mb-4">
+              <Mail className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+              <p className="text-xs text-yellow-300">An email notification with this message will be sent to {user.email}</p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setShowSuspend(false); setSuspendReason(''); }} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg text-sm">Cancel</button>
+              <button onClick={() => suspendMut.mutate(suspendReason)} disabled={!suspendReason.trim() || suspendMut.isPending} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg text-sm disabled:opacity-50">{suspendMut.isPending ? 'Suspending...' : 'Suspend User'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Ban Modal */}
       {showBan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Ban User</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">This will deactivate the user and send a notification with the reason.</p>
-            <textarea value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="Ban reason..." rows={3} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm mb-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center gap-2 text-red-400 mb-3"><Ban className="h-5 w-5" /><h3 className="text-lg font-semibold">Permanently Ban User</h3></div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">This will <strong className="text-red-400">permanently</strong> ban <strong className="text-gray-900 dark:text-white">{user.firstName} {user.lastName}</strong>'s account. An email will be sent to the user with your message.</p>
+            <textarea
+              value={banReason}
+              onChange={e => setBanReason(e.target.value)}
+              placeholder="Reason for ban (e.g. repeated violations, fraud, abuse)..."
+              rows={4}
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm mb-3 resize-none"
+            />
+            <div className="flex items-center gap-2 bg-red-900/20 border border-red-800/40 rounded-lg px-3 py-2 mb-4">
+              <Mail className="h-4 w-4 text-red-400 flex-shrink-0" />
+              <p className="text-xs text-red-300">An email notification with this message will be sent to {user.email}</p>
+            </div>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowBan(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg text-sm">Cancel</button>
-              <button onClick={() => banMut.mutate(banReason)} disabled={!banReason.trim() || banMut.isPending} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm disabled:opacity-50">Ban User</button>
+              <button onClick={() => banMut.mutate(banReason)} disabled={!banReason.trim() || banMut.isPending} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm disabled:opacity-50">{banMut.isPending ? 'Banning...' : 'Permanently Ban'}</button>
             </div>
           </div>
         </div>

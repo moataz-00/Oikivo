@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, X } from 'lucide-react';
+import { Star, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDate } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
@@ -9,6 +9,11 @@ import type { Review } from '@/types';
 
 interface ReviewCardProps {
   review: Review;
+}
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
+function resolvePhotoUrl(url: string) {
+  return url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
 }
 
 const EMOJI_MAP: { key: keyof Review; label: string; emoji: string }[] = [
@@ -50,6 +55,8 @@ function SubRatingRow({ label, emoji, value }: { label: string; emoji: string; v
 export function ReviewCard({ review }: ReviewCardProps) {
   const rating = review.overallRating ?? review.rating ?? 0;
   const [open, setOpen] = useState(false);
+  const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const TRUNCATE_AT = 160;
   const isLong = (review.comment?.length ?? 0) > TRUNCATE_AT;
   const displayText = isLong
@@ -218,6 +225,26 @@ export function ReviewCard({ review }: ReviewCardProps) {
                     </div>
                   )}
 
+                  {/* Review photos */}
+                  {review.photos && review.photos.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">Photos</p>
+                      <div className="flex flex-wrap gap-2">
+                        {review.photos.map((url, i) => {
+                          const src = resolvePhotoUrl(url);
+                          const allSrcs = (review.photos ?? []).map(resolvePhotoUrl);
+                          return (
+                            <button key={i} type="button" onClick={() => { setLightboxPhotos(allSrcs); setLightboxIndex(i); }}
+                              className="rounded-xl overflow-hidden border border-neutral-100 hover:scale-105 transition-transform focus:outline-none">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={src} alt={`Photo ${i + 1}`} className="h-20 w-20 object-cover" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Host reply */}
                   {review.hostReply && (
                     <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
@@ -229,6 +256,63 @@ export function ReviewCard({ review }: ReviewCardProps) {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Photo lightbox */}
+      <AnimatePresence>
+        {lightboxPhotos.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center"
+            onClick={() => setLightboxPhotos([])}
+          >
+            <button
+              className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+              onClick={() => setLightboxPhotos([])}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {lightboxPhotos.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + lightboxPhotos.length) % lightboxPhotos.length); }}
+                  className="absolute left-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % lightboxPhotos.length); }}
+                  className="absolute right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </>
+            )}
+            <motion.img
+              key={lightboxIndex}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              src={lightboxPhotos[lightboxIndex]}
+              alt="Review photo"
+              className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {lightboxPhotos.length > 1 && (
+              <div className="absolute bottom-4 flex gap-1.5">
+                {lightboxPhotos.map((_, i) => (
+                  <button key={i} onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === lightboxIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </motion.div>
         )}
       </AnimatePresence>
     </>

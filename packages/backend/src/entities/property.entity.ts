@@ -98,6 +98,9 @@ export class PropertyEntity {
   @Column({ name: 'service_fee_percent', type: 'decimal', precision: 5, scale: 2, default: 5.00 })
   serviceFeePercent: number;
 
+  @Column({ name: 'host_commission_percent', type: 'decimal', precision: 5, scale: 2, default: 0.00 })
+  hostCommissionPercent: number;
+
   @Column({ name: 'min_nights', default: 1 })
   minNights: number;
 
@@ -232,6 +235,9 @@ export class PropertyEntity {
 
   @Column({ name: 'archived_at', type: 'timestamp', nullable: true, default: null })
   archivedAt: Date | null;
+
+  @Column({ name: 'deleted_at', type: 'datetime', nullable: true, default: null })
+  deletedAt: Date | null;
 
   @Column({ name: 'is_featured', type: 'tinyint', default: 0 })
   isFeatured: boolean;

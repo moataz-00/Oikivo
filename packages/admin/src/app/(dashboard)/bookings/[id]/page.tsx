@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, CreditCard, Users, Home, XCircle, RotateCcw, Save, AlertTriangle, Image, Clock, DollarSign, PiggyBank } from 'lucide-react';
+import { ArrowLeft, Calendar, CreditCard, Users, Home, XCircle, RotateCcw, Save, AlertTriangle, Image, Clock, DollarSign, PiggyBank, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { adminApi, getUploadUrl } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -31,6 +31,190 @@ function BookingProfitCard({ bookingId }: { bookingId: number }) {
         </div>
       </div>
       <p className="text-xs text-gray-600">Payment: {p.paymentMethod || '—'} • Payout: {p.payoutMethod || '—'}</p>
+    </div>
+  );
+}
+
+function DepositClaimPanel({ booking, bookingId }: { booking: any; bookingId: number }) {
+  const qc = useQueryClient();
+  const [approveModal, setApproveModal] = useState(false);
+  const [approveNote, setApproveNote] = useState('');
+  const [rejectModal, setRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const approveMut = useMutation({
+    mutationFn: (adminNote?: string) => adminApi.approveDepositClaim(bookingId, adminNote),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-booking', bookingId] });
+      qc.invalidateQueries({ queryKey: ['admin-bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin-deposit-claims'] });
+      setApproveModal(false);
+      setApproveNote('');
+      toast.success('Deposit claim approved — host keeps the deposit');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Approve failed'),
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: (reason?: string) => adminApi.rejectDepositClaim(bookingId, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-booking', bookingId] });
+      qc.invalidateQueries({ queryKey: ['admin-bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin-deposit-claims'] });
+      setRejectModal(false);
+      setRejectReason('');
+      toast.success('Deposit claim rejected — host must return deposit to guest');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Reject failed'),
+  });
+
+  const statusLabel: Record<string, { label: string; cls: string }> = {
+    none:     { label: 'No deposit', cls: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
+    held:     { label: 'Held (awaiting checkout)', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+    claimed:  { label: 'Claim submitted — awaiting review', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+    released: { label: 'Released to guest', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+    approved: { label: 'Claim approved — host keeps deposit', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+    rejected: { label: 'Claim rejected — host must return deposit', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+  };
+
+  const s = statusLabel[booking.depositStatus ?? 'none'] ?? statusLabel.none;
+  const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const currency = booking.displayCurrency ?? booking.currency ?? 'EGP';
+  const evidence: string[] = Array.isArray(booking.depositClaimEvidence) ? booking.depositClaimEvidence : [];
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <ShieldCheck className="h-5 w-5 text-amber-400" /> Security Deposit
+      </h2>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <div>
+          <label className="text-xs text-gray-500 uppercase">Amount</label>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{fmt(booking.depositAmount)} {currency}</p>
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 uppercase">Status</label>
+          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${s.cls}`}>{s.label}</span>
+        </div>
+        {booking.depositClaimDeadline && (
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Claim Deadline</label>
+            <p className="text-sm text-gray-900 dark:text-white mt-0.5">{new Date(booking.depositClaimDeadline).toLocaleString()}</p>
+          </div>
+        )}
+      </div>
+
+      {booking.depositStatus === 'claimed' && (
+        <>
+          {booking.depositClaimReason && (
+            <div>
+              <label className="text-xs text-gray-500 uppercase">Host's Claim Reason</label>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                {booking.depositClaimReason}
+              </p>
+            </div>
+          )}
+
+          {evidence.length > 0 && (
+            <div>
+              <label className="text-xs text-gray-500 uppercase">Evidence Photos</label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {evidence.map((path: string, i: number) => (
+                  <a key={i} href={getUploadUrl(path)} target="_blank" rel="noopener noreferrer">
+                    <img src={getUploadUrl(path)} alt={`Evidence ${i + 1}`}
+                      className="w-20 h-20 object-cover rounded-xl border border-gray-200 dark:border-gray-700 hover:opacity-80 transition-opacity" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setApproveModal(true)}
+              disabled={approveMut.isPending || rejectMut.isPending}
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition-colors"
+            >
+              ✓ Approve claim
+            </button>
+            <button
+              onClick={() => setRejectModal(true)}
+              disabled={approveMut.isPending || rejectMut.isPending}
+              className="flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition-colors"
+            >
+              ✗ Reject claim
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Approving means the host keeps the cash deposit they collected. Rejecting means they must return it to the guest.
+          </p>
+
+          {/* Approve modal */}
+          {approveModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Approve Deposit Claim</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  The host will be allowed to keep the cash deposit. Both host and guest will be notified by email.
+                </p>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase">Admin Note (optional)</label>
+                  <textarea
+                    rows={3}
+                    value={approveNote}
+                    onChange={(e) => setApproveNote(e.target.value)}
+                    placeholder="e.g. Evidence of damage confirmed — towels and mirror broken."
+                    className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <button onClick={() => setApproveModal(false)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">Cancel</button>
+                  <button
+                    onClick={() => approveMut.mutate(approveNote || undefined)}
+                    disabled={approveMut.isPending}
+                    className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium disabled:opacity-50"
+                  >
+                    {approveMut.isPending ? 'Approving…' : 'Confirm Approval'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reject modal */}
+          {rejectModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reject Deposit Claim</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  The host will be required to return the deposit to the guest. Both parties will be notified.
+                </p>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase">Reason for rejection <span className="text-red-500">*</span></label>
+                  <textarea
+                    rows={3}
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="e.g. Insufficient evidence — photos do not show damage caused by guest."
+                    className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <button onClick={() => setRejectModal(false)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">Cancel</button>
+                  <button
+                    onClick={() => rejectMut.mutate(rejectReason || undefined)}
+                    disabled={rejectMut.isPending || !rejectReason.trim()}
+                    className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50"
+                  >
+                    {rejectMut.isPending ? 'Rejecting…' : 'Confirm Rejection'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -261,6 +445,11 @@ export default function BookingDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Deposit Claim Review */}
+          {(booking.depositAmount ?? 0) > 0 && booking.depositStatus && booking.depositStatus !== 'none' && (
+            <DepositClaimPanel booking={booking} bookingId={bookingId} />
+          )}
 
           {/* Cancellation */}
           {booking.status === 'cancelled' && (

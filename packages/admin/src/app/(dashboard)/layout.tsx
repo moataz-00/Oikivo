@@ -95,6 +95,7 @@ const NAV_SECTIONS = [
     label: 'Moderation',
     items: [
       { href: '/disputes', label: 'Disputes', icon: Scale, badge: 'openDisputes' as BadgeKey },
+      { href: '/deposit-claims', label: 'Deposit Claims', icon: Banknote },
       { href: '/host-verification', label: 'Host Verification', icon: ShieldCheck, badge: 'pendingVerifications' as BadgeKey },
       { href: '/content-moderation', label: 'Content Moderation', icon: ShieldAlert, badge: 'pendingModeration' as BadgeKey },
     ],

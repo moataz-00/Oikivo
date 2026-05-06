@@ -97,26 +97,34 @@ export class ReviewsService {
       await this.updatePropertyRating(booking.propertyId);
 
       // Notify host
-      await this.notificationsService.create(
-        booking.property.hostId,
-        'new_review',
-        'New Review Received',
-        'تقييم جديد',
-        `You received a new ${dto.overallRating}-star review`,
-        `لقد حصلت على تقييم جديد ${dto.overallRating} نجوم`,
-        { reviewId: saved.id, propertyId: booking.propertyId },
-      );
+      try {
+        await this.notificationsService.create(
+          Number(booking.property.hostId),
+          'new_review',
+          'New Review Received',
+          'تقييم جديد',
+          `You received a new ${dto.overallRating}-star review`,
+          `لقد حصلت على تقييم جديد ${dto.overallRating} نجوم`,
+          { reviewId: saved.id, propertyId: booking.propertyId },
+        );
+      } catch (e) {
+        console.error('Failed to send new_review notification to host:', e);
+      }
     } else {
       // Notify guest that host reviewed them
-      await this.notificationsService.create(
-        booking.guestId,
-        'new_review',
-        'New Guest Review',
-        'تقييم جديد من المضيف',
-        `Your host left you a ${dto.overallRating}-star review`,
-        `تركك المضيف تقييمًا ${dto.overallRating} نجوم`,
-        { reviewId: saved.id, bookingId: booking.id },
-      );
+      try {
+        await this.notificationsService.create(
+          Number(booking.guestId),
+          'new_review',
+          'New Guest Review',
+          'تقييم جديد من المضيف',
+          `Your host left you a ${dto.overallRating}-star review`,
+          `تركك المضيف تقييمًا ${dto.overallRating} نجوم`,
+          { reviewId: saved.id, bookingId: booking.id },
+        );
+      } catch (e) {
+        console.error('Failed to send new_review notification to guest:', e);
+      }
     }
 
     return saved;
@@ -128,16 +136,25 @@ export class ReviewsService {
       relations: ['property'],
     });
     if (!review) throw new NotFoundException('Review not found');
-    if (review.property.hostId !== hostId) {
+    if (!review.property || review.property.hostId !== hostId) {
       throw new ForbiddenException('You can only reply to reviews for your properties');
     }
-    if (review.hostReply) {
-      throw new BadRequestException('You have already replied to this review');
-    }
-
     review.hostReply = dto.hostReply;
     review.hostRepliedAt = new Date();
     return this.reviewsRepo.save(review);
+  }
+
+  async deleteReply(reviewId: number, hostId: number): Promise<ReviewEntity> {
+    const review = await this.reviewsRepo.findOne({
+      where: { id: reviewId },
+      relations: ['property'],
+    });
+    if (!review) throw new NotFoundException('Review not found');
+    if (!review.property || review.property.hostId !== hostId) {
+      throw new ForbiddenException('You can only manage replies for your properties');
+    }
+    await this.reviewsRepo.update(reviewId, { hostReply: null, hostRepliedAt: null });
+    return this.reviewsRepo.findOne({ where: { id: reviewId }, relations: ['reviewer', 'property'] });
   }
 
   /** G1: Allow guest to edit their review within 48 hours of submission */
@@ -306,7 +323,7 @@ export class ReviewsService {
       .leftJoin(
         'reviews',
         'hr',
-        'hr.booking_id = booking.id AND hr.reviewer_role = :role',
+        'hr.booking_id = booking.id AND hr.reviewer_role = :role AND hr.is_deleted = 0',
         { role: 'host' },
       )
       .where('booking.status = :status', { status: 'completed' })

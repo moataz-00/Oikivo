@@ -26,6 +26,17 @@ export function getBookingErrorMessage(error: unknown, fallback: string): string
     const status = error.response?.status;
     const apiMessage = extractApiMessage(error.response?.data as ApiErrorBody | undefined);
 
+    // ── Verification-specific error codes ──
+    if (apiMessage === 'VERIFICATION_EMAIL_REQUIRED') {
+      return 'Please verify your email address before booking. Go to Account → Verification to complete this step.';
+    }
+    if (apiMessage === 'VERIFICATION_PHONE_REQUIRED') {
+      return 'Please verify your phone number before booking. Go to Account → Verification to add and verify your number.';
+    }
+    if (apiMessage === 'VERIFICATION_ID_REQUIRED') {
+      return 'Please submit your government ID before booking. Go to Account → Verification to upload your ID or passport.';
+    }
+
     if (apiMessage) {
       return apiMessage;
     }

@@ -159,12 +159,49 @@ export class UsersController {
   async uploadIdDocument(
     @CurrentUser() user: UserEntity,
     @UploadedFile() file: Express.Multer.File,
+    @Body('docType') docType?: string,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
     // SEC-02: Validate magic bytes to prevent MIME-type spoofing
     validateMagicBytes(file.path, ['jpeg', 'png', 'webp', 'pdf']);
     const docUrl = `/uploads/id-documents/${file.filename}`;
-    return this.usersService.submitIdDocument(user.id, docUrl);
+    const type: 'national_id' | 'passport' =
+      docType === 'passport' ? 'passport' : 'national_id';
+    return this.usersService.submitIdDocument(user.id, docUrl, type);
+  }
+
+  @Post('me/verify-id/back')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { ttl: 3600000, limit: 5 } })
+  @ApiOperation({ summary: 'Upload back side of national ID document' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'id-documents'),
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `id-back-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|webp|pdf)$/)) {
+          return cb(new BadRequestException('Only image or PDF files are allowed'), false);
+        }
+        cb(null, true);
+      },
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async uploadIdDocumentBack(
+    @CurrentUser() user: UserEntity,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    validateMagicBytes(file.path, ['jpeg', 'png', 'webp', 'pdf']);
+    const docUrl = `/uploads/id-documents/${file.filename}`;
+    return this.usersService.submitIdDocumentBack(user.id, docUrl);
   }
 
   @Get(':id/id-document/:filename')

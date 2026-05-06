@@ -30,7 +30,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const email = profile.emails?.[0]?.value;
     const firstName = profile.name?.givenName ?? profile.displayName?.split(' ')[0] ?? 'User';
     const lastName = profile.name?.familyName ?? profile.displayName?.split(' ').slice(1).join(' ') ?? '';
-    const avatarUrl = profile.photos?.[0]?.value ?? null;
+    const rawAvatarUrl = profile.photos?.[0]?.value ?? null;
+    // Replace low-res suffix (e.g. =s96-c) with =s400-c for a higher-resolution photo
+    const avatarUrl = rawAvatarUrl ? rawAvatarUrl.replace(/=s\d+-c$/, '=s400-c') : null;
 
     const result = await this.authService.googleLogin({
       googleId: profile.id,

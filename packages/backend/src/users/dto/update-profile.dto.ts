@@ -4,11 +4,10 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
 
-/** Egyptian mobile number regex:
- *  Accepts: +2010xxxxxxxx | +2011xxxxxxxx | +2012xxxxxxxx | +2015xxxxxxxx
- *  Or local: 010xxxxxxxx | 011xxxxxxxx | 012xxxxxxxx | 015xxxxxxxx
+/** International phone number — accepts E.164 (+[country][number]) or local (0[number]).
+ *  Since verification is via WhatsApp, any valid international number is allowed.
  */
-export const EGYPTIAN_PHONE_REGEX = /^(\+20|0)(10|11|12|15)\d{8}$/;
+export const PHONE_REGEX = /^\+[1-9]\d{5,14}$|^0[1-9]\d{5,13}$/;
 
 export class UpdateProfileBaseDto {
   @ApiProperty({ required: false, example: 'Ahmed' })
@@ -21,11 +20,11 @@ export class UpdateProfileBaseDto {
   @IsString()
   lastName?: string;
 
-  @ApiProperty({ required: false, example: '+201012345678', description: 'Egyptian mobile number (+2010x / +2011x / +2012x / +2015x)' })
+  @ApiProperty({ required: false, example: '+201012345678', description: 'International phone number (E.164: +[country][number] or local: 0[number])' })
   @IsOptional()
   @IsString()
-  @Matches(EGYPTIAN_PHONE_REGEX, {
-    message: 'Phone number must be a valid Egyptian mobile number (e.g. +201012345678 or 01012345678)',
+  @Matches(PHONE_REGEX, {
+    message: 'Phone number must be a valid international number (e.g. +201012345678, +12025551234, +4916099858405)',
   })
   phone?: string;
 

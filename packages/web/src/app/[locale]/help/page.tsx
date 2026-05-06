@@ -3,71 +3,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Search, ChevronDown, Home, CreditCard, Calendar,
   MessageCircle, Shield, Star, HelpCircle,
 } from 'lucide-react';
 
-const categories = [
-  {
-    icon: Home,
-    title: 'Listings & Properties',
-    color: 'bg-indigo-50 text-indigo-600',
-    faqs: [
-      { q: 'How do I create a listing?', a: 'Go to Dashboard → Hosting → Create Listing. Fill in your property details, add photos, set pricing and availability.' },
-      { q: 'Can I edit my listing after publishing?', a: 'Yes. From your hosting dashboard, go to Listings, click your property, then "Edit listing". Changes are live immediately.' },
-      { q: 'How do I add or remove photos?', a: 'From the edit listing page, scroll to the Photos section. You can upload new photos, remove existing ones, or set a cover image.' },
-    ],
-  },
-  {
-    icon: CreditCard,
-    title: 'Payments & Payouts',
-    color: 'bg-emerald-50 text-emerald-600',
-    faqs: [
-      { q: 'When do I receive my payout?', a: 'Payouts are processed after a guest checks in. Funds are typically available within 1–3 business days depending on your bank.' },
-      { q: 'What is the service fee?', a: 'Oikivo charges a small service fee to cover platform costs. This is displayed transparently on each booking before confirmation.' },
-      { q: 'How do I request a manual payout?', a: 'From Hosting → Earnings, click "Request Payout". The minimum payout amount is EGP 100.' },
-    ],
-  },
-  {
-    icon: Calendar,
-    title: 'Bookings & Reservations',
-    color: 'bg-blue-50 text-blue-600',
-    faqs: [
-      { q: 'How do I confirm or decline a reservation?', a: 'Go to Hosting → Reservations. Click on any pending booking to review guest details, then confirm or decline.' },
-      { q: 'Can guests cancel their booking?', a: 'Yes. Guests can cancel according to your cancellation policy. Check the booking details page for the applicable policy.' },
-      { q: 'How do I block dates on my calendar?', a: 'From Hosting → Listings → your property → Calendar, click any date to block or unblock it.' },
-    ],
-  },
-  {
-    icon: MessageCircle,
-    title: 'Messaging & Communication',
-    color: 'bg-violet-50 text-violet-600',
-    faqs: [
-      { q: 'How do I message a guest?', a: 'From Hosting → Inbox, or from the reservation detail page, use the message thread to communicate with your guest.' },
-      { q: 'Are messages private?', a: 'Yes. Messages are only visible to you and the guest (or host) involved in the booking.' },
-    ],
-  },
-  {
-    icon: Shield,
-    title: 'Safety & Trust',
-    color: 'bg-indigo-50 text-indigo-700',
-    faqs: [
-      { q: 'How does Oikivo verify guests?', a: 'All users must verify their email. We also encourage hosts to require ID verification before accepting bookings.' },
-      { q: 'What if a guest damages my property?', a: 'Contact our support team within 48 hours of checkout with photos and a description. We will guide you through the resolution process.' },
-    ],
-  },
-  {
-    icon: Star,
-    title: 'Reviews',
-    color: 'bg-orange-50 text-orange-600',
-    faqs: [
-      { q: 'When can I leave a review?', a: 'You can leave a review for a guest within 14 days after checkout. Guests can also review their stay during this period.' },
-      { q: 'Can I respond to a review?', a: 'Yes. From your listing page, find the review and click "Respond". Your response is public and visible to all future guests.' },
-    ],
-  },
-];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -99,8 +40,69 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export default function HelpPage() {
   const locale = useLocale();
+  const t = useTranslations('help');
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const categories = [
+    {
+      icon: Home,
+      title: t('cat1Title'),
+      color: 'bg-indigo-50 text-indigo-600',
+      faqs: [
+        { q: t('cat1Q1'), a: t('cat1A1') },
+        { q: t('cat1Q2'), a: t('cat1A2') },
+        { q: t('cat1Q3'), a: t('cat1A3') },
+      ],
+    },
+    {
+      icon: CreditCard,
+      title: t('cat2Title'),
+      color: 'bg-emerald-50 text-emerald-600',
+      faqs: [
+        { q: t('cat2Q1'), a: t('cat2A1') },
+        { q: t('cat2Q2'), a: t('cat2A2') },
+        { q: t('cat2Q3'), a: t('cat2A3') },
+      ],
+    },
+    {
+      icon: Calendar,
+      title: t('cat3Title'),
+      color: 'bg-blue-50 text-blue-600',
+      faqs: [
+        { q: t('cat3Q1'), a: t('cat3A1') },
+        { q: t('cat3Q2'), a: t('cat3A2') },
+        { q: t('cat3Q3'), a: t('cat3A3') },
+      ],
+    },
+    {
+      icon: MessageCircle,
+      title: t('cat4Title'),
+      color: 'bg-violet-50 text-violet-600',
+      faqs: [
+        { q: t('cat4Q1'), a: t('cat4A1') },
+        { q: t('cat4Q2'), a: t('cat4A2') },
+      ],
+    },
+    {
+      icon: Shield,
+      title: t('cat5Title'),
+      color: 'bg-indigo-50 text-indigo-700',
+      faqs: [
+        { q: t('cat5Q1'), a: t('cat5A1') },
+        { q: t('cat5Q2'), a: t('cat5A2') },
+      ],
+    },
+    {
+      icon: Star,
+      title: t('cat6Title'),
+      color: 'bg-orange-50 text-orange-600',
+      faqs: [
+        { q: t('cat6Q1'), a: t('cat6A1') },
+        { q: t('cat6Q2'), a: t('cat6A2') },
+      ],
+    },
+  ];
 
   const filtered = categories
     .map((cat) => ({
@@ -134,15 +136,15 @@ export default function HelpPage() {
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 mb-5">
             <HelpCircle className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">How can we help?</h1>
-          <p className="text-indigo-100 max-w-lg mx-auto">Find answers to common questions about Oikivo.</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{t('heroTitle')}</h1>
+          <p className="text-indigo-100 max-w-lg mx-auto">{t('heroDesc')}</p>
 
           {/* Search */}
           <div className="relative mt-7 max-w-lg mx-auto">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search help articles..."
+              placeholder={t('searchPlaceholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full rounded-2xl border-0 bg-white py-3.5 pl-11 pr-4 text-sm text-neutral-900 shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -160,7 +162,7 @@ export default function HelpPage() {
             onClick={() => setActiveCategory(null)}
             className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${!activeCategory ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-neutral-200 bg-white text-neutral-600 hover:border-indigo-300 hover:text-indigo-600'}`}
           >
-            All topics
+            {t('allTopics')}
           </button>
           {categories.map(({ title, icon: Icon }) => (
             <button
@@ -178,7 +180,7 @@ export default function HelpPage() {
       {/* FAQ sections */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-neutral-400">No results for &ldquo;{query}&rdquo;.</p>
+          <p className="text-neutral-400">{t('noResults', { query })}</p>
         </div>
       ) : (
         <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
@@ -205,13 +207,13 @@ export default function HelpPage() {
         transition={{ delay: 0.4, duration: 0.35 }}
         className="mt-12 rounded-2xl border border-indigo-100 bg-indigo-50 p-6 text-center"
       >
-        <p className="text-sm font-medium text-neutral-900">Still have questions?</p>
-        <p className="text-sm text-neutral-500 mt-1">Our support team is ready to help.</p>
+        <p className="text-sm font-medium text-neutral-900">{t('stillHaveQuestions')}</p>
+        <p className="text-sm text-neutral-500 mt-1">{t('stillHaveQuestionsDesc')}</p>
         <Link
           href={`/${locale}/contact`}
           className="mt-4 inline-block rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
         >
-          Contact support →
+          {t('contactSupport')}
         </Link>
       </motion.div>
       </div>

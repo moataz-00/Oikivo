@@ -22,11 +22,13 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAlert } from '@/components/ui/AlertModal';
 import { Minus, Plus } from 'lucide-react-native';
+import VerificationGate from '@/components/VerificationGate';
 
 export default function BookingScreen() {
   const router = useRouter();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const { alert, error: showError } = useAlert();
+  const [gateVisible, setGateVisible] = useState(false);
   const params = useLocalSearchParams<{
     propertyId: string;
     checkIn?: string;
@@ -36,7 +38,7 @@ export default function BookingScreen() {
 
   const propertyId = parseInt(params.propertyId!, 10);
 
-  // Default dates if not provided
+  // Default dates if not provided — will be adjusted after property loads
   const defaultCheckIn = useMemo(
     () => format(addDays(new Date(), 1), 'yyyy-MM-dd'),
     [],
@@ -113,13 +115,35 @@ export default function BookingScreen() {
       return;
     }
 
+    // Verification gate: email + phone + ID submitted
+    const idSubmitted =
+      !!user?.idVerificationStatus && user.idVerificationStatus !== 'none';
+    if (!user?.isEmailVerified || !user?.isPhoneVerified || !idSubmitted) {
+      setGateVisible(true);
+      return;
+    }
+
+    // For request-to-book properties, enforce 72h minimum check-in lead time
+    const isRequestToBook = !property?.instantBook && property?.bookingMode !== 'instant_book';
+    if (isRequestToBook) {
+      const minCI = addDays(new Date(), 3);
+      minCI.setHours(0, 0, 0, 0);
+      if (new Date(checkIn) < minCI) {
+        showError(
+          'Check-in Too Soon',
+          'For this property, check-in must be at least 3 days from today to allow time for host approval (24 h) and payment (24 h).',
+        );
+        return;
+      }
+    }
+
     createBookingMutation.mutate({
       propertyId,
       checkIn,
       checkOut,
       guestsCount,
     });
-  }, [isLoggedIn, router, propertyId, checkIn, checkOut, guestsCount, createBookingMutation]);
+  }, [isLoggedIn, user, router, propertyId, checkIn, checkOut, guestsCount, property, createBookingMutation, showError]);
 
   // ---------------------------------------------------------------------------
   // Guest count controls
@@ -185,6 +209,13 @@ export default function BookingScreen() {
   return (
     <View className="flex-1 bg-white">
       <ScreenHeader title="Confirm booking" />
+
+      <VerificationGate
+        visible={gateVisible}
+        onClose={() => setGateVisible(false)}
+        user={user ?? null}
+        context="book this property"
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

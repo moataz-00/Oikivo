@@ -152,6 +152,16 @@ export const authApi = {
     }
     await tokenStorage.remove();
   },
+
+  sendPhoneVerification: async (): Promise<{ message: string; devCode?: string }> => {
+    const res = await api.post<{ message: string; devCode?: string }>('/auth/send-phone-verification');
+    return res.data;
+  },
+
+  verifyPhone: async (code: string): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>('/auth/verify-phone', { code });
+    return res.data;
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -539,6 +549,36 @@ export const usersApi = {
   getUserListings: async (userId: number): Promise<PropertyListItem[]> => {
     const res = await api.get<{ data: PropertyListItem[] }>(`/users/${userId}/listings`);
     return res.data.data ?? res.data as any;
+  },
+
+  uploadIdDocumentFront: async (
+    uri: string,
+    docType: 'national_id' | 'passport',
+  ): Promise<{ message: string }> => {
+    const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : 'image/jpeg';
+    const formData = new FormData();
+    formData.append('file', { uri, name: `id-front.${ext}`, type: mime } as any);
+    formData.append('docType', docType);
+    const res = await api.post<{ message: string }>('/users/me/verify-id', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+
+  uploadIdDocumentBack: async (uri: string): Promise<{ message: string }> => {
+    const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : 'image/jpeg';
+    const formData = new FormData();
+    formData.append('file', { uri, name: `id-back.${ext}`, type: mime } as any);
+    const res = await api.post<{ message: string }>('/users/me/verify-id/back', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+
+  deleteAccount: async (): Promise<void> => {
+    await api.delete('/users/me');
   },
 };
 

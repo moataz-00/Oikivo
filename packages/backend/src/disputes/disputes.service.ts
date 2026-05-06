@@ -117,6 +117,8 @@ export class DisputesService {
       .createQueryBuilder('d')
       .innerJoinAndSelect('d.booking', 'b')
       .leftJoinAndSelect('b.property', 'p')
+      .leftJoinAndSelect('p.photos', 'pp')
+      .leftJoinAndSelect('b.guest', 'g')
       .leftJoinAndSelect('d.raisedBy', 'u')
       .where('b.hostId = :hostId', { hostId })
       .orderBy('d.createdAt', 'DESC')
@@ -140,6 +142,13 @@ export class DisputesService {
       throw new ForbiddenException('You do not have access to this dispute');
     }
 
+    // Strip the opposing party's evidence — each side only sees their own uploads
+    if (booking.hostId === userId && booking.guestId !== userId) {
+      dispute.evidence = null; // hide guest evidence from host
+    } else if (booking.guestId === userId && booking.hostId !== userId) {
+      dispute.hostEvidence = null; // hide host evidence from guest
+    }
+
     return dispute;
   }
 
@@ -159,6 +168,26 @@ export class DisputesService {
       throw new ForbiddenException('You do not have access to this dispute');
     }
 
+    // Strip the opposing party's evidence — each side only sees their own uploads
+    if (booking.hostId === userId && booking.guestId !== userId) {
+      dispute.evidence = null; // hide guest evidence from host
+    } else if (booking.guestId === userId && booking.hostId !== userId) {
+      dispute.hostEvidence = null; // hide host evidence from guest
+    }
+
+    return dispute;
+  }
+
+  /** Full dispute details for admin — includes both guest and host evidence */
+  async getDisputeForAdmin(id: number): Promise<DisputeEntity> {
+    const dispute = await this.disputesRepo.findOne({
+      where: { id },
+      relations: [
+        'booking', 'booking.property', 'booking.property.photos',
+        'booking.guest', 'raisedBy', 'assignedTo',
+      ],
+    });
+    if (!dispute) throw new NotFoundException('Dispute not found');
     return dispute;
   }
 
@@ -343,11 +372,15 @@ export class DisputesService {
       throw new BadRequestException('Cannot add evidence to a resolved or closed dispute');
     }
 
-    // Add file path to evidence array
-    const currentEvidence = dispute.evidence || [];
-    const updatedEvidence = [...currentEvidence, filePath];
-
-    await this.disputesRepo.update(id, { evidence: updatedEvidence });
+    // Route evidence to guest or host column based on who is uploading
+    const isHost = booking.hostId === userId;
+    if (isHost) {
+      const current = dispute.hostEvidence || [];
+      await this.disputesRepo.update(id, { hostEvidence: [...current, filePath] });
+    } else {
+      const current = dispute.evidence || [];
+      await this.disputesRepo.update(id, { evidence: [...current, filePath] });
+    }
     return this.disputesRepo.findOne({ where: { id } });
   }
 
@@ -378,8 +411,9 @@ export class DisputesService {
       throw new BadRequestException('Cannot remove evidence from a resolved or closed dispute');
     }
 
-    // Remove file from evidence array
-    const currentEvidence = dispute.evidence || [];
+    // Remove file from the correct evidence column based on who uploaded it
+    const isHost = booking.hostId === userId;
+    const currentEvidence = (isHost ? dispute.hostEvidence : dispute.evidence) || [];
     const updatedEvidence = currentEvidence.filter((path) => path !== filePath);
 
     // Delete file from disk
@@ -390,7 +424,11 @@ export class DisputesService {
       this.logger.warn(`Failed to delete evidence file: ${filePath}`);
     }
 
-    await this.disputesRepo.update(id, { evidence: updatedEvidence });
+    if (isHost) {
+      await this.disputesRepo.update(id, { hostEvidence: updatedEvidence });
+    } else {
+      await this.disputesRepo.update(id, { evidence: updatedEvidence });
+    }
     return this.disputesRepo.findOne({ where: { id } });
   }
 

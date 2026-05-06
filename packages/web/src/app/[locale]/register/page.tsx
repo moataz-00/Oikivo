@@ -80,19 +80,19 @@ export default function RegisterPage() {
         <div className="relative z-10 space-y-8">
           <div>
             <h2 className="text-4xl font-bold text-white leading-tight">
-              Join thousands<br />of happy guests.
+              {t('registerPanelHeadline')}
             </h2>
             <p className="mt-4 text-indigo-200 text-lg leading-relaxed">
-              Create your free account and start booking unique stays in minutes.
+              {t('registerPanelSubtitle')}
             </p>
           </div>
 
           <div className="space-y-3">
             {[
-              { icon: Home, text: 'Access 12,000+ verified listings' },
-              { icon: Users, text: 'Connect with trusted local hosts' },
-              { icon: Star, text: 'Earn loyalty rewards on every stay' },
-              { icon: MapPin, text: 'Explore stays across 27 cities' },
+              { icon: Home, text: t('registerFeature1') },
+              { icon: Users, text: t('registerFeature2') },
+              { icon: Star, text: t('registerFeature3') },
+              { icon: MapPin, text: t('registerFeature4') },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20">
@@ -105,14 +105,14 @@ export default function RegisterPage() {
 
           <div className="rounded-2xl bg-white/10 backdrop-blur-sm px-5 py-4 border border-white/20">
             <p className="text-white/90 text-sm italic leading-relaxed">
-              &ldquo;Found the perfect apartment in Cairo within minutes. The booking process was seamless!&rdquo;
+              &ldquo;{t('registerTestimonial')}&rdquo;
             </p>
-            <p className="mt-2 text-indigo-300 text-xs font-medium">— Sarah M., verified guest</p>
+            <p className="mt-2 text-indigo-300 text-xs font-medium">— {t('registerTestimonialAuthor')}</p>
           </div>
         </div>
 
         <p className="relative z-10 text-sm text-indigo-300">
-          © {new Date().getFullYear()} Oikivo — All rights reserved
+          © {new Date().getFullYear()} {t('panelCopyright')}
         </p>
       </div>
 
@@ -130,7 +130,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-sm">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-neutral-900">{t('registerTitle')}</h1>
-            <p className="mt-1.5 text-sm text-neutral-500">Create your account — it only takes a minute.</p>
+            <p className="mt-1.5 text-sm text-neutral-500">{t('registerSubtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -163,12 +163,12 @@ export default function RegisterPage() {
               error={errors.confirmPassword?.message} {...register('confirmPassword')} />
 
             <p className="text-xs text-neutral-500 leading-relaxed">
-              By continuing, you agree to Oikivo&apos;s{' '}
-              <Link href={`/${locale}/terms`} className="text-indigo-600 hover:text-indigo-800 underline">Terms of Service</Link>
-              {', '}
-              <Link href={`/${locale}/payment-terms`} className="text-indigo-600 hover:text-indigo-800 underline">Payments Terms</Link>
-              {', and '}
-              <Link href={`/${locale}/privacy`} className="text-indigo-600 hover:text-indigo-800 underline">Privacy Policy</Link>.
+              {t('agreeIntro')}{' '}
+              <Link href={`/${locale}/terms`} className="text-indigo-600 hover:text-indigo-800 underline">{t('termsOfService')}</Link>
+              {locale === 'ar' ? '، و' : ', '}
+              <Link href={`/${locale}/payment-terms`} className="text-indigo-600 hover:text-indigo-800 underline">{t('paymentsTerms')}</Link>
+              {locale === 'ar' ? '، و' : ', and '}
+              <Link href={`/${locale}/privacy`} className="text-indigo-600 hover:text-indigo-800 underline">{t('privacyPolicy')}</Link>.
             </p>
 
             <Button type="submit" fullWidth size="lg" isLoading={registerMutation.isPending}
@@ -179,7 +179,7 @@ export default function RegisterPage() {
 
           <div className="mt-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-neutral-200" />
-            <span className="text-xs text-neutral-400">or</span>
+            <span className="text-xs text-neutral-400">{t('orContinueWith')}</span>
             <div className="h-px flex-1 bg-neutral-200" />
           </div>
 
@@ -191,7 +191,7 @@ export default function RegisterPage() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            Sign up with Google
+            {t('signUpWithGoogle')}
           </a>
 
           <p className="mt-6 text-center text-sm text-neutral-500">

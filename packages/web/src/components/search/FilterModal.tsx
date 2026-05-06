@@ -136,7 +136,7 @@ export function FilterModal({ open, onOpenChange, filters, onApply }: FilterModa
               <span className="text-neutral-500 text-xs">{t('minPrice')}</span>
               <p className="font-semibold">${priceRange[0]}</p>
             </div>
-            <div className="rounded-xl border border-neutral-300 px-3 py-2 text-sm text-right">
+            <div className="rounded-xl border border-neutral-300 px-3 py-2 text-sm text-end">
               <span className="text-neutral-500 text-xs">{t('maxPrice')}</span>
               <p className="font-semibold">
                 ${priceRange[1]}{priceRange[1] >= 1000 ? '+' : ''}

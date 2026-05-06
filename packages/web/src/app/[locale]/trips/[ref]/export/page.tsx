@@ -157,12 +157,83 @@ export default function BookingExportPage() {
         {/* Price breakdown */}
         <div className="rounded-xl border border-neutral-200 p-4 space-y-2">
           <p className="text-xs text-neutral-500 uppercase tracking-wide font-medium mb-2">Price breakdown</p>
-          {Number(booking.basePrice) > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-neutral-600">
-                {formatPrice(Number(booking.basePrice) / Math.max(nights, 1), booking.currency ?? 'EGP')} x {nights} night{nights !== 1 ? 's' : ''}
+          {Number(booking.basePrice) > 0 && (() => {
+            const cur = booking.currency ?? 'EGP';
+            const preDiscountBase = Number(booking.basePrice) + Number(booking.discountAmount ?? 0);
+
+            // Best case: nightly rates stored at booking time
+            if (booking.nightlyRates && booking.nightlyRates.length > 0) {
+              const groups: { price: number; count: number }[] = [];
+              let g = { price: booking.nightlyRates[0].price, count: 1 };
+              for (let i = 1; i < booking.nightlyRates.length; i++) {
+                if (booking.nightlyRates[i].price === g.price) {
+                  g.count++;
+                } else {
+                  groups.push(g);
+                  g = { price: booking.nightlyRates[i].price, count: 1 };
+                }
+              }
+              groups.push(g);
+              return (
+                <>
+                  {groups.map((row, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span className="text-neutral-600">
+                        {formatPrice(row.price, cur)} × {row.count} night{row.count !== 1 ? 's' : ''}
+                      </span>
+                      <span>{formatPrice(row.price * row.count, cur)}</span>
+                    </div>
+                  ))}
+                </>
+              );
+            }
+
+            const storedPPN = (booking.pricePerNight && Number(booking.pricePerNight) > 0)
+              ? Number(booking.pricePerNight)
+              : null;
+            const uniformTotal = storedPPN ? parseFloat((storedPPN * nights).toFixed(2)) : null;
+            const hasVariedRates = uniformTotal !== null && Math.abs(preDiscountBase - uniformTotal) > 0.5;
+
+            if (storedPPN && !hasVariedRates) {
+              return (
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-600">
+                    {formatPrice(storedPPN, cur)} × {nights} night{nights !== 1 ? 's' : ''}
+                  </span>
+                  <span>{formatPrice(storedPPN * nights, cur)}</span>
+                </div>
+              );
+            }
+
+            if (storedPPN && hasVariedRates) {
+              return (
+                <div className="flex justify-between text-sm items-start">
+                  <span className="text-neutral-600">
+                    <span className="block">{nights} night{nights !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-neutral-400">Base {formatPrice(storedPPN, cur)}/night · includes variable rates</span>
+                  </span>
+                  <span>{formatPrice(preDiscountBase, cur)}</span>
+                </div>
+              );
+            }
+
+            return (
+              <div className="flex justify-between text-sm">
+                <span className="text-neutral-600">{nights} night{nights !== 1 ? 's' : ''}</span>
+                <span>{formatPrice(Number(booking.basePrice), cur)}</span>
+              </div>
+            );
+          })()}
+          {Number(booking.discountAmount ?? 0) > 0 && (
+            <div className="flex justify-between text-sm text-emerald-600">
+              <span>
+                {booking.discountType === 'monthly' ? 'Monthly discount' :
+                 booking.discountType === 'weekly' ? 'Weekly discount' :
+                 booking.discountType === 'new_listing_promotion' ? 'New listing promotion' :
+                 booking.discountType === 'last_minute' ? 'Last-minute discount' : 'Discount'}
+                {Number(booking.discountPercent ?? 0) > 0 && ` (${booking.discountPercent}%)`}
               </span>
-              <span>{formatPrice(Number(booking.basePrice), booking.currency ?? 'EGP')}</span>
+              <span>−{formatPrice(Number(booking.discountAmount), booking.currency ?? 'EGP')}</span>
             </div>
           )}
           {Number(booking.cleaningFee) > 0 && (
@@ -187,6 +258,18 @@ export default function BookingExportPage() {
             <span>Total</span>
             <span>{formatPrice(Number(booking.total), booking.currency ?? 'EGP')}</span>
           </div>
+          {/* Security deposit — paid in cash to host, not part of the total */}
+          {Number(booking.depositAmount ?? 0) > 0 && (
+            <div className="pt-2 border-t border-neutral-100">
+              <div className="flex justify-between text-sm text-neutral-500">
+                <span>Security deposit (cash to host)</span>
+                <span>{formatPrice(Number(booking.depositAmount), booking.currency ?? 'EGP')}</span>
+              </div>
+              <p className="text-xs text-neutral-400 mt-1">
+                Paid directly to the host at check-in. Returned if no damage occurs.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Payment */}

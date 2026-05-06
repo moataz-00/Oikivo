@@ -21,6 +21,9 @@ export interface User {
   isEmailVerified?: boolean;
   isPhoneVerified?: boolean;
   isIdVerified?: boolean;
+  idVerificationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  idDocumentType?: 'national_id' | 'passport' | null;
+  idDocumentBackUrl?: string | null;
   dateOfBirth?: string | null;
   preferredLanguage?: 'en' | 'ar';
   joinedAt: string;
@@ -141,6 +144,10 @@ export interface Property {
   newListingPromotionEnabled?: boolean;
   lastMinuteDiscountPercent?: number;
   bookingMode?: string;
+  wifiName?: string | null;
+  wifiPassword?: string | null;
+  doorCode?: string | null;
+  checkInInstructions?: string | null;
   createdAt: string;
   archivedAt?: string | null;
 }
@@ -191,6 +198,8 @@ export interface PricePreview {
   taxes: number;
   total: number;
   currency?: string;
+  /** Per-night breakdown — one entry per night in the selected date range. */
+  nightlyBreakdown?: { date: string; price: number }[];
 }
 
 export interface CreateListingPayload {
@@ -230,6 +239,10 @@ export interface CreateListingPayload {
   bookingMode?: string;
   newListingPromotionEnabled?: boolean;
   lastMinuteDiscountPercent?: number;
+  wifiName?: string;
+  wifiPassword?: string;
+  doorCode?: string;
+  checkInInstructions?: string;
   wizardLastStep?: number;
 }
 
@@ -251,6 +264,14 @@ export interface Booking {
   guests: number;
   guestsCount?: number;
   basePrice: number;
+  /** Property's base price per night at time of booking (before any discount). */
+  pricePerNight?: number;
+  /** Discount amount applied (0 = no discount). */
+  discountAmount?: number;
+  /** Discount percentage (e.g. 10 = 10%). */
+  discountPercent?: number;
+  /** Discount type: weekly | monthly | new_listing_promotion | last_minute. */
+  discountType?: string | null;
   cleaningFee: number;
   serviceFee: number;
   taxes: number;
@@ -270,8 +291,12 @@ export interface Booking {
   cancelledAt?: string | null;
   cancelledBy?: 'guest' | 'host' | 'admin' | 'system' | null;
   depositAmount?: number;
-  depositStatus?: 'none' | 'held' | 'claimed' | 'released';
+  depositStatus?: 'none' | 'held' | 'claimed' | 'released' | 'approved' | 'rejected';
   depositClaimDeadline?: string | null;
+  depositClaimReason?: string | null;
+  depositClaimEvidence?: string[] | null;
+  /** Per-night price breakdown stored at booking creation time. */
+  nightlyRates?: { date: string; price: number }[] | null;
 }
 
 export interface CreateBookingPayload {

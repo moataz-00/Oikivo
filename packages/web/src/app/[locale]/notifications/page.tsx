@@ -132,6 +132,8 @@ export default function NotificationsPage() {
     queryKey: ['notifications', page],
     queryFn: () => notificationsApi.getNotifications(page),
     staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
     enabled: isLoggedIn,
   });
 
@@ -169,7 +171,7 @@ export default function NotificationsPage() {
               onClick={() => router.back()}
               className="rounded-full p-2 text-neutral-600 hover:bg-white hover:shadow-sm transition-all"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
             </button>
             <div>
               <h1 className="text-2xl font-bold text-neutral-900">{t('title')}</h1>

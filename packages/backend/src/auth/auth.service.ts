@@ -1,10 +1,13 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
   ConflictException,
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,6 +30,8 @@ import { SmsService } from '../sms/sms.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private usersRepo: Repository<UserEntity>,
@@ -327,7 +332,7 @@ export class AuthService {
       // Existing user — link Google ID if not already set
       const updates: Partial<UserEntity> = {};
       if (!user.googleId) updates.googleId = profile.googleId;
-      if (!user.avatarUrl && profile.avatarUrl) updates.avatarUrl = profile.avatarUrl;
+      if (profile.avatarUrl) updates.avatarUrl = profile.avatarUrl;
       if (!user.isEmailVerified) updates.isEmailVerified = true;
       if (Object.keys(updates).length) {
         await this.usersRepo.update(user.id, updates as any);
@@ -400,7 +405,10 @@ export class AuthService {
     });
     if (recentToken) {
       const secsLeft = Math.ceil((recentToken.createdAt.getTime() + 2 * 60 * 1000 - Date.now()) / 1000);
-      return { message: `Code already sent. Please wait ${secsLeft} seconds before requesting a new one.` };
+      throw new HttpException(
+        { message: `Please wait ${secsLeft} seconds before requesting a new code.`, secsLeft },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     // 2. Daily cap: max 3 SMS per user per day (resets at midnight UTC)
@@ -423,25 +431,22 @@ export class AuthService {
     );
 
     const isDev = this.config.get('NODE_ENV', 'development') === 'development';
-    const whysmsConfigured = !!(this.config.get('WHYSMS_USERNAME') && this.config.get('WHYSMS_PASSWORD'));
 
-    if (!isDev && whysmsConfigured) {
-      // ── Production: send via WhySMS ────────────────────────────────────
-      const message = `Your Oikivo verification code is: ${code}. Valid for 10 minutes. Do not share it with anyone.`;
-      try {
-        await this.sms.send(user.phone!, message);
-      } catch (err: any) {
-        // SMS delivery failure — fall back to email so the user isn't blocked
-        this.sms['logger']?.warn?.(`SMS failed for user ${userId}, falling back to email: ${err.message}`);
-        await this.mail.send(user.email, 'Your verification code — Oikivo', tplPhoneOtp(user.firstName, user.phone!, code));
-      }
-      return { message: 'Verification code sent to your phone number.' };
+    // ── Send OTP via WhatsApp (t7km Plus), fall back to email ─────────────
+    let sentVia: 'whatsapp' | 'email' = 'whatsapp';
+    try {
+      const whatsappMsg = `Your Oikivo verification code is: *${code}*\n\nValid for 10 minutes. Do not share this code with anyone.`;
+      await this.sms.sendWhatsApp(user.phone!, whatsappMsg);
+    } catch (whatsErr) {
+      this.logger.warn(`WhatsApp OTP failed for user ${userId}, falling back to email: ${(whatsErr as Error).message}`);
+      sentVia = 'email';
+      await this.mail.send(user.email, 'Your phone verification code — Oikivo', tplPhoneOtp(user.firstName, user.phone!, code));
     }
 
-    // ── Development / no SMS provider: send via email ─────────────────────
-    await this.mail.send(user.email, 'Your phone verification code — Oikivo', tplPhoneOtp(user.firstName, user.phone!, code));
     return {
-      message: 'Verification code sent to your email address.',
+      message: sentVia === 'whatsapp'
+        ? `Verification code sent to your WhatsApp (${user.phone}).`
+        : 'Verification code sent to your email address.',
       ...(isDev && { devCode: code }),
     } as any;
   }

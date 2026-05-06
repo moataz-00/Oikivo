@@ -29,7 +29,13 @@ export default function HostVerificationPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users-pending-id', hostPage],
-    queryFn: () => adminApi.getUsers({ page: hostPage, limit: 50, role: 'host' }),
+    queryFn: () => adminApi.getUsers({ page: hostPage, limit: 50, idVerificationStatus: 'pending' }),
+  });
+
+  // Also load already-verified users separately for the "Verified" list
+  const { data: verifiedData } = useQuery({
+    queryKey: ['admin-users-verified-id'],
+    queryFn: () => adminApi.getUsers({ page: 1, limit: 100, idVerificationStatus: 'approved' }),
   });
 
   const approveMutation = useMutation({
@@ -60,8 +66,9 @@ export default function HostVerificationPage() {
   const rawData = data as any;
   const users: any[] = rawData?.items ?? rawData?.data ?? (Array.isArray(rawData) ? rawData : []);
   const totalPages: number = rawData?.totalPages ?? 1;
-  const pendingUsers = users.filter((u: any) => u.idVerificationStatus === 'pending');
-  const verifiedUsers = users.filter((u: any) => u.isIdVerified);
+  const pendingUsers = users; // all results are pending (filtered at query level)
+  const rawVerified = verifiedData as any;
+  const verifiedUsers: any[] = rawVerified?.items ?? rawVerified?.data ?? (Array.isArray(rawVerified) ? rawVerified : []);
   const selectedUser = users.find((u: any) => u.id === selectedUserId);
 
   if (isLoading) {
@@ -79,8 +86,8 @@ export default function HostVerificationPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Host Verification</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Review and approve host ID verification documents</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ID Verification</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Review and approve identity documents for guests and hosts</p>
       </div>
 
       {/* Stats */}
@@ -154,8 +161,8 @@ export default function HostVerificationPage() {
           {!selectedUser ? (
             <div className="flex flex-col items-center gap-2 py-14 text-center">
               <ShieldCheck className="h-10 w-10 text-gray-700" />
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Select a host to review</p>
-              <p className="text-gray-600 text-xs">Click on a pending host from the list to view their submitted ID document.</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Select a user to review</p>
+              <p className="text-gray-600 text-xs">Click on a pending user from the list to view their submitted ID document.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -169,23 +176,36 @@ export default function HostVerificationPage() {
                 </div>
               </div>
 
-              {/* ID Document image */}
+              {/* Doc type badge */}
+              {selectedUser.idDocumentType && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 uppercase tracking-wide">Document type:</span>
+                  <span className="rounded-full bg-indigo-900/40 border border-indigo-800/40 px-2 py-0.5 text-xs font-medium text-indigo-300">
+                    {selectedUser.idDocumentType === 'national_id' ? 'National ID' : 'Passport'}
+                  </span>
+                  {selectedUser.role && (
+                    <span className="rounded-full bg-gray-800 border border-gray-700 px-2 py-0.5 text-xs text-gray-400">
+                      {selectedUser.isHost ? 'Host' : 'Guest'}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* ID Document — front */}
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Submitted ID Document</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  {selectedUser.idDocumentType === 'national_id' ? 'Front Side' : 'Photo Page'}
+                </p>
                 {selectedUser.idDocumentUrl ? (
                   <div className="relative rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group">
                     <AuthImage
                       src={selectedUser.idDocumentUrl}
                       userId={selectedUser.id}
-                      alt="ID Document"
+                      alt="ID Document Front"
                       className="w-full object-contain max-h-52 cursor-zoom-in"
                       onClick={(url) => setLightboxUrl(url)}
                     />
-                    {/* Hover overlay hint — only shown when image loaded */}
                     <div
-                      onClick={() => {
-                        // blobUrl set inside AuthImage; we trigger open via the img's onClick above
-                      }}
                       className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 transition-all"
                     >
                       <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
@@ -198,6 +218,34 @@ export default function HostVerificationPage() {
                   </div>
                 )}
               </div>
+
+              {/* ID Document — back (national ID only) */}
+              {selectedUser.idDocumentType !== 'passport' && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Back Side</p>
+                  {selectedUser.idDocumentBackUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group">
+                      <AuthImage
+                        src={selectedUser.idDocumentBackUrl}
+                        userId={selectedUser.id}
+                        alt="ID Document Back"
+                        className="w-full object-contain max-h-52 cursor-zoom-in"
+                        onClick={(url) => setLightboxUrl(url)}
+                      />
+                      <div
+                        className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 transition-all"
+                      >
+                        <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-8 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                      <ImageOff className="h-7 w-7 text-gray-600" />
+                      <p className="text-gray-500 text-xs">Back side not yet uploaded</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Actions */}
               <div className="grid grid-cols-2 gap-3">
@@ -223,11 +271,11 @@ export default function HostVerificationPage() {
         </div>
       </div>
 
-      {/* Verified hosts list */}
+      {/* Verified users list */}
       {verifiedUsers.length > 0 && (
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-            Verified Hosts
+            Verified Users
             <span className="ml-2 text-sm font-normal text-emerald-400">({verifiedUsers.length})</span>
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">

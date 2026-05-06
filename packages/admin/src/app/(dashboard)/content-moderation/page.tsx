@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const QUEUE_TABS = [
-  { value: 'draft', label: 'Pending Review', color: 'text-amber-400' },
+  { value: 'pending_review', label: 'Pending Review', color: 'text-amber-400' },
   { value: 'published', label: 'Published', color: 'text-emerald-400' },
   { value: 'archived', label: 'Archived', color: 'text-gray-500 dark:text-gray-400' },
 ];
@@ -99,10 +99,10 @@ function PropertyDetailModal({
           <span className={cn(
             'absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-semibold border',
             property.status === 'published' && 'bg-emerald-900/80 border-emerald-700 text-emerald-300',
-            property.status === 'draft' && 'bg-amber-900/80 border-amber-700 text-amber-300',
+            (property.status === 'draft' || property.status === 'pending_review') && 'bg-amber-900/80 border-amber-700 text-amber-300',
             property.status === 'archived' && 'bg-gray-700/80 border-gray-600 text-gray-300',
           )}>
-            {property.status}
+            {property.status === 'pending_review' ? 'Pending Review' : property.status}
           </span>
 
           {/* Photo navigation */}
@@ -310,7 +310,7 @@ function PropertyDetailModal({
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
-            {tab === 'draft' && (
+            {tab === 'pending_review' && (
               <>
                 <button
                   onClick={() => onApprove(property.id)}
@@ -365,7 +365,7 @@ function PropertyDetailModal({
 
 export default function ContentModerationPage() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'draft' | 'published' | 'archived'>('draft');
+  const [tab, setTab] = useState<'pending_review' | 'published' | 'archived'>('pending_review');
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -477,7 +477,7 @@ export default function ContentModerationPage() {
           <CheckCircle2 className="h-10 w-10 text-gray-700" />
           <p className="text-gray-500 dark:text-gray-400 font-medium">No listings in this queue</p>
           <p className="text-gray-600 text-sm">
-            {tab === 'draft' ? 'No pending listings awaiting review.' : 'None found.'}
+            {tab === 'pending_review' ? 'No pending listings awaiting review.' : 'None found.'}
           </p>
         </div>
       ) : (
@@ -548,7 +548,7 @@ export default function ContentModerationPage() {
                     <Eye className="h-3.5 w-3.5" />
                     Full Details
                   </button>
-                  {tab === 'draft' && (
+                  {tab === 'pending_review' && (
                     <>
                       <button
                         onClick={() => updateStatus.mutate({ id: p.id, status: 'published' })}

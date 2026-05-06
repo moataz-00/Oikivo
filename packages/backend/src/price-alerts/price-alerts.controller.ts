@@ -59,4 +59,13 @@ export class PriceAlertsController {
   ) {
     return this.priceAlertsService.deleteByProperty(propertyId, user.id);
   }
+
+  @Get('property/:propertyId')
+  @ApiOperation({ summary: 'Get price alert for a specific property (if any)' })
+  findByProperty(
+    @Param('propertyId', ParseIntPipe) propertyId: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.priceAlertsService.findByProperty(propertyId, user.id);
+  }
 }

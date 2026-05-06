@@ -10,8 +10,7 @@ import { ReviewEntity } from '../entities/review.entity';
 import { UserEntity } from '../entities/user.entity';
 import { BookingEntity } from '../entities/booking.entity';
 import { PriceAlertEntity } from '../entities/price-alert.entity';
-import { PriceAlertController } from './price-alert.controller';
-import { PriceAlertService } from './price-alert.service';
+import { PriceAlertsModule } from '../price-alerts/price-alerts.module';
 
 @Module({
   imports: [
@@ -25,9 +24,10 @@ import { PriceAlertService } from './price-alert.service';
       BookingEntity,
       PriceAlertEntity,
     ]),
+    PriceAlertsModule,
   ],
-  controllers: [PropertiesController, PriceAlertController],
-  providers: [PropertiesService, PriceAlertService],
+  controllers: [PropertiesController],
+  providers: [PropertiesService],
   exports: [PropertiesService],
 })
 export class PropertiesModule {}

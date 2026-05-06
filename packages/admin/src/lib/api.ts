@@ -118,6 +118,9 @@ export const adminApi = {
   banUser: (id: number, reason: string) =>
     apiClient.patch(`/admin/users/${id}/ban`, { reason }).then((r) => r.data),
 
+  suspendUser: (id: number, reason: string) =>
+    apiClient.patch(`/admin/users/${id}/suspend`, { reason }).then((r) => r.data),
+
   toggleUserActive: (id: number) =>
     apiClient.patch(`/admin/users/${id}/toggle-active`).then((r) => r.data),
 
@@ -155,6 +158,15 @@ export const adminApi = {
 
   adminRefund: (id: number, amount: number, reason: string) =>
     apiClient.post(`/admin/bookings/${id}/admin-refund`, { amount, reason }).then((r) => r.data),
+
+  approveDepositClaim: (id: number, adminNote?: string) =>
+    apiClient.post(`/admin/bookings/${id}/deposit/approve`, { adminNote }).then((r) => r.data),
+
+  rejectDepositClaim: (id: number, reason?: string) =>
+    apiClient.post(`/admin/bookings/${id}/deposit/reject`, { reason }).then((r) => r.data),
+
+  getDepositClaims: (status?: string) =>
+    apiClient.get('/admin/deposit-claims', { params: status ? { status } : undefined }).then((r) => r.data),
 
   markProofViewed: (id: number) =>
     apiClient.patch(`/admin/bookings/${id}/mark-proof-viewed`).then((r) => r.data),

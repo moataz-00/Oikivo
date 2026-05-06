@@ -1,22 +1,25 @@
 ﻿'use client';
 
 import { FadeIn } from '@/components/ui/Motion';
+import { useTranslations } from 'next-intl';
 import {
   Lock, Database, CheckCircle2, Share, Settings,
   Shield, UserCog, Mail,
 } from 'lucide-react';
 
-const sections = [
-  { id: 'collect', label: 'Data We Collect', icon: Database, iconBg: 'bg-blue-50 text-blue-600' },
-  { id: 'use', label: 'How We Use It', icon: CheckCircle2, iconBg: 'bg-emerald-50 text-emerald-600' },
-  { id: 'share', label: 'Sharing Your Data', icon: Share, iconBg: 'bg-violet-50 text-violet-600' },
-  { id: 'cookies', label: 'Cookies', icon: Settings, iconBg: 'bg-amber-50 text-amber-600' },
-  { id: 'security', label: 'Security', icon: Shield, iconBg: 'bg-teal-50 text-teal-600' },
-  { id: 'rights', label: 'Your Rights', icon: UserCog, iconBg: 'bg-orange-50 text-orange-600' },
-  { id: 'contact', label: 'Contact Us', icon: Mail, iconBg: 'bg-sky-50 text-sky-600' },
-];
-
 export default function PrivacyPage() {
+  const t = useTranslations('privacy');
+
+  const sections = [
+    { id: 'collect', label: t('sec1Label'), icon: Database, iconBg: 'bg-blue-50 text-blue-600' },
+    { id: 'use', label: t('sec2Label'), icon: CheckCircle2, iconBg: 'bg-emerald-50 text-emerald-600' },
+    { id: 'share', label: t('sec3Label'), icon: Share, iconBg: 'bg-violet-50 text-violet-600' },
+    { id: 'cookies', label: t('sec4Label'), icon: Settings, iconBg: 'bg-amber-50 text-amber-600' },
+    { id: 'security', label: t('sec5Label'), icon: Shield, iconBg: 'bg-teal-50 text-teal-600' },
+    { id: 'rights', label: t('sec6Label'), icon: UserCog, iconBg: 'bg-orange-50 text-orange-600' },
+    { id: 'contact', label: t('sec7Label'), icon: Mail, iconBg: 'bg-sky-50 text-sky-600' },
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}
@@ -27,13 +30,13 @@ export default function PrivacyPage() {
               <Lock className="h-7 w-7 text-white" />
             </div>
             <div>
-              <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">Legal</span>
-              <h1 className="font-display font-bold text-4xl text-white mb-3">Privacy Policy</h1>
+              <span className="inline-block text-xs font-semibold text-indigo-200 uppercase tracking-widest mb-3">{t('supportLabel')}</span>
+              <h1 className="font-display font-bold text-4xl text-white mb-3">{t('heroTitle')}</h1>
               <p className="text-indigo-100 text-sm max-w-xl leading-relaxed">
-                How Oikivo collects, uses, and protects your personal information.
+                {t('heroDesc')}
               </p>
               <div className="flex flex-wrap gap-2 mt-5">
-                {['We never sell your data', 'Encrypted storage', 'Last updated Mar 2026'].map((chip) => (
+                {[t('chip1'), t('chip2'), t('chip3')].map((chip) => (
                   <span key={chip} className="rounded-full bg-white/15 px-3 py-1 text-xs text-white border border-white/20">{chip}</span>
                 ))}
               </div>
@@ -48,7 +51,7 @@ export default function PrivacyPage() {
           {/* Sticky TOC */}
           <aside className="hidden lg:block w-60 shrink-0">
             <div className="sticky top-28">
-              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Contents</p>
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">{t('tocTitle')}</p>
               <nav className="space-y-0.5">
                 {sections.map((item) => (
                   <a
@@ -72,14 +75,14 @@ export default function PrivacyPage() {
             <div className="mb-10 rounded-xl bg-indigo-50 border border-indigo-100 px-5 py-4 flex items-start gap-3">
               <Shield className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-indigo-900">Your data stays with Oikivo</p>
-                <p className="text-sm text-indigo-700 mt-0.5">We do not and will never sell your personal data to third parties.</p>
+                <p className="text-sm font-semibold text-indigo-900">{t('calloutTitle')}</p>
+                <p className="text-sm text-indigo-700 mt-0.5">{t('calloutDesc')}</p>
               </div>
             </div>
 
             <div className="space-y-10 text-neutral-600 text-sm leading-relaxed">
               <p>
-                At Oikivo, privacy is foundational. This policy explains how we collect, use, share, and protect your information when you use our platform.
+                {t('introDesc')}
               </p>
 
               <section id="collect" className="scroll-mt-28">
@@ -87,19 +90,19 @@ export default function PrivacyPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
                     <Database className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">Data We Collect</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('collectTitle')}</h2>
                 </div>
-                <p className="mb-3">We collect information you provide directly and information generated through your use of our platform:</p>
+                <p className="mb-3">{t('collectIntro')}</p>
                 <ul className="space-y-2">
                   {[
-                    'Account information (name, email, phone, profile photo)',
-                    'Identity verification documents (when required)',
-                    'Payment information (processed securely via Stripe or InstaPay)',
-                    'Communications with hosts, guests, or our support team',
-                    'Reviews and ratings you submit',
-                    'Search queries and browsing history on our platform',
-                    'Device and usage information (IP address, browser type, OS)',
-                    'Location data (when permitted by your device settings)',
+                    t('collectItem1'),
+                    t('collectItem2'),
+                    t('collectItem3'),
+                    t('collectItem4'),
+                    t('collectItem5'),
+                    t('collectItem6'),
+                    t('collectItem7'),
+                    t('collectItem8'),
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
@@ -114,18 +117,18 @@ export default function PrivacyPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
                     <CheckCircle2 className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">How We Use Your Information</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('useTitle')}</h2>
                 </div>
-                <p className="mb-3">We use your information to provide, maintain, and improve our services:</p>
+                <p className="mb-3">{t('useIntro')}</p>
                 <ul className="space-y-2">
                   {[
-                    'Process bookings and payments',
-                    'Verify your identity and prevent fraud',
-                    'Communicate about your reservations and account',
-                    'Personalize your search results and recommendations',
-                    'Send transactional emails and service updates',
-                    'Comply with legal obligations',
-                    'Improve our products and develop new features',
+                    t('useItem1'),
+                    t('useItem2'),
+                    t('useItem3'),
+                    t('useItem4'),
+                    t('useItem5'),
+                    t('useItem6'),
+                    t('useItem7'),
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
@@ -140,10 +143,10 @@ export default function PrivacyPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 shrink-0">
                     <Share className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">Sharing Your Data</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('shareTitle')}</h2>
                 </div>
                 <p>
-                  We never sell your data. We may share your information with hosts or guests to facilitate bookings, with payment processors (Stripe, InstaPay) to complete transactions, and with service providers who assist our operations under strict data-protection agreements. We may also share data to comply with legal requirements or to protect rights and safety.
+                  {t('shareDesc')}
                 </p>
               </section>
 
@@ -152,10 +155,10 @@ export default function PrivacyPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shrink-0">
                     <Settings className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">Cookies</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('cookiesTitle')}</h2>
                 </div>
                 <p>
-                  We use cookies and similar tracking technologies to operate our platform, remember your preferences, analyze usage, and enhance security. You can control cookies through your browser settings, though disabling certain cookies may affect functionality. We use three types: essential (required for the platform), functional (for personalization), and analytics (to improve our service).
+                  {t('cookiesDesc')}
                 </p>
               </section>
 
@@ -164,10 +167,10 @@ export default function PrivacyPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0">
                     <Shield className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">Security</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('securityTitle')}</h2>
                 </div>
                 <p>
-                  We implement industry-standard security measures including TLS/SSL encryption in transit, encrypted storage for sensitive data, multi-factor authentication options, and regular security audits. No method of transmission or storage is 100% secure, and we cannot guarantee absolute security.
+                  {t('securityDesc')}
                 </p>
               </section>
 
@@ -176,17 +179,17 @@ export default function PrivacyPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-600 shrink-0">
                     <UserCog className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">Your Rights</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('rightsTitle')}</h2>
                 </div>
-                <p className="mb-3">Depending on your location, you may have the following rights:</p>
+                <p className="mb-3">{t('rightsIntro')}</p>
                 <ul className="space-y-2">
                   {[
-                    'Access a copy of your personal data',
-                    'Correct inaccurate information',
-                    'Request deletion of your account and data',
-                    'Opt out of marketing communications',
-                    'Data portability — receive your data in a structured format',
-                    'Lodge a complaint with a data protection authority',
+                    t('rightsItem1'),
+                    t('rightsItem2'),
+                    t('rightsItem3'),
+                    t('rightsItem4'),
+                    t('rightsItem5'),
+                    t('rightsItem6'),
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
@@ -201,12 +204,12 @@ export default function PrivacyPage() {
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-600 shrink-0">
                     <Mail className="h-4 w-4" />
                   </span>
-                  <h2 className="font-display font-bold text-xl text-neutral-900">Contact Us</h2>
+                  <h2 className="font-display font-bold text-xl text-neutral-900">{t('contactTitle')}</h2>
                 </div>
                 <p>
-                  For privacy questions or to exercise your rights, contact our Data Protection Officer at{' '}
+                  {t('contactDesc')}{' '}
                   <a href="mailto:oikivo.support@gmail.com" className="text-brand hover:underline">oikivo.support@gmail.com</a>.
-                  We will respond within 30 days of receiving your request.
+                  {' '}{t('contactAfterEmail')}
                 </p>
               </section>
 

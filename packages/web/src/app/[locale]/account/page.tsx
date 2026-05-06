@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { User, Shield, Bell, Globe, Camera, Eye, EyeOff, X, Trash2, AlertTriangle, ChevronDown, Search, Home, GraduationCap, ArrowRight, Smartphone, MonitorSmartphone, LogOut, Download, Unlink, QrCode, Check } from 'lucide-react';
+import { User, Shield, Bell, Globe, Camera, Eye, EyeOff, X, Trash2, AlertTriangle, ChevronDown, Search, Home, GraduationCap, ArrowRight, Smartphone, MonitorSmartphone, LogOut, Download, Unlink, QrCode, Check, ShieldCheck, Phone, CreditCard, Mail } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
 import { authApi, usersApi, bookingsApi } from '@/lib/api';
@@ -116,19 +116,6 @@ function countryFlag(iso2: string) {
   );
 }
 
-// Egyptian mobile prefixes (after country code: 10, 11, 12, 15)
-const EGYPT_PREFIXES_SHORT = ['10', '11', '12', '15'];
-const EGYPT_PREFIXES_LOCAL = ['010', '011', '012', '015'];
-
-function validateEgyptianPhone(localNumber: string): string | true {
-  const digits = localNumber.replace(/\D/g, '');
-  if (!digits) return true; // allow empty (not required here)
-  // Accept 10 digits without leading 0 (e.g. 1012345678) or 11 digits with leading 0 (e.g. 01012345678)
-  if (digits.length === 10 && EGYPT_PREFIXES_SHORT.some((p) => digits.startsWith(p))) return true;
-  if (digits.length === 11 && EGYPT_PREFIXES_LOCAL.some((p) => digits.startsWith(p))) return true;
-  return 'Only Egyptian numbers starting with 010, 011, 012, or 015 can be verified at this time';
-}
-
 // ─── PhoneInput component ──────────────────────────────────────────────────────
 function PhoneInput({
   value,
@@ -139,6 +126,7 @@ function PhoneInput({
   onChange: (v: string) => void;
   error?: string;
 }) {
+  const t = useTranslations('account');
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -192,12 +180,11 @@ function PhoneInput({
   }, []);
 
   const isEgypt = selectedCountry[1] === 'EG';
-  const egValidation = isEgypt && local ? validateEgyptianPhone(local) : true;
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-neutral-700">Phone number</label>
-      <div className="flex gap-2">
+      <label className="block text-sm font-medium text-neutral-700">{t('phoneNumber')}</label>
+      <div className="flex gap-2" dir="ltr">
         {/* Country selector */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -205,7 +192,13 @@ function PhoneInput({
             onClick={() => setOpen(!open)}
             className="flex h-11 items-center gap-1.5 rounded-xl border border-neutral-300 bg-white px-3 text-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 transition-colors"
           >
-            <span className="text-base leading-none">{countryFlag(selectedCountry[1])}</span>
+            <img
+              src={`https://flagcdn.com/w20/${selectedCountry[1].toLowerCase()}.png`}
+              width={20}
+              height={14}
+              alt={selectedCountry[0]}
+              className="shrink-0"
+            />
             <span className="font-medium text-neutral-700">{selectedCountry[2]}</span>
             <ChevronDown className="h-3.5 w-3.5 text-neutral-400" />
           </button>
@@ -233,8 +226,8 @@ function PhoneInput({
                       onClick={() => handleSelect(c)}
                       className="flex w-full items-center gap-2.5 px-3 py-2 text-sm hover:bg-neutral-50 transition-colors"
                     >
-                      <span className="text-base leading-none">{countryFlag(c[1])}</span>
-                      <span className="flex-1 text-left text-neutral-800 truncate">{c[0]}</span>
+                      <img src={`https://flagcdn.com/w20/${c[1].toLowerCase()}.png`} width={20} height={14} alt={c[0]} className="shrink-0" />
+                      <span className="flex-1 text-start text-neutral-800 truncate">{c[0]}</span>
                       <span className="text-neutral-400 text-xs shrink-0">{c[2]}</span>
                     </button>
                   </li>
@@ -254,25 +247,17 @@ function PhoneInput({
           onChange={handleLocalChange}
           placeholder={isEgypt ? '01X XXXX XXXX' : 'Phone number'}
           className={`flex-1 h-11 rounded-xl border px-3.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
-            error || (isEgypt && local && egValidation !== true)
+            error
               ? 'border-red-400 focus:ring-red-200'
               : 'border-neutral-300 focus:ring-neutral-900/20 hover:border-neutral-400'
           }`}
         />
       </div>
 
-      {/* Egyptian validation warning */}
-      {isEgypt && local && egValidation !== true && (
-        <p className="flex items-center gap-1.5 text-xs text-amber-600">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          {egValidation}
-        </p>
-      )}
-      {!isEgypt && local && (
-        <p className="text-xs text-neutral-400">
-          ⚠ Phone verification is only available for Egyptian numbers in this phase.
-        </p>
-      )}
+      <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+        <span>💬</span>
+        <span>A one-time verification code will be sent to this number via WhatsApp.</span>
+      </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
@@ -283,12 +268,142 @@ const BASE_SECTIONS = [
   { value: 'security', label: null as string | null, labelKey: 'security', icon: Shield },
   { value: 'notifications', label: null as string | null, labelKey: 'notifications', icon: Bell },
 ];
-const HOST_SECTION = { value: 'hosting', label: 'Hosting', labelKey: 'hosting', icon: Home };
-const CONSULTANT_SECTION = { value: 'consultant', label: 'Consultant', labelKey: 'consultant', icon: GraduationCap };
+
+// ─── Phone OTP Verify Modal ────────────────────────────────────────────────────
+function PhoneVerifyModal({ open, onClose, phone }: { open: boolean; onClose: () => void; phone: string }) {
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const { user, setUser } = useAuth();
+  const qc = useQueryClient();
+  const locale = useLocale();
+
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCooldown = (secs: number) => {
+    setResendCooldown(secs);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((s) => {
+        if (s <= 1) { clearInterval(cooldownRef.current!); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+  };
+
+  const sendMutation = useMutation({
+    mutationFn: authApi.sendPhoneVerification,
+    onSuccess: (res: any) => {
+      setCodeSent(true);
+      if (res?.devCode) setDevCode(res.devCode);
+      toast.success('Verification code sent to your WhatsApp/email');
+      startCooldown(120);
+    },
+    onError: (err: any) => {
+      const data = err?.response?.data;
+      if (err?.response?.status === 429 && data?.secsLeft) {
+        startCooldown(data.secsLeft);
+        toast.error(data.message ?? `Please wait ${data.secsLeft}s before resending.`);
+      } else {
+        toast.error(data?.message ?? 'Failed to send code');
+      }
+    },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: () => authApi.verifyPhone(code),
+    onSuccess: () => {
+      toast.success('Phone number verified!');
+      if (user) setUser({ ...user, isPhoneVerified: true } as any);
+      qc.invalidateQueries({ queryKey: ['me'] });
+      onClose();
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Invalid code — please try again'),
+  });
+
+  const handleClose = () => {
+    setCodeSent(false);
+    setCode('');
+    setDevCode(null);
+    onClose();
+  };
+
+  // Auto-send on open
+  useEffect(() => {
+    if (open && !codeSent) {
+      sendMutation.mutate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  return (
+    <Dialog.Root open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-5">
+            <Dialog.Title className="text-lg font-semibold text-neutral-900">Verify your phone number</Dialog.Title>
+            <button onClick={handleClose} className="rounded-full p-1.5 hover:bg-neutral-100">
+              <X className="h-4 w-4 text-neutral-600" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">
+              <span className="text-base">💬</span>
+              <span>A 6-digit code was sent to <strong>{phone}</strong> via WhatsApp/email.</span>
+            </div>
+
+            {devCode && (
+              <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-700">
+                <strong>Dev mode code:</strong> <code className="font-mono tracking-widest">{devCode}</code>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1.5">Enter the 6-digit code</label>
+              <input
+                type="text"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="• • • • • •"
+                className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-center text-xl font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                autoComplete="one-time-code"
+              />
+            </div>
+
+            <Button
+              onClick={() => verifyMutation.mutate()}
+              disabled={code.length !== 6 || verifyMutation.isPending}
+              isLoading={verifyMutation.isPending}
+              className="w-full"
+            >
+              Confirm &amp; verify
+            </Button>
+
+            <button
+              type="button"
+              onClick={() => { setCodeSent(false); setCode(''); sendMutation.mutate(); }}
+              disabled={sendMutation.isPending || resendCooldown > 0}
+              className="w-full text-sm text-neutral-500 hover:text-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed py-1"
+            >
+              {sendMutation.isPending ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+const HOST_SECTION = { value: 'hosting', label: null as string | null, labelKey: 'hosting', icon: Home };
+const CONSULTANT_SECTION = { value: 'consultant', label: null as string | null, labelKey: 'consultant', icon: GraduationCap };
 
 function ChangePasswordModal({ open, onClose, hasPassword }: { open: boolean; onClose: () => void; hasPassword: boolean }) {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<{
@@ -324,10 +439,10 @@ function ChangePasswordModal({ open, onClose, hasPassword }: { open: boolean; on
     <Dialog.Root open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
           <div className="flex items-center justify-between mb-6">
             <Dialog.Title className="text-lg font-semibold text-neutral-900">
-              {hasPassword ? t('changePassword') : 'Set a password'}
+              {hasPassword ? t('changePassword') : t('setPassword')}
             </Dialog.Title>
             <button onClick={() => { reset(); onClose(); }} className="rounded-full p-1.5 hover:bg-neutral-100">
               <X className="h-4 w-4 text-neutral-600" />
@@ -343,7 +458,7 @@ function ChangePasswordModal({ open, onClose, hasPassword }: { open: boolean; on
                   {...register('currentPassword', { required: 'Required' })}
                 />
                 <button type="button" onClick={() => setShowCurrent(!showCurrent)}
-                  className="absolute right-3 top-9 text-neutral-400 hover:text-neutral-600">
+                  className="absolute right-3 rtl:right-auto rtl:left-3 top-9 text-neutral-400 hover:text-neutral-600">
                   {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -356,7 +471,7 @@ function ChangePasswordModal({ open, onClose, hasPassword }: { open: boolean; on
                 {...register('newPassword', { required: 'Required', minLength: { value: 8, message: 'At least 8 characters' } })}
               />
               <button type="button" onClick={() => setShowNew(!showNew)}
-                className="absolute right-3 top-9 text-neutral-400 hover:text-neutral-600">
+                className="absolute right-3 rtl:right-auto rtl:left-3 top-9 text-neutral-400 hover:text-neutral-600">
                 {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -372,7 +487,7 @@ function ChangePasswordModal({ open, onClose, hasPassword }: { open: boolean; on
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" size="md" onClick={() => { reset(); onClose(); }}>{tCommon('cancel')}</Button>
               <Button type="submit" size="md" isLoading={mutation.isPending}>
-                {hasPassword ? t('changePassword') : 'Set password'}
+                {hasPassword ? t('changePassword') : t('setPassword')}
               </Button>
             </div>
           </form>
@@ -386,6 +501,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
   const [confirmText, setConfirmText] = useState('');
+  const [blockingError, setBlockingError] = useState<string | null>(null);
   const locale = useLocale();
   const router = useRouter();
   const { logout } = useAuth();
@@ -404,17 +520,19 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
   const mutation = useMutation({
     mutationFn: usersApi.deleteAccount,
     onSuccess: () => {
-      toast.success('Account deleted. We\'re sorry to see you go.');
+      toast.success(t('deleteAccount') + ' ✓');
       logout();
       router.push(`/${locale}`);
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to delete account');
+      const msg = err?.response?.data?.message ?? 'Failed to delete account';
+      setBlockingError(msg);
     },
   });
 
   const handleClose = () => {
     setConfirmText('');
+    setBlockingError(null);
     onClose();
   };
 
@@ -422,7 +540,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
     <Dialog.Root open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
           <div className="flex items-start gap-3 mb-5">
             <div className="rounded-xl bg-red-100 p-2 shrink-0">
               <AlertTriangle className="h-5 w-5 text-red-600" />
@@ -433,7 +551,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
                 {t('deleteAccountDesc')}
               </Dialog.Description>
             </div>
-            <button onClick={handleClose} className="ml-auto rounded-full p-1.5 hover:bg-neutral-100 shrink-0">
+            <button onClick={handleClose} className="ms-auto rounded-full p-1.5 hover:bg-neutral-100 shrink-0">
               <X className="h-4 w-4 text-neutral-500" />
             </button>
           </div>
@@ -441,19 +559,27 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
           {/* G10: Active bookings warning */}
           {activeBookings.length > 0 && (
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 mb-4 text-sm text-amber-800">
-              <p className="font-medium">⚠ You have {activeBookings.length} active booking{activeBookings.length > 1 ? 's' : ''}</p>
-              <p className="text-amber-700 mt-1">Please cancel or complete your active bookings before deleting your account. Deleting now may result in loss of deposits and booking guarantees.</p>
+              <p className="font-medium">⚠ {t('activeBookingsWarningTitle', { count: activeBookings.length, plural: activeBookings.length > 1 ? 's' : '' })}</p>
+              <p className="text-amber-700 mt-1">{t('activeBookingsWarningDesc')}</p>
+            </div>
+          )}
+
+          {/* Backend blocker error */}
+          {blockingError && (
+            <div className="rounded-xl bg-red-50 border border-red-300 px-4 py-3 mb-4 text-sm text-red-800 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+              <p>{blockingError}</p>
             </div>
           )}
 
           <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 mb-5 text-sm space-y-1 text-red-800">
-            <p className="font-medium">What will be deleted:</p>
+            <p className="font-medium">{t('deleteWillBeDeleted')}</p>
             <ul className="list-disc list-inside space-y-0.5 text-red-700">
-              <li>Your profile, name, email and phone number</li>
-              <li>Your photo and any uploaded documents</li>
-              <li>Your listings will be archived</li>
-              <li>All booking history and messages</li>
-              <li>Reviews you have written</li>
+              <li>{t('deleteItem1')}</li>
+              <li>{t('deleteItem2')}</li>
+              <li>{t('deleteItem3')}</li>
+              <li>{t('deleteItem4')}</li>
+              <li>{t('deleteItem5')}</li>
             </ul>
           </div>
 
@@ -464,7 +590,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
             <input
               type="text"
               value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
+              onChange={(e) => { setConfirmText(e.target.value); setBlockingError(null); }}
               className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
               placeholder="DELETE"
               autoComplete="off"
@@ -483,7 +609,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
               isLoading={mutation.isPending}
               onClick={() => mutation.mutate()}
             >
-              <Trash2 className="h-4 w-4 mr-1.5" />
+              <Trash2 className="h-4 w-4 me-1.5" />
               {t('deleteAccount')}
             </Button>
           </div>
@@ -496,6 +622,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
 function ChangeEmailModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [step, setStep] = useState<'input' | 'sent'>('input');
   const { register, handleSubmit, reset, formState: { errors } } = useForm<{ newEmail: string }>();
 
@@ -519,7 +646,7 @@ function ChangeEmailModal({ open, onClose }: { open: boolean; onClose: () => voi
     <Dialog.Root open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
           <div className="flex items-center justify-between mb-6">
             <Dialog.Title className="text-lg font-semibold text-neutral-900">{t('changeEmailTitle')}</Dialog.Title>
             <button onClick={handleClose} className="rounded-full p-1.5 hover:bg-neutral-100">
@@ -539,7 +666,7 @@ function ChangeEmailModal({ open, onClose }: { open: boolean; onClose: () => voi
                 })}
               />
               <p className="text-sm text-neutral-500">
-                We will send a confirmation link to your new address. Your email will not change until you click the link.
+                {t('emailChangeConfirmNote')}
               </p>
               <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="outline" size="md" onClick={handleClose}>{tCommon('cancel')}</Button>
@@ -581,6 +708,7 @@ function AccountPageContent() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [phoneOtpModalOpen, setPhoneOtpModalOpen] = useState(false);
   const [totpStep, setTotpStep] = useState<'idle' | 'scan' | 'verify-enable' | 'disable'>('idle');
   const [totpQr, setTotpQr] = useState('');
   const [totpSecret, setTotpSecret] = useState('');
@@ -700,7 +828,8 @@ function AccountPageContent() {
     queryKey: ['me'],
     queryFn: usersApi.getMe,
     enabled: hasHydrated && isLoggedIn,
-  });
+    onSuccess: (fresh: any) => setUser(fresh),
+  } as any);
 
   const updateProfileMutation = useMutation({
     mutationFn: usersApi.updateProfile,
@@ -708,9 +837,10 @@ function AccountPageContent() {
       const prevPhone = profile?.phone ?? user?.phone;
       setUser(updated);
       queryClient.setQueryData(['me'], updated);
-      // If phone was changed, the backend resets isPhoneVerified → prompt re-verification
-      if (prevPhone && updated.phone && updated.phone !== prevPhone && !(updated as any).isPhoneVerified) {
-        toast.success('Profile updated. Please verify your new phone number.');
+      // If phone was changed, the backend resets isPhoneVerified → open OTP modal
+      if (updated.phone && updated.phone !== prevPhone && !(updated as any).isPhoneVerified) {
+        toast.success('Profile updated — please verify your new phone number.');
+        setPhoneOtpModalOpen(true);
       } else {
         toast.success('Profile updated');
       }
@@ -751,36 +881,88 @@ function AccountPageContent() {
   const avatarSrc = getImageUrl((currentUser as any)?.avatarUrl ?? currentUser?.avatar);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10">
+    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <h1 className="text-3xl font-semibold text-neutral-900 mb-10">{t('title')}</h1>
 
-      <Tabs.Root defaultValue="personal">
+      <Tabs.Root defaultValue="personal" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <Tabs.List className="space-y-1" aria-label="Account sections">
-            {SECTIONS.map(({ value, labelKey, label, icon: Icon }) => (
-              <Tabs.Trigger
-                key={value}
-                value={value}
-                className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-left data-[state=active]:bg-neutral-100 data-[state=active]:text-neutral-900"
-                asChild
-              >
-                <button>
-                  <Icon className="h-4 w-4" />
-                  {label ?? t(labelKey as any)}
-                </button>
-              </Tabs.Trigger>
-            ))}
-          </Tabs.List>
+          <div className="space-y-1">
+            <Tabs.List className="space-y-1" aria-label="Account sections">
+              {SECTIONS.map(({ value, labelKey, label, icon: Icon }) => (
+                <Tabs.Trigger
+                  key={value}
+                  value={value}
+                  className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-start data-[state=active]:bg-neutral-100 data-[state=active]:text-neutral-900"
+                  asChild
+                >
+                  <button>
+                    <Icon className="h-4 w-4" />
+                    {label ?? t(labelKey as any)}
+                  </button>
+                </Tabs.Trigger>
+              ))}
+            </Tabs.List>
+            {/* Verification — standalone link (not a tab) */}
+            <Link
+              href={`/${locale}/account/verification`}
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Verification
+              {(!currentUser?.isEmailVerified || !(currentUser as any)?.isPhoneVerified || ((currentUser as any)?.idVerificationStatus ?? 'none') === 'none') && (
+                <span className="ms-auto h-2 w-2 rounded-full bg-amber-400" />
+              )}
+            </Link>
+          </div>
 
           <div className="md:col-span-3 space-y-6">
             <Tabs.Content value="personal">
+              {/* Verification status card */}
+              {(() => {
+                const emailOk = !!currentUser?.isEmailVerified;
+                const phoneOk = !!(currentUser as any)?.isPhoneVerified;
+                const idStatus = (currentUser as any)?.idVerificationStatus ?? 'none';
+                const idOk = idStatus !== 'none';
+                const allOk = emailOk && phoneOk && idOk;
+                if (allOk) return null;
+                return (
+                  <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-sm font-semibold text-amber-800">Complete your verification to book</p>
+                    </div>
+                    <div className="space-y-1.5 mb-3">
+                      <div className={`flex items-center gap-2 text-xs ${emailOk ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <span>{emailOk ? 'Email verified ✓' : 'Email not verified'}</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs ${phoneOk ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        <span>{phoneOk ? 'Phone verified ✓' : 'Phone number not verified'}</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs ${idOk ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                        <span>{idOk ? (idStatus === 'approved' ? 'ID verified ✓' : 'ID under review…') : 'Government ID not submitted'}</span>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/${locale}/account/verification`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Go to Verification
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                );
+              })()}
               {currentUser && !currentUser.isEmailVerified && (
                 <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
                   <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-amber-800">Verify your email to unlock bookings</p>
+                    <p className="text-sm font-medium text-amber-800">{t('verifyEmailAlert')}</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Check your inbox or{' '}
+                      {t('verifyEmailAlertDesc')}{' '}
                       <button
                         onClick={() =>
                           authApi
@@ -790,7 +972,7 @@ function AccountPageContent() {
                         }
                         className="underline font-medium"
                       >
-                        resend the link
+                        {t('resendLink')}
                       </button>
                     </p>
                   </div>
@@ -832,18 +1014,17 @@ function AccountPageContent() {
                       {t('changePhoto')}
                     </button>
                     <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed max-w-xs">
-                      👀 Use a clear, front-facing photo of your face — no sunglasses, hats, or group shots.
-                      Your profile photo must match your government ID for identity verification.
+                      👀 {t('avatarGuide')}
                     </p>
                   </div>
                 </div>
 
                 <form onSubmit={submitProfile((data) => {
-                  // Normalize phone from PhoneInput format "+XX 0XXXXXXXXX" to backend format
+                  // Normalize phone from PhoneInput format "+XX XXXXXXXXX" to backend format
                   if (data.phone) {
-                    const raw = data.phone.replace(/\s+/g, ''); // "+2001012345678" or "01012345678"
-                    // If it has country code + local with leading 0 (e.g. +2001012345678), strip the extra 0
-                    const m = raw.match(/^(\+\d{2,4})(0)(\d+)$/);
+                    const raw = data.phone.replace(/\s+/g, '');
+                    // Only strip the Egyptian trunk zero: +20 01XXXXXXXXX → +201XXXXXXXXX
+                    const m = raw.match(/^(\+20)(0)(\d+)$/);
                     data.phone = m ? `${m[1]}${m[3]}` : raw;
                   }
                   updateProfileMutation.mutate(data);
@@ -856,8 +1037,8 @@ function AccountPageContent() {
                     value={phoneValue}
                     onChange={(v) => setProfileValue('phone', v, { shouldDirty: true })}
                   />
-                  <Textarea label={t('bio')} placeholder="Tell others a little about yourself..." rows={4} {...regProfile('bio')} />
-                  <div className="flex justify-end">
+                  <Textarea label={t('bio')} placeholder={t('bioPicture')} rows={4} {...regProfile('bio')} />
+                  <div className="flex justify-end rtl:justify-start">
                     <Button type="submit" isLoading={updateProfileMutation.isPending} size="md">{t('saveChanges')}</Button>
                   </div>
                 </form>
@@ -882,12 +1063,12 @@ function AccountPageContent() {
                   <div>
                     <p className="text-sm font-medium text-neutral-900">{t('passwordLabel')}</p>
                     <p className="text-sm text-neutral-500 mt-0.5">
-                      {profile?.googleId && !(profile as any)?.passwordHash ? 'Not set' : '••••••••••'}
+                      {profile?.googleId && !(profile as any)?.passwordHash ? t('passwordNotSet') : '••••••••••'}
                     </p>
                   </div>
                   <button onClick={() => setPasswordModalOpen(true)}
                     className="text-sm font-semibold text-neutral-900 underline hover:text-neutral-700 transition-colors">
-                    {profile?.googleId && !(profile as any)?.passwordHash ? 'Add password' : t('update')}
+                    {profile?.googleId && !(profile as any)?.passwordHash ? t('addPassword') : t('update')}
                   </button>
                 </div>
               </div>
@@ -899,16 +1080,16 @@ function AccountPageContent() {
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <Smartphone className="h-4 w-4 text-neutral-600" />
-                    <h3 className="text-base font-semibold text-neutral-900">Two-Factor Authentication</h3>
+                    <h3 className="text-base font-semibold text-neutral-900">{t('twoFactorAuth')}</h3>
                   </div>
                   {(profile as any)?.isTotpEnabled && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                      <Check className="h-3 w-3" /> Enabled
+                      <Check className="h-3 w-3" /> {t('twoFactorEnabled')}
                     </span>
                   )}
                 </div>
                 <p className="text-sm text-neutral-500 mb-4">
-                  Add an extra layer of security by requiring a code from your authenticator app on every login.
+                  {t('twoFactorDesc')}
                 </p>
 
                 {totpStep === 'idle' && (
@@ -918,7 +1099,7 @@ function AccountPageContent() {
                         onClick={() => setTotpStep('disable')}
                         className="text-sm font-medium text-red-600 underline hover:text-red-700"
                       >
-                        Disable 2FA
+                        {t('disable2FA')}
                       </button>
                     ) : (
                       <button
@@ -927,7 +1108,7 @@ function AccountPageContent() {
                         className="flex items-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                       >
                         <QrCode className="h-4 w-4" />
-                        {setupTotpMutation.isPending ? 'Setting up…' : 'Set up 2FA'}
+                        {setupTotpMutation.isPending ? t('settingUp2FA') : t('setUp2FA')}
                       </button>
                     )}
                   </>
@@ -936,10 +1117,10 @@ function AccountPageContent() {
                 {totpStep === 'scan' && (
                   <div className="space-y-4">
                     <p className="text-sm text-neutral-600">
-                      Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to confirm.
+                      {t('scanQRCodeDesc')}
                     </p>
                     {totpQr && <img src={totpQr} alt="2FA QR code" className="w-40 h-40 rounded-lg border border-neutral-200" />}
-                    <p className="text-xs text-neutral-500">Manual entry key: <code className="font-mono bg-neutral-100 px-1 rounded">{totpSecret}</code></p>
+                    <p className="text-xs text-neutral-500">{t('manualEntryKey')} <code className="font-mono bg-neutral-100 px-1 rounded">{totpSecret}</code></p>
                     <div className="flex items-center gap-3">
                       <input
                         type="text"
@@ -954,7 +1135,7 @@ function AccountPageContent() {
                         disabled={totpCode.length !== 6 || enableTotpMutation.isPending}
                         className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                       >
-                        {enableTotpMutation.isPending ? 'Verifying…' : 'Confirm & Enable'}
+                        {enableTotpMutation.isPending ? t('verifying') : t('confirmAndEnable')}
                       </button>
                       <button onClick={() => { setTotpStep('idle'); setTotpCodeInput(''); }} className="text-sm text-neutral-500 hover:text-neutral-700">
                         Cancel
@@ -965,7 +1146,7 @@ function AccountPageContent() {
 
                 {totpStep === 'disable' && (
                   <div className="space-y-3">
-                    <p className="text-sm text-neutral-600">Enter the 6-digit code from your authenticator app to confirm disabling 2FA.</p>
+                    <p className="text-sm text-neutral-600">{t('disable2FAConfirm')}</p>
                     <div className="flex items-center gap-3">
                       <input
                         type="text"
@@ -980,7 +1161,7 @@ function AccountPageContent() {
                         disabled={totpCode.length !== 6 || disableTotpMutation.isPending}
                         className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
                       >
-                        {disableTotpMutation.isPending ? 'Disabling…' : 'Disable 2FA'}
+                        {disableTotpMutation.isPending ? t('disabling2FA') : t('disable2FA')}
                       </button>
                       <button onClick={() => { setTotpStep('idle'); setTotpCodeInput(''); }} className="text-sm text-neutral-500 hover:text-neutral-700">
                         Cancel
@@ -994,16 +1175,16 @@ function AccountPageContent() {
               <div className="bg-white rounded-2xl border border-neutral-200 p-6 mt-2">
                 <div className="flex items-center gap-2 mb-1">
                   <MonitorSmartphone className="h-4 w-4 text-neutral-600" />
-                  <h3 className="text-base font-semibold text-neutral-900">Connected Accounts</h3>
+                  <h3 className="text-base font-semibold text-neutral-900">{t('connectedAccounts')}</h3>
                 </div>
-                <p className="text-sm text-neutral-500 mb-4">Manage social accounts linked to your profile.</p>
+                <p className="text-sm text-neutral-500 mb-4">{t('connectedAccountsDesc')}</p>
                 <div className="flex items-center justify-between py-3 border border-neutral-100 rounded-xl px-4">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-neutral-100 flex items-center justify-center text-sm font-bold">G</div>
                     <div>
                       <p className="text-sm font-medium text-neutral-900">Google</p>
                       <p className="text-xs text-neutral-500 mt-0.5">
-                        {(profile as any)?.googleId ? 'Connected' : 'Not connected'}
+                        {(profile as any)?.googleId ? t('googleConnected') : t('googleNotConnected')}
                       </p>
                     </div>
                   </div>
@@ -1014,7 +1195,7 @@ function AccountPageContent() {
                       className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
                     >
                       <Unlink className="h-3.5 w-3.5" />
-                      Disconnect
+                      {t('disconnectGoogle')}
                     </button>
                   ) : (
                     <a
@@ -1027,7 +1208,7 @@ function AccountPageContent() {
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                       </svg>
-                      Connect Google
+                      {t('connectGoogle')}
                     </a>
                   )}
                 </div>
@@ -1038,16 +1219,16 @@ function AccountPageContent() {
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <LogOut className="h-4 w-4 text-neutral-600" />
-                    <h3 className="text-base font-semibold text-neutral-900">Active Sessions</h3>
+                    <h3 className="text-base font-semibold text-neutral-900">{t('activeSessions')}</h3>
                   </div>
                   <button
                     onClick={() => refetchSessions()}
                     className="text-xs text-neutral-500 underline hover:text-neutral-700"
                   >
-                    Refresh
+                    {t('refresh')}
                   </button>
                 </div>
-                <p className="text-sm text-neutral-500 mb-4">See where you&apos;re logged in and revoke access from other devices.</p>
+                <p className="text-sm text-neutral-500 mb-4">{t('activeSessionsDesc')}</p>
                 {sessions && (
                   <>
                     <ul className="space-y-2 mb-3">
@@ -1055,7 +1236,7 @@ function AccountPageContent() {
                         <li key={s.id} className="flex items-center justify-between rounded-xl border border-neutral-100 px-4 py-3">
                           <div>
                             <p className="text-sm font-medium text-neutral-900">
-                              {s.deviceName || 'Unknown device'}
+                              {s.deviceName || t('unknownDevice')}
                             </p>
                             <p className="text-xs text-neutral-500 mt-0.5">
                               {[s.osName, s.ipAddress].filter(Boolean).join(' · ')}
@@ -1064,9 +1245,9 @@ function AccountPageContent() {
                           </div>
                           <button
                             onClick={() => revokeSessionMutation.mutate(s.id)}
-                            className="text-xs font-medium text-red-600 hover:text-red-700 ml-4 shrink-0"
+                            className="text-xs font-medium text-red-600 hover:text-red-700 ms-4 shrink-0"
                           >
-                            Revoke
+                            {t('revokeSession')}
                           </button>
                         </li>
                       ))}
@@ -1076,7 +1257,7 @@ function AccountPageContent() {
                         onClick={() => revokeAllSessionsMutation.mutate()}
                         className="text-sm font-medium text-red-600 hover:text-red-700"
                       >
-                        Revoke all sessions
+                        {t('revokeAllSessions')}
                       </button>
                     )}
                   </>
@@ -1085,14 +1266,14 @@ function AccountPageContent() {
 
               {/* G11: Payment History link */}
               <div className="bg-white rounded-2xl border border-neutral-200 p-6 mt-2">
-                <h3 className="text-base font-semibold text-neutral-900 mb-1">Payment History</h3>
-                <p className="text-sm text-neutral-500 mb-3">View all your booking payments and transactions.</p>
+                <h3 className="text-base font-semibold text-neutral-900 mb-1">{t('paymentHistory')}</h3>
+                <p className="text-sm text-neutral-500 mb-3">{t('paymentHistoryDesc')}</p>
                 <Link
                   href={`/${locale}/account/payments`}
                   className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
                 >
                   <Download className="h-4 w-4" />
-                  View Payment History
+                  {t('viewPaymentHistory')}
                 </Link>
               </div>
 
@@ -1109,7 +1290,7 @@ function AccountPageContent() {
                     className="flex items-center gap-2 rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 transition-colors"
                   >
                     <Download className="h-4 w-4" />
-                    {exportMutation.isPending ? 'Exporting…' : 'Download my data'}
+                    {exportMutation.isPending ? t('exportingData') : t('downloadMyData')}
                   </button>
                   <button
                     onClick={() => setDeleteModalOpen(true)}
@@ -1121,6 +1302,11 @@ function AccountPageContent() {
                 </div>
               </div>
               <DeleteAccountModal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} />
+              <PhoneVerifyModal
+                open={phoneOtpModalOpen}
+                onClose={() => setPhoneOtpModalOpen(false)}
+                phone={(profile?.phone ?? user?.phone) ?? ''}
+              />
             </Tabs.Content>
 
             <Tabs.Content value="notifications">
@@ -1134,31 +1320,31 @@ function AccountPageContent() {
                     <Home className="h-5 w-5 text-neutral-700" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-neutral-900">Hosting</h2>
-                    <p className="text-sm text-neutral-500 mt-0.5">Manage your listings and hosting settings</p>
+                    <h2 className="font-semibold text-neutral-900">{t('hostingTitle')}</h2>
+                    <p className="text-sm text-neutral-500 mt-0.5">{t('hostingDesc')}</p>
                   </div>
                 </div>
                 <div className="divide-y divide-neutral-100">
                   <Link href={`/${locale}/hosting`} className="flex items-center justify-between px-6 py-4 hover:bg-neutral-50 transition-colors">
                     <div>
-                      <p className="text-sm font-medium text-neutral-900">Host Dashboard</p>
-                      <p className="text-xs text-neutral-500 mt-0.5">View bookings, earnings and performance</p>
+                      <p className="text-sm font-medium text-neutral-900">{t('hostDashboardLink')}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{t('hostDashboardDesc')}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-neutral-400" />
+                    <ArrowRight className="h-4 w-4 text-neutral-400 rtl:rotate-180" />
                   </Link>
                   <Link href={`/${locale}/hosting/listings`} className="flex items-center justify-between px-6 py-4 hover:bg-neutral-50 transition-colors">
                     <div>
-                      <p className="text-sm font-medium text-neutral-900">My Listings</p>
-                      <p className="text-xs text-neutral-500 mt-0.5">Add, edit or remove your properties</p>
+                      <p className="text-sm font-medium text-neutral-900">{t('myListings')}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{t('myListingsDesc')}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-neutral-400" />
+                    <ArrowRight className="h-4 w-4 text-neutral-400 rtl:rotate-180" />
                   </Link>
                   <Link href={`/${locale}/hosting/reservations-calendar`} className="flex items-center justify-between px-6 py-4 hover:bg-neutral-50 transition-colors">
                     <div>
-                      <p className="text-sm font-medium text-neutral-900">Availability Calendar</p>
-                      <p className="text-xs text-neutral-500 mt-0.5">Manage your availability and blocked dates</p>
+                      <p className="text-sm font-medium text-neutral-900">{t('availabilityCalendar')}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{t('availabilityCalendarDesc')}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-neutral-400" />
+                    <ArrowRight className="h-4 w-4 text-neutral-400 rtl:rotate-180" />
                   </Link>
                 </div>
               </div>
@@ -1171,31 +1357,31 @@ function AccountPageContent() {
                     <GraduationCap className="h-5 w-5 text-rose-600" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-neutral-900">Consultant</h2>
-                    <p className="text-sm text-neutral-500 mt-0.5">Manage your consultant profile and sessions</p>
+                    <h2 className="font-semibold text-neutral-900">{t('consultantTitle')}</h2>
+                    <p className="text-sm text-neutral-500 mt-0.5">{t('consultantDesc')}</p>
                   </div>
                 </div>
                 <div className="divide-y divide-neutral-100">
                   <Link href={`/${locale}/consultations/dashboard`} className="flex items-center justify-between px-6 py-4 hover:bg-neutral-50 transition-colors">
                     <div>
-                      <p className="text-sm font-medium text-neutral-900">Consultant Dashboard</p>
-                      <p className="text-xs text-neutral-500 mt-0.5">View sessions, earnings and reviews</p>
+                      <p className="text-sm font-medium text-neutral-900">{t('consultantDashboard')}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{t('consultantDashboardDesc')}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-neutral-400" />
+                    <ArrowRight className="h-4 w-4 text-neutral-400 rtl:rotate-180" />
                   </Link>
                   <Link href={`/${locale}/consultations/availability`} className="flex items-center justify-between px-6 py-4 hover:bg-neutral-50 transition-colors">
                     <div>
-                      <p className="text-sm font-medium text-neutral-900">Manage Availability</p>
-                      <p className="text-xs text-neutral-500 mt-0.5">Set your available hours for consultations</p>
+                      <p className="text-sm font-medium text-neutral-900">{t('manageAvailability')}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{t('manageAvailabilityDesc')}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-neutral-400" />
+                    <ArrowRight className="h-4 w-4 text-neutral-400 rtl:rotate-180" />
                   </Link>
                   <Link href={`/${locale}/consultations/my-profile`} className="flex items-center justify-between px-6 py-4 hover:bg-neutral-50 transition-colors">
                     <div>
-                      <p className="text-sm font-medium text-neutral-900">Profile Settings</p>
-                      <p className="text-xs text-neutral-500 mt-0.5">Update your public consultant profile</p>
+                      <p className="text-sm font-medium text-neutral-900">{t('profileSettings')}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{t('profileSettingsDesc')}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-neutral-400" />
+                    <ArrowRight className="h-4 w-4 text-neutral-400 rtl:rotate-180" />
                   </Link>
                 </div>
               </div>
@@ -1209,17 +1395,18 @@ function AccountPageContent() {
 
 // ─── G7: Notification Preferences Tab ─────────────────────────────────────────
 const NOTIFICATION_PREF_KEYS = [
-  { key: 'bookingConfirmed', label: 'Booking confirmed' },
-  { key: 'bookingCancelled', label: 'Booking cancelled' },
-  { key: 'bookingRequest', label: 'New booking request (hosts)' },
-  { key: 'paymentConfirmed', label: 'Payment received' },
-  { key: 'refundProcessed', label: 'Refund processed' },
-  { key: 'newMessage', label: 'New message' },
-  { key: 'newReview', label: 'New review' },
-  { key: 'promotionsAndUpdates', label: 'Promotions & updates' },
+  { key: 'bookingConfirmed', labelKey: 'notifBookingConfirmed' },
+  { key: 'bookingCancelled', labelKey: 'notifBookingCancelled' },
+  { key: 'bookingRequest', labelKey: 'notifBookingRequest' },
+  { key: 'paymentConfirmed', labelKey: 'notifPaymentConfirmed' },
+  { key: 'refundProcessed', labelKey: 'notifRefundProcessed' },
+  { key: 'newMessage', labelKey: 'notifNewMessage' },
+  { key: 'newReview', labelKey: 'notifNewReview' },
+  { key: 'promotionsAndUpdates', labelKey: 'notifPromotions' },
 ] as const;
 
 function NotificationPreferencesTab() {
+  const t = useTranslations('account');
   const { data: prefs, isLoading } = useQuery<Record<string, boolean>>({
     queryKey: ['notificationPreferences'],
     queryFn: () => usersApi.getNotificationPreferences(),
@@ -1234,23 +1421,23 @@ function NotificationPreferencesTab() {
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-      <h2 className="text-xl font-semibold text-neutral-900 mb-1">Notification Preferences</h2>
-      <p className="text-sm text-neutral-500 mb-4">Choose which email notifications you want to receive.</p>
+      <h2 className="text-xl font-semibold text-neutral-900 mb-1">{t('notificationPreferences')}</h2>
+      <p className="text-sm text-neutral-500 mb-4">{t('notificationPreferencesDesc')}</p>
       {isLoading ? (
         <div className="h-10 w-32 rounded-xl bg-neutral-100 animate-pulse" />
       ) : (
-        NOTIFICATION_PREF_KEYS.map(({ key, label }) => {
+        NOTIFICATION_PREF_KEYS.map(({ key, labelKey }) => {
           const enabled = prefs?.[key] !== false; // default true
           return (
             <div key={key} className="flex items-center justify-between py-3 border-b border-neutral-100 last:border-0">
-              <p className="text-sm font-medium text-neutral-900">{label}</p>
+              <p className="text-sm font-medium text-neutral-900">{t(labelKey as any)}</p>
               <button
                 role="switch"
                 aria-checked={enabled}
                 onClick={() => togglePref(key, enabled)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:outline-none ${enabled ? 'bg-neutral-900' : 'bg-neutral-200'}`}
               >
-                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${enabled ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'}`} />
               </button>
             </div>
           );

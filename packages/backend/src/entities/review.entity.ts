@@ -73,10 +73,10 @@ export class ReviewEntity {
   photos: string[] | null;
 
   @Column({ name: 'host_reply', type: 'text', nullable: true })
-  hostReply: string;
+  hostReply: string | null;
 
   @Column({ name: 'host_replied_at', type: 'datetime', nullable: true })
-  hostRepliedAt: Date;
+  hostRepliedAt: Date | null;
 
   @Column({ name: 'is_deleted', type: 'boolean', default: false, comment: 'Soft delete flag for reviews', select: false })
   isDeleted: boolean;

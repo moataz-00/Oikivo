@@ -15,6 +15,7 @@ import { PasswordResetEntity } from '../entities/password-reset.entity';
 import { VerificationTokenEntity } from '../entities/verification-token.entity';
 import { AvailabilityEntity } from '../entities/availability.entity';
 import { ReviewEntity } from '../entities/review.entity';
+import { NotificationEntity } from '../entities/notification.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MailModule } from '../mail/mail.module';
 import { PayoutsModule } from '../payouts/payouts.module';
@@ -36,6 +37,7 @@ import { PayoutsModule } from '../payouts/payouts.module';
       VerificationTokenEntity,
       AvailabilityEntity,
       ReviewEntity,
+      NotificationEntity,
     ]),
     NotificationsModule,
     MailModule,

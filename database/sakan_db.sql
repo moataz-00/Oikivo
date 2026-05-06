@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 20, 2026 at 12:03 AM
+-- Generation Time: May 05, 2026 at 09:17 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -92,7 +92,139 @@ INSERT INTO `admin_activity_logs` (`id`, `admin_id`, `action`, `entity_type`, `e
 (47, 15, 'PATCH /settings/property_host_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:54'),
 (48, 15, 'PATCH /settings/consultation_user_fee_pct', 'settings', NULL, NULL, '::1', '2026-04-19 18:23:54'),
 (49, 15, 'DELETE /properties/:id', 'properties', '195', NULL, '::1', '2026-04-19 18:52:50'),
-(50, 15, 'DELETE /properties/:id', 'properties', '196', NULL, '::1', '2026-04-19 18:52:56');
+(50, 15, 'DELETE /properties/:id', 'properties', '196', NULL, '::1', '2026-04-19 18:52:56'),
+(51, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"admin@sakan.com\",\"reason\":\"Invalid credentials\",\"userId\":null}', '::1', '2026-04-23 07:38:53'),
+(52, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"admin@sakan.app\",\"reason\":\"Invalid credentials\",\"userId\":\"15\"}', '::1', '2026-04-23 07:46:42'),
+(53, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-23 08:51:15'),
+(54, 15, 'PATCH /settings/maintenance_message', 'settings', NULL, NULL, '::1', '2026-04-23 08:51:19'),
+(55, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-23 09:02:50'),
+(56, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-23 09:02:51'),
+(57, 15, 'PATCH /settings/maintenance_message', 'settings', NULL, NULL, '::1', '2026-04-23 09:05:03'),
+(58, 15, 'PATCH /settings/maintenance_message', 'settings', NULL, NULL, '::1', '2026-04-23 09:05:15'),
+(59, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-23 09:13:16'),
+(60, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-23 09:14:40'),
+(61, 15, 'PATCH /settings/maintenance_mode', 'settings', NULL, NULL, '::1', '2026-04-23 09:15:01'),
+(62, 15, 'DELETE /properties/:id', 'properties', '197', NULL, '::1', '2026-04-23 09:16:34'),
+(63, 15, 'DELETE /properties/:id', 'properties', '198', NULL, '::1', '2026-04-23 09:16:36'),
+(64, 15, 'DELETE /properties/:id', 'properties', '199', NULL, '::1', '2026-04-23 09:16:37'),
+(65, 15, 'DELETE /properties/:id', 'properties', '200', NULL, '::1', '2026-04-23 09:16:40'),
+(66, 15, 'DELETE /properties/:id', 'properties', '201', NULL, '::1', '2026-04-23 09:16:42'),
+(67, 15, 'DELETE /properties/:id', 'properties', '202', NULL, '::1', '2026-04-23 09:16:45'),
+(68, 15, 'DELETE /properties/:id', 'properties', '203', NULL, '::1', '2026-04-23 09:16:47'),
+(69, 15, 'DELETE /properties/:id', 'properties', '204', NULL, '::1', '2026-04-23 09:16:49'),
+(70, 15, 'DELETE /properties/:id', 'properties', '205', NULL, '::1', '2026-04-23 09:16:50'),
+(71, 15, 'DELETE /properties/:id', 'properties', '206', NULL, '::1', '2026-04-23 09:16:52'),
+(72, 15, 'DELETE /properties/:id', 'properties', '207', NULL, '::1', '2026-04-23 09:16:54'),
+(73, 15, 'DELETE /properties/:id', 'properties', '208', NULL, '::1', '2026-04-23 09:16:56'),
+(74, 15, 'DELETE /properties/:id', 'properties', '209', NULL, '::1', '2026-04-23 09:16:57'),
+(75, 15, 'DELETE /properties/:id', 'properties', '210', NULL, '::1', '2026-04-23 09:16:59'),
+(76, 15, 'DELETE /properties/:id', 'properties', '211', NULL, '::1', '2026-04-23 09:17:00'),
+(77, 15, 'DELETE /properties/:id', 'properties', '212', NULL, '::1', '2026-04-23 09:17:02'),
+(78, 15, 'DELETE /properties/:id', 'properties', '213', NULL, '::1', '2026-04-23 09:17:04'),
+(79, 15, 'DELETE /properties/:id', 'properties', '214', NULL, '::1', '2026-04-23 09:17:05'),
+(80, 15, 'DELETE /properties/:id', 'properties', '215', NULL, '::1', '2026-04-23 09:17:07'),
+(81, 15, 'DELETE /properties/:id', 'properties', '216', NULL, '::1', '2026-04-23 09:17:09'),
+(82, 15, 'DELETE /properties/:id', 'properties', '217', NULL, '::1', '2026-04-23 09:17:11'),
+(83, 15, 'DELETE /properties/:id', 'properties', '218', NULL, '::1', '2026-04-23 09:17:12'),
+(84, 15, 'DELETE /properties/:id', 'properties', '219', NULL, '::1', '2026-04-23 09:17:15'),
+(85, 15, 'DELETE /properties/:id', 'properties', '220', NULL, '::1', '2026-04-23 09:17:17'),
+(86, 15, 'DELETE /properties/:id', 'properties', '180', NULL, '::1', '2026-04-23 09:17:23'),
+(87, 15, 'DELETE /properties/:id', 'properties', '179', NULL, '::1', '2026-04-23 09:17:24'),
+(88, 15, 'DELETE /properties/:id', 'properties', '178', NULL, '::1', '2026-04-23 09:17:26'),
+(89, 15, 'DELETE /properties/:id', 'properties', '177', NULL, '::1', '2026-04-23 09:17:29'),
+(90, 15, 'DELETE /properties/:id', 'properties', '181', NULL, '::1', '2026-04-23 09:17:30'),
+(91, 15, 'DELETE /properties/:id', 'properties', '176', NULL, '::1', '2026-04-23 09:17:32'),
+(92, 15, 'DELETE /properties/:id', 'properties', '183', NULL, '::1', '2026-04-23 09:17:34'),
+(93, 15, 'DELETE /properties/:id', 'properties', '184', NULL, '::1', '2026-04-23 09:17:36'),
+(94, 15, 'DELETE /properties/:id', 'properties', '185', NULL, '::1', '2026-04-23 09:17:38'),
+(95, 15, 'DELETE /properties/:id', 'properties', '186', NULL, '::1', '2026-04-23 09:17:41'),
+(96, 15, 'DELETE /properties/:id', 'properties', '182', NULL, '::1', '2026-04-23 09:17:43'),
+(97, 15, 'DELETE /properties/:id', 'properties', '189', NULL, '::1', '2026-04-23 09:17:44'),
+(98, 15, 'DELETE /properties/:id', 'properties', '191', NULL, '::1', '2026-04-23 09:17:46'),
+(99, 15, 'DELETE /properties/:id', 'properties', '193', NULL, '::1', '2026-04-23 09:17:48'),
+(100, 15, 'DELETE /properties/:id', 'properties', '194', NULL, '::1', '2026-04-23 09:17:50'),
+(101, 15, 'DELETE /properties/:id', 'properties', '190', NULL, '::1', '2026-04-23 09:17:51'),
+(102, 15, 'DELETE /properties/:id', 'properties', '187', NULL, '::1', '2026-04-23 09:17:53'),
+(103, 15, 'DELETE /properties/:id', 'properties', '174', NULL, '::1', '2026-04-23 09:17:54'),
+(104, 15, 'DELETE /properties/:id', 'properties', '173', NULL, '::1', '2026-04-23 09:17:56'),
+(105, 15, 'DELETE /properties/:id', 'properties', '171', NULL, '::1', '2026-04-23 09:17:58'),
+(106, 15, 'DELETE /properties/:id', 'properties', '170', NULL, '::1', '2026-04-23 09:18:00'),
+(107, 15, 'DELETE /properties/:id', 'properties', '168', NULL, '::1', '2026-04-23 09:18:02'),
+(108, 15, 'DELETE /properties/:id', 'properties', '169', NULL, '::1', '2026-04-23 09:18:05'),
+(109, 15, 'DELETE /properties/:id', 'properties', '166', NULL, '::1', '2026-04-23 09:18:07'),
+(110, 15, 'DELETE /properties/:id', 'properties', '175', NULL, '::1', '2026-04-23 09:18:09'),
+(111, 15, 'DELETE /properties/:id', 'properties', '163', NULL, '::1', '2026-04-23 09:18:12'),
+(112, 15, 'DELETE /properties/:id', 'properties', '164', NULL, '::1', '2026-04-23 09:18:16'),
+(113, 15, 'DELETE /properties/:id', 'properties', '161', NULL, '::1', '2026-04-23 09:18:20'),
+(114, 15, 'DELETE /properties/:id', 'properties', '162', NULL, '::1', '2026-04-23 09:18:21'),
+(115, 15, 'DELETE /properties/:id', 'properties', '167', NULL, '::1', '2026-04-23 09:18:28'),
+(116, 15, 'DELETE /properties/:id', 'properties', '188', NULL, '::1', '2026-04-23 09:18:31'),
+(117, 15, 'DELETE /properties/:id', 'properties', '172', NULL, '::1', '2026-04-23 09:18:33'),
+(118, 15, 'DELETE /properties/:id', 'properties', '192', NULL, '::1', '2026-04-23 09:18:34'),
+(119, 15, 'PATCH /users/:id/review-id', 'users', '33', NULL, '::1', '2026-04-23 09:23:59'),
+(120, 15, 'DELETE /properties/:id', 'properties', '165', NULL, '::1', '2026-04-23 09:25:45'),
+(121, 15, 'PATCH /properties/:id/status', 'properties', '239', NULL, '::1', '2026-04-23 11:01:48'),
+(122, 15, 'PATCH /properties/:id/status', 'properties', '239', NULL, '::1', '2026-04-23 11:02:16'),
+(123, 15, 'PATCH /properties/:id/status', 'properties', '245', NULL, '::1', '2026-04-23 12:57:08'),
+(124, 15, 'PATCH /properties/:id/status', 'properties', '246', NULL, '::1', '2026-04-23 14:31:34'),
+(125, 15, 'PATCH /properties/:id/status', 'properties', '246', NULL, '::1', '2026-04-23 14:50:22'),
+(126, 15, 'PATCH /properties/:id/status', 'properties', '246', NULL, '::1', '2026-04-23 14:50:25'),
+(127, 15, 'PATCH /properties/:id/status', 'properties', '247', NULL, '::1', '2026-04-23 15:20:36'),
+(128, 15, 'PATCH /properties/:id/featured', 'properties', '247', NULL, '::1', '2026-04-23 15:39:22'),
+(129, 15, 'PATCH /properties/:id/featured', 'properties', '247', NULL, '::1', '2026-04-23 15:45:07'),
+(130, 15, 'PATCH /properties/:id/featured', 'properties', '247', NULL, '::1', '2026-04-23 15:45:08'),
+(131, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Please verify your email before logging in\",\"userId\":\"34\"}', '::1', '2026-04-23 16:00:26'),
+(132, 15, 'PATCH /properties/:id/status', 'properties', '247', NULL, '::1', '2026-04-24 13:29:17'),
+(133, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Invalid credentials\",\"userId\":\"34\"}', '::1', '2026-04-24 13:31:02'),
+(134, 15, 'POST /bookings/:id/confirm-payment', 'bookings', '46', NULL, '::1', '2026-04-24 23:08:05'),
+(135, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Invalid credentials\",\"userId\":\"34\"}', '::1', '2026-04-25 19:35:48'),
+(136, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Invalid credentials\",\"userId\":\"34\"}', '::1', '2026-04-25 19:36:32'),
+(137, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"dbugerz@gmail.com\",\"reason\":\"Invalid credentials\",\"userId\":null}', '::1', '2026-04-25 19:38:37'),
+(138, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Invalid credentials\",\"userId\":\"34\"}', '::1', '2026-04-26 06:41:49'),
+(139, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"dbugerz@gmail.com\",\"reason\":\"Invalid credentials\",\"userId\":null}', '::1', '2026-04-26 08:45:37'),
+(140, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"admin@sakan.com\",\"reason\":\"Invalid credentials\",\"userId\":null}', '::1', '2026-04-28 11:49:26'),
+(141, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"admin@sakan.com\",\"reason\":\"Invalid credentials\",\"userId\":null}', '::1', '2026-04-28 11:49:26'),
+(142, 15, 'PATCH /properties/:id/status', 'properties', '247', NULL, '::1', '2026-04-28 11:50:30'),
+(143, 15, 'PATCH /users/:id/ban', 'users', '34', NULL, '::1', '2026-04-28 12:02:06'),
+(144, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Account is disabled\",\"userId\":\"34\"}', '::1', '2026-04-28 12:02:48'),
+(145, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 12:03:06'),
+(146, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 12:03:10'),
+(147, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 12:03:12'),
+(148, 15, 'PATCH /users/:id/ban', 'users', '34', NULL, '::1', '2026-04-28 12:03:16'),
+(149, 15, 'DELETE /users/:id', 'users', '7', NULL, '::1', '2026-04-28 12:04:02'),
+(150, 15, 'PATCH /properties/:id/status', 'properties', '253', NULL, '::1', '2026-04-28 12:34:47'),
+(151, 15, 'POST /ical-sources/:id/sync', 'ical-sources', '3', NULL, '::1', '2026-04-28 12:41:18'),
+(152, 15, 'PATCH /properties/:id/status', 'properties', '254', NULL, '::1', '2026-04-28 13:00:49'),
+(153, 15, 'PATCH /properties/:id/status', 'properties', '253', NULL, '::1', '2026-04-28 13:00:52'),
+(154, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 13:03:45'),
+(155, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 13:03:47'),
+(156, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 13:04:21'),
+(157, 15, 'PATCH /users/:id/ban', 'users', '34', NULL, '::1', '2026-04-28 13:04:26'),
+(158, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 13:04:50'),
+(159, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 13:04:59'),
+(160, NULL, 'AUTH_FAILED_LOGIN', 'auth', NULL, '{\"email\":\"taha@bme-global.com\",\"reason\":\"Account is disabled\",\"userId\":\"34\"}', '::1', '2026-04-28 13:59:15'),
+(161, 15, 'PATCH /disputes/:id/status', 'disputes', '4', NULL, '::1', '2026-04-28 14:01:21'),
+(162, 15, 'PATCH /users/:id/toggle-active', 'users', '34', NULL, '::1', '2026-04-28 14:01:31'),
+(163, 15, 'PATCH /reviews/:id/flag', 'reviews', '6', NULL, '::1', '2026-04-28 17:22:59'),
+(164, 15, 'PATCH /reviews/:id/flag', 'reviews', '6', NULL, '::1', '2026-04-28 17:23:01'),
+(165, 15, 'PATCH /reviews/:id/flag', 'reviews', '6', NULL, '::1', '2026-04-28 17:23:02'),
+(166, 15, 'PATCH /reviews/:id/flag', 'reviews', '6', NULL, '::1', '2026-04-28 17:23:03'),
+(167, 15, 'PATCH /properties/:id/status', 'properties', '255', NULL, '::1', '2026-04-28 17:26:08'),
+(168, 15, 'PATCH /properties/:id/status', 'properties', '256', NULL, '::1', '2026-04-28 17:26:25'),
+(169, 15, 'PATCH /properties/:id/status', 'properties', '257', NULL, '::1', '2026-04-28 17:26:30'),
+(170, 15, 'PATCH /users/:id/review-id', 'users', '35', NULL, '::1', '2026-04-30 10:11:43'),
+(171, 15, 'PATCH /properties/:id/status', 'properties', '259', NULL, '::1', '2026-04-30 10:16:21'),
+(172, 15, 'POST /bookings/:id/confirm-payment', 'bookings', '49', NULL, '::1', '2026-04-30 10:33:16'),
+(173, 15, 'PATCH /users/:id/review-id', 'users', '37', NULL, '::1', '2026-05-02 21:58:31'),
+(174, 15, 'PATCH /properties/:id/status', 'properties', '260', NULL, '::1', '2026-05-02 22:11:20'),
+(175, 15, 'PATCH /properties/:id/status', 'properties', '260', NULL, '::1', '2026-05-02 22:16:30'),
+(176, 15, 'PATCH /users/:id/review-id', 'users', '38', NULL, '::1', '2026-05-03 04:07:23'),
+(177, 15, 'POST /bookings/:id/confirm-payment', 'bookings', '52', NULL, '::1', '2026-05-03 04:20:12'),
+(178, 15, 'POST /bookings/:id/mark-instapay-refunded', 'bookings', '52', NULL, '::1', '2026-05-03 04:21:21'),
+(179, 15, 'PATCH /users/:id/review-id', 'users', '40', NULL, '::1', '2026-05-05 16:22:20'),
+(180, 15, 'PATCH /properties/:id/status', 'properties', '261', NULL, '::1', '2026-05-05 16:28:45'),
+(181, 15, 'PATCH /properties/:id/status', 'properties', '261', NULL, '::1', '2026-05-05 16:29:29'),
+(182, 15, 'PATCH /properties/:id/status', 'properties', '261', NULL, '::1', '2026-05-05 16:29:55');
 
 -- --------------------------------------------------------
 
@@ -175,7 +307,49 @@ INSERT INTO `audit_logs` (`id`, `event_type`, `actor_id`, `entity_type`, `entity
 (10, 'booking.created', 30, 'booking', 40, '{\"propertyId\":161,\"checkIn\":\"2026-04-18\",\"checkOut\":\"2026-04-25\",\"totalAmount\":3018.4,\"status\":\"confirmed\"}', NULL, '2026-04-11 16:21:30.071964'),
 (11, 'booking.cancelled', 30, 'booking', 40, '{\"cancelledBy\":\"guest\",\"reason\":\"personal_emergency\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 16:22:41.558489'),
 (12, 'booking.created', 33, 'booking', 41, '{\"propertyId\":165,\"checkIn\":\"2026-04-16\",\"checkOut\":\"2026-04-25\",\"totalAmount\":704,\"status\":\"confirmed\"}', NULL, '2026-04-11 22:10:41.278513'),
-(13, 'booking.cancelled', 33, 'booking', 41, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 22:11:30.483778');
+(13, 'booking.cancelled', 33, 'booking', 41, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 22:11:30.483778'),
+(14, 'booking.created', 34, 'booking', 45, '{\"propertyId\":247,\"checkIn\":\"2026-04-25\",\"checkOut\":\"2026-04-27\",\"totalAmount\":924,\"status\":\"pending\"}', NULL, '2026-04-24 16:32:01.299767'),
+(15, 'booking.created', 34, 'booking', 46, '{\"propertyId\":247,\"checkIn\":\"2026-04-26\",\"checkOut\":\"2026-04-27\",\"totalAmount\":420,\"status\":\"pending\"}', NULL, '2026-04-25 01:16:20.844627'),
+(16, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modhy9x4\"}', NULL, '2026-04-25 01:43:20.411365'),
+(17, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modi1i82\"}', NULL, '2026-04-25 01:45:50.714165'),
+(18, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modi2amm\"}', NULL, '2026-04-25 01:46:27.932247'),
+(19, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modi8i0l\"}', NULL, '2026-04-25 01:51:17.392996'),
+(20, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"error format for [Authorization]\",\"reference\":\"js-s-46-modi98u4\"}', NULL, '2026-04-25 01:51:52.030114'),
+(21, 'payment.opay.checkout_created', 34, 'booking', 46, '{\"paymentMethod\":\"opay-checkout\",\"reference\":\"js-s-46-modidllj\",\"orderNo\":\"260424148185829931449\"}', NULL, '2026-04-25 01:55:19.689088'),
+(22, 'payment.opay.checkout_created', 34, 'booking', 46, '{\"paymentMethod\":\"opay-checkout\",\"reference\":\"js-s-46-modifcb5\",\"orderNo\":\"260424148185829932907\"}', NULL, '2026-04-25 01:56:45.064387'),
+(23, 'payment.submitted', 34, 'booking', 46, '{\"method\":\"instapay\",\"reference\":\"mnjbhghgkhkj\"}', NULL, '2026-04-25 01:59:53.453672'),
+(24, 'payment.confirmed', 15, 'booking', 46, '{\"isAdmin\":true,\"totalAmount\":420,\"method\":\"instapay\"}', NULL, '2026-04-25 02:08:00.170967'),
+(25, 'booking.created', 33, 'booking', 47, '{\"propertyId\":259,\"checkIn\":\"2026-05-01\",\"checkOut\":\"2026-05-04\",\"totalAmount\":2520,\"status\":\"pending\"}', NULL, '2026-04-30 13:17:27.283274'),
+(26, 'booking.cancelled', 33, 'booking', 47, '{\"cancelledBy\":\"guest\",\"reason\":\"found_alternative\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-30 13:19:57.485870'),
+(27, 'booking.created', 33, 'booking', 48, '{\"propertyId\":259,\"checkIn\":\"2026-04-30\",\"checkOut\":\"2026-05-02\",\"totalAmount\":1680,\"status\":\"pending\"}', NULL, '2026-04-30 13:20:53.879729'),
+(28, 'booking.cancelled', 33, 'booking', 48, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-30 13:21:12.439482'),
+(29, 'booking.created', 33, 'booking', 49, '{\"propertyId\":259,\"checkIn\":\"2026-04-30\",\"checkOut\":\"2026-05-01\",\"totalAmount\":840,\"status\":\"pending\"}', NULL, '2026-04-30 13:21:46.470184'),
+(30, 'payment.opay.checkout_created', 33, 'booking', 49, '{\"paymentMethod\":\"opay-checkout\",\"reference\":\"js-s-49-molcazz1\",\"orderNo\":\"260430148185830614069\"}', NULL, '2026-04-30 13:27:29.796733'),
+(31, 'payment.submitted', 33, 'booking', 49, '{\"method\":\"instapay\",\"reference\":\"232456575788678\"}', NULL, '2026-04-30 13:31:19.821876'),
+(32, 'payment.confirmed', 15, 'booking', 49, '{\"isAdmin\":true,\"totalAmount\":840,\"method\":\"instapay\"}', NULL, '2026-04-30 13:33:14.541150'),
+(33, 'booking.created', 33, 'booking', 50, '{\"propertyId\":259,\"checkIn\":\"2026-05-01\",\"checkOut\":\"2026-05-02\",\"totalAmount\":840,\"status\":\"pending\"}', NULL, '2026-04-30 19:39:09.521697'),
+(34, 'booking.created', 34, 'booking', 51, '{\"propertyId\":259,\"checkIn\":\"2026-05-04\",\"checkOut\":\"2026-05-07\",\"totalAmount\":2520,\"status\":\"pending\"}', NULL, '2026-04-30 19:41:19.701440'),
+(35, 'booking.cancelled', 34, 'booking', 51, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-30 19:41:26.153689'),
+(36, 'booking.created', 38, 'booking', 52, '{\"propertyId\":260,\"checkIn\":\"2026-05-06\",\"checkOut\":\"2026-05-09\",\"totalAmount\":1344,\"status\":\"pending\"}', NULL, '2026-05-03 07:09:19.555933'),
+(37, 'payment.submitted', 38, 'booking', 52, '{\"method\":\"instapay\",\"reference\":\"232456575788678\"}', NULL, '2026-05-03 07:14:32.125283'),
+(38, 'payment.confirmed', 15, 'booking', 52, '{\"isAdmin\":true,\"totalAmount\":1344,\"method\":\"instapay\"}', NULL, '2026-05-03 07:20:10.382962'),
+(39, 'booking.cancelled', 38, 'booking', 52, '{\"cancelledBy\":\"guest\",\"refundAmount\":1280,\"policy\":\"flexible\"}', NULL, '2026-05-03 07:20:34.338834'),
+(40, 'payment.refunded', NULL, 'booking', 52, '{\"method\":\"instapay\",\"refundAmount\":1280}', NULL, '2026-05-03 07:21:19.834199'),
+(41, 'booking.created', 38, 'booking', 53, '{\"propertyId\":260,\"checkIn\":\"2026-05-13\",\"checkOut\":\"2026-05-16\",\"totalAmount\":1344,\"status\":\"pending\"}', NULL, '2026-05-03 08:39:14.886085'),
+(42, 'booking.cancelled', 38, 'booking', 53, '{\"cancelledBy\":\"guest\",\"reason\":\"found_alternative\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-05-03 09:14:45.276832');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `blocked_users`
+--
+
+CREATE TABLE `blocked_users` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `blocker_id` bigint(20) UNSIGNED NOT NULL,
+  `blocked_user_id` bigint(20) UNSIGNED NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -200,20 +374,22 @@ CREATE TABLE `bookings` (
   `taxes` decimal(10,2) NOT NULL DEFAULT 0.00,
   `total_amount` decimal(10,2) NOT NULL,
   `deposit_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `deposit_status` enum('none','held','claimed','released') NOT NULL DEFAULT 'none',
+  `deposit_status` enum('none','held','claimed','released','approved','rejected') NOT NULL DEFAULT 'none' COMMENT 'none=no deposit; held=collected by host at checkout; claimed=host filed damage claim; approved=claim approved by admin; rejected=claim rejected; released=deposit returned to guest',
   `deposit_claim_deadline` datetime DEFAULT NULL,
   `deposit_released_at` datetime DEFAULT NULL,
   `deposit_claim_reason` text DEFAULT NULL,
+  `deposit_claim_evidence` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`deposit_claim_evidence`)),
   `currency` char(3) NOT NULL DEFAULT 'EGP',
   `display_currency` varchar(3) DEFAULT NULL,
   `status` enum('pending','confirmed','in_progress','completed','cancelled','declined') NOT NULL DEFAULT 'pending',
   `house_rules_acknowledged` tinyint(1) DEFAULT 0,
   `house_rules_acknowledged_at` datetime DEFAULT NULL,
   `payment_status` enum('pending','submitted','paid','refund_pending','refunded','refund_failed','declined') NOT NULL DEFAULT 'pending',
-  `payment_method` enum('instapay','cash','card','stripe','opay-card','opay-wallet') DEFAULT NULL,
+  `payment_method` enum('instapay','cash','card','opay-card') DEFAULT NULL,
   `payment_reference` varchar(100) DEFAULT NULL,
   `payment_note` text DEFAULT NULL,
   `payment_proof_url` varchar(500) DEFAULT NULL,
+  `proof_viewed_at` datetime DEFAULT NULL,
   `stripe_payment_intent_id` varchar(255) DEFAULT NULL COMMENT 'Stripe PaymentIntent ID for card payments',
   `stripe_refund_id` varchar(255) DEFAULT NULL,
   `opay_order_reference` varchar(100) DEFAULT NULL,
@@ -229,18 +405,16 @@ CREATE TABLE `bookings` (
   `special_requests` varchar(2000) DEFAULT NULL,
   `refund_reason` varchar(500) DEFAULT NULL,
   `confirmed_at` datetime DEFAULT NULL COMMENT 'Set when booking moves to confirmed status',
+  `completed_at` datetime DEFAULT NULL COMMENT 'Set when booking is marked completed (by scheduler or manually)',
   `payment_reminder_sent_at` datetime DEFAULT NULL COMMENT 'Timestamp of the +4h payment reminder; prevents duplicate sends',
   `modification_history` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`modification_history`)),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `price_per_night` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `discount_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `discount_type` varchar(40) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
-
---
--- Dumping data for table `bookings`
---
-
-INSERT INTO `bookings` (`id`, `booking_uuid`, `short_code`, `property_id`, `guest_id`, `host_id`, `check_in`, `check_out`, `guests_count`, `nights`, `base_amount`, `cleaning_fee`, `service_fee`, `taxes`, `total_amount`, `deposit_amount`, `deposit_status`, `deposit_claim_deadline`, `deposit_released_at`, `deposit_claim_reason`, `currency`, `display_currency`, `status`, `house_rules_acknowledged`, `house_rules_acknowledged_at`, `payment_status`, `payment_method`, `payment_reference`, `payment_note`, `payment_proof_url`, `stripe_payment_intent_id`, `stripe_refund_id`, `opay_order_reference`, `cancellation_reason`, `cancellation_policy`, `refund_amount`, `cancellation_fee`, `cancelled_at`, `cancelled_by`, `guest_note`, `host_note`, `host_check_in_instructions`, `special_requests`, `refund_reason`, `confirmed_at`, `payment_reminder_sent_at`, `modification_history`, `created_at`, `updated_at`) VALUES
-(41, 'd7b74a1b-7139-4382-827e-b5cc111d4fc5', NULL, 165, 33, 3, '2026-04-16', '2026-04-25', 1, 9, 600.00, 20.00, 84.00, 0.00, 704.00, 0.00, 'none', NULL, NULL, NULL, 'USD', 'EGP', 'cancelled', 0, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'flexible', 0.00, 0.00, '2026-04-11 20:11:30', 'guest', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-11 22:10:41', '2026-04-11 22:11:30');
 
 -- --------------------------------------------------------
 
@@ -343,13 +517,6 @@ CREATE TABLE `consultants` (
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `consultants`
---
-
-INSERT INTO `consultants` (`id`, `uuid`, `user_id`, `display_name`, `bio`, `specializations`, `years_experience`, `languages`, `hourly_rate`, `currency`, `avg_rating`, `review_count`, `total_sessions`, `status`, `rejection_reason`, `approved_at`, `is_featured`, `timezone`, `payout_method`, `payout_account_details`, `created_at`, `updated_at`) VALUES
-(4, '4590befc-96b1-4c48-9c01-26123495a8f6', 10, 'xczxcx', 'zxcxzcxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', '[\"pricing_strategy\"]', 2, '[\"ar\"]', 66.00, 'EGP', 0.00, 0, 0, 'approved', NULL, '2026-04-03 19:24:32', 0, 'UTC', NULL, NULL, '2026-04-03 21:23:40', '2026-04-03 21:24:32');
-
 -- --------------------------------------------------------
 
 --
@@ -381,14 +548,6 @@ CREATE TABLE `consultant_documents` (
   `admin_note` text DEFAULT NULL,
   `uploaded_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `consultant_documents`
---
-
-INSERT INTO `consultant_documents` (`id`, `consultant_id`, `document_type`, `file_url`, `original_name`, `status`, `admin_note`, `uploaded_at`) VALUES
-(3, 4, '', '/uploads/consultant-docs/10/doc-1775244220071-294203072.png', 'logo-removebg-preview (1).png', 'pending', NULL, '2026-04-03 21:23:40'),
-(4, 4, '', '/uploads/consultant-docs/10/doc-1775244220075-972493622.png', 'logo-removebg-preview__1_-removebg-preview.png', 'pending', NULL, '2026-04-03 21:23:40');
 
 -- --------------------------------------------------------
 
@@ -548,6 +707,7 @@ CREATE TABLE `conversations` (
 
 CREATE TABLE `disputes` (
   `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` varchar(36) NOT NULL,
   `booking_id` bigint(20) UNSIGNED NOT NULL,
   `raised_by_id` bigint(20) UNSIGNED NOT NULL,
   `category` enum('property_not_as_described','no_show','safety_concern','refund_request','damage_claim','other') NOT NULL DEFAULT 'other',
@@ -561,6 +721,7 @@ CREATE TABLE `disputes` (
   `sla_deadline` datetime DEFAULT NULL,
   `additional_info` text DEFAULT NULL,
   `evidence` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`evidence`)),
+  `host_evidence` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Evidence files uploaded by the host (separate from guest evidence)' CHECK (json_valid(`host_evidence`)),
   `appeal_requested` tinyint(1) NOT NULL DEFAULT 0,
   `appeal_reason` text DEFAULT NULL,
   `appealed_at` datetime DEFAULT NULL,
@@ -667,7 +828,7 @@ CREATE TABLE `experience_bookings` (
   `total_amount` decimal(10,2) NOT NULL,
   `status` enum('pending','confirmed','completed','cancelled','declined') DEFAULT 'pending',
   `payment_status` enum('pending','submitted','paid','refunded') DEFAULT 'pending',
-  `payment_method` enum('instapay','cash','card','stripe','opay-card','opay-wallet') DEFAULT NULL,
+  `payment_method` enum('instapay','cash','card','opay-card') DEFAULT NULL,
   `payment_reference` varchar(255) DEFAULT NULL,
   `payment_proof_url` varchar(500) DEFAULT NULL,
   `stripe_payment_intent_id` varchar(255) DEFAULT NULL COMMENT 'Stripe PaymentIntent ID for card payments',
@@ -796,20 +957,6 @@ CREATE TABLE `experience_schedule` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `login_attempts`
---
-
-CREATE TABLE `login_attempts` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `ip_address` varchar(45) NOT NULL,
-  `attempted_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `success` tinyint(1) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `messages`
 --
 
@@ -849,55 +996,6 @@ CREATE TABLE `notifications` (
 --
 
 INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `title_ar`, `body`, `body_ar`, `data_json`, `is_read`, `created_at`) VALUES
-(1, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Stunning Nile View Apartment in Cairo', 'لديك طلب حجز جديد لـ Stunning Nile View Apartment in Cairo', '{\"bookingId\":\"3\",\"propertyId\":1}', 1, '2026-03-17 01:21:28'),
-(2, 2, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":\"1\",\"messageId\":\"1\"}', 1, '2026-03-17 01:22:28'),
-(3, 5, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":1,\"messageId\":\"2\"}', 0, '2026-03-17 01:24:41'),
-(4, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Stunning Nile View Apartment in Cairo', 'لديك طلب حجز جديد لـ Stunning Nile View Apartment in Cairo', '{\"bookingId\":\"4\",\"propertyId\":1}', 0, '2026-03-19 00:39:36'),
-(5, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Cozy Studio in Zamalek — Cairo Island', 'لديك طلب حجز جديد لـ Cozy Studio in Zamalek — Cairo Island', '{\"bookingId\":\"5\",\"propertyId\":5}', 0, '2026-03-19 00:41:20'),
-(6, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Cozy Studio in Zamalek — Cairo Island', 'لديك طلب حجز جديد لـ Cozy Studio in Zamalek — Cairo Island', '{\"bookingId\":\"6\",\"propertyId\":5}', 0, '2026-03-19 00:41:47'),
-(7, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Cozy Studio in Zamalek — Cairo Island', 'لديك طلب حجز جديد لـ Cozy Studio in Zamalek — Cairo Island', '{\"bookingId\":\"7\",\"propertyId\":5}', 0, '2026-03-19 00:45:17'),
-(8, 3, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled', 'تم إلغاء حجز', '{\"bookingId\":7}', 0, '2026-03-19 00:47:48'),
-(9, 4, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Lagoon House with Private Pool — El Gouna', 'لديك طلب حجز جديد لـ Lagoon House with Private Pool — El Gouna', '{\"bookingId\":\"8\",\"propertyId\":6}', 0, '2026-03-20 12:00:31'),
-(10, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Charming Historic Apartment — Art Deco Alexandria', 'لديك طلب حجز جديد لـ Charming Historic Apartment — Art Deco Alexandria', '{\"bookingId\":\"9\",\"propertyId\":3}', 0, '2026-03-21 01:15:30'),
-(11, 3, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled', 'تم إلغاء حجز', '{\"bookingId\":9}', 0, '2026-03-21 01:16:03'),
-(14, 10, 'booking_confirmed', 'Booking Confirmed', 'تم تأكيد الحجز', 'Your booking has been confirmed', 'تم تأكيد حجزك', '{\"bookingId\":10}', 1, '2026-03-21 13:07:11'),
-(17, 10, 'booking_confirmed', 'Booking Confirmed', 'تم تأكيد الحجز', 'Your booking has been confirmed', 'تم تأكيد حجزك', '{\"bookingId\":11}', 1, '2026-03-21 13:41:08'),
-(19, 5, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":1,\"messageId\":\"3\"}', 0, '2026-03-21 17:40:42'),
-(20, 5, 'new_message', 'New Message', 'رسالة جديدة', 'You received an image', 'استلمت صورة', '{\"conversationId\":1,\"messageId\":\"4\"}', 0, '2026-03-21 17:40:42'),
-(21, 5, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":1,\"messageId\":\"5\"}', 0, '2026-03-21 18:23:48'),
-(22, 5, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":1,\"messageId\":\"6\"}', 0, '2026-03-21 18:23:53'),
-(24, 10, 'experience_confirmed', 'Experience Booking Confirmed', 'تم تأكيد حجز التجربة', 'Your booking for \"werwerewr\" has been confirmed', 'تم تأكيد حجزك لتجربة \"werwerewr\"', '{\"bookingId\":1}', 1, '2026-03-22 01:15:16'),
-(25, 3, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":\"2\",\"messageId\":\"7\"}', 0, '2026-03-22 13:21:58'),
-(26, 4, 'payment_submitted', 'Payment Submitted', 'تم إرسال الدفع', 'Guest submitted an InstaPay transfer for booking #8. Ref: 232456575788678', 'أرسل الضيف تحويل InstaPay للحجز #8. المرجع: 232456575788678', '{\"bookingId\":8}', 0, '2026-03-22 17:31:52'),
-(27, 4, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled. Refund: USD 175.00', 'تم إلغاء حجز. Refund: USD 175.00', '{\"bookingId\":8}', 0, '2026-03-22 17:32:10'),
-(30, 10, 'booking_confirmed', 'Booking Confirmed', 'تم تأكيد الحجز', 'Your booking has been confirmed', 'تم تأكيد حجزك', '{\"bookingId\":13}', 1, '2026-03-23 12:57:09'),
-(33, 10, 'booking_confirmed', 'Booking Confirmed', 'تم تأكيد الحجز', 'Your booking has been confirmed', 'تم تأكيد حجزك', '{\"bookingId\":14}', 1, '2026-03-23 14:25:09'),
-(36, 10, 'booking_confirmed', 'Booking Confirmed', 'تم تأكيد الحجز', 'Your booking has been confirmed', 'تم تأكيد حجزك', '{\"bookingId\":16}', 1, '2026-03-23 16:25:59'),
-(42, 10, 'booking_declined', 'Booking Declined', 'تم رفض الحجز', 'Your booking request has been declined', 'تم رفض طلب حجزك', '{\"bookingId\":17}', 1, '2026-03-23 21:57:54'),
-(44, 10, 'booking_confirmed', 'Booking Confirmed', 'تم تأكيد الحجز', 'Your booking has been confirmed', 'تم تأكيد حجزك', '{\"bookingId\":19}', 1, '2026-03-23 23:32:31'),
-(45, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Gothic Quarter Penthouse — Barcelona', 'لديك طلب حجز جديد لـ Gothic Quarter Penthouse — Barcelona', '{\"bookingId\":\"20\",\"propertyId\":226}', 0, '2026-03-23 23:55:31'),
-(48, 10, 'booking_confirmed', 'Booking Confirmed', 'تم تأكيد الحجز', 'Your booking has been confirmed', 'تم تأكيد حجزك', '{\"bookingId\":21}', 1, '2026-03-24 20:51:21'),
-(59, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Whitewashed Caldera Cave House ??? Oia, Santorini', 'لديك طلب حجز جديد لـ Whitewashed Caldera Cave House ??? Oia, Santorini', '{\"bookingId\":\"27\",\"propertyId\":171}', 0, '2026-03-26 00:23:12'),
-(60, 3, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":\"4\",\"messageId\":\"9\"}', 0, '2026-03-27 14:58:47'),
-(61, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"28\",\"propertyId\":165}', 0, '2026-03-27 15:59:55'),
-(62, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"29\",\"propertyId\":165}', 0, '2026-03-27 16:18:12'),
-(63, 3, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled. Refund: USD 180.00', 'تم إلغاء حجز. Refund: USD 180.00', '{\"bookingId\":29}', 0, '2026-03-27 16:20:12'),
-(64, 3, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":\"5\",\"messageId\":\"10\"}', 0, '2026-03-27 19:21:15'),
-(65, 3, 'new_review', 'New Review Received', 'تقييم جديد', 'You received a new 5-star review', 'لقد حصلت على تقييم جديد 5 نجوم', '{\"reviewId\":\"4\",\"propertyId\":\"226\"}', 0, '2026-03-27 21:22:43'),
-(66, 3, 'new_review', 'New Review Received', 'تقييم جديد', 'You received a new 5-star review', 'لقد حصلت على تقييم جديد 5 نجوم', '{\"reviewId\":\"5\",\"propertyId\":\"226\"}', 0, '2026-03-27 21:33:25'),
-(67, 10, 'cohost_invite', 'Co-host invitation — dfdfg', 'دعوة مضيف مشارك — dfdfg', 'taha invited you as a Co-host', 'دعاك taha كـCo-host', '{\"propertyId\":231,\"cohostRecordId\":\"1\",\"role\":\"co_host\"}', 1, '2026-03-27 23:30:13'),
-(68, 10, 'cohost_invite', 'Co-host invitation — dfdfg', 'دعوة مضيف مشارك — dfdfg', 'taha invited you as a Cleaner', 'دعاك taha كـCleaner', '{\"propertyId\":231,\"cohostRecordId\":\"2\",\"role\":\"cleaner\"}', 1, '2026-03-27 23:31:16'),
-(69, 2, 'new_message', 'New Message', 'رسالة جديدة', 'You have a new message', 'لديك رسالة جديدة', '{\"conversationId\":\"6\",\"messageId\":\"11\"}', 0, '2026-03-28 12:14:46'),
-(70, 10, 'cohost_invite', 'Co-host invitation — dfdfg', 'دعوة مضيف مشارك — dfdfg', 'taha invited you as a Co-host', 'دعاك taha كـCo-host', '{\"propertyId\":231,\"cohostRecordId\":\"3\",\"role\":\"co_host\"}', 1, '2026-03-28 12:16:49'),
-(72, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Authentic Nubian Guesthouse on the West Bank', 'لديك طلب حجز جديد لـ Authentic Nubian Guesthouse on the West Bank', '{\"bookingId\":\"31\",\"propertyId\":162}', 0, '2026-03-28 16:46:51'),
-(73, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Authentic Nubian Guesthouse on the West Bank', 'لديك طلب حجز جديد لـ Authentic Nubian Guesthouse on the West Bank', '{\"bookingId\":\"32\",\"propertyId\":162}', 0, '2026-03-28 16:48:14'),
-(74, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"33\",\"propertyId\":165}', 0, '2026-03-28 17:14:13'),
-(75, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"34\",\"propertyId\":165}', 0, '2026-03-28 17:28:47'),
-(76, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"35\",\"propertyId\":165}', 0, '2026-03-28 17:49:52'),
-(77, 3, 'payment_submitted', 'Payment Submitted', 'تم إرسال الدفع', 'Guest submitted an InstaPay transfer for booking #35. Ref: 232456575788678', 'أرسل الضيف تحويل InstaPay للحجز #35. المرجع: 232456575788678', '{\"bookingId\":35}', 0, '2026-03-28 18:00:23'),
-(78, 10, 'payment_declined', 'Payment Could Not Be Verified', 'تعذّر التحقق من الدفع', 'Your InstaPay payment for booking #35 could not be verified within 48 hours. Please go to My Trips and retry.', 'تعذّر التحقق من دفعك للحجز #35 خلال 48 ساعة. يرجى الانتقال إلى رحلاتي والمحاولة مرة أخرى.', '{\"bookingId\":\"35\"}', 1, '2026-04-03 17:00:00'),
-(79, 10, 'superhost_achieved', 'Congratulations! Your consultant application is approved', 'تهانينا! تم قبول طلب الاستشارات الخاص بك', 'You can now offer consultation services on Oikivo!', 'يمكنك الآن تقديم خدمات الاستشارات على Oikivo!', '{\"consultantId\":\"3\"}', 1, '2026-04-03 18:20:01'),
-(80, 10, 'superhost_achieved', 'Congratulations! Your consultant application is approved', 'تهانينا! تم قبول طلب الاستشارات الخاص بك', 'You can now offer consultation services on Oikivo!', 'يمكنك الآن تقديم خدمات الاستشارات على Oikivo!', '{\"consultantId\":\"4\"}', 1, '2026-04-03 21:24:32'),
 (82, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"36\",\"propertyId\":161}', 0, '2026-04-06 01:03:39'),
 (83, 2, 'payment_submitted', 'Payment Submitted', 'تم إرسال الدفع', 'Guest submitted an InstaPay transfer for booking #36. Ref: zxcvxxcvbcvnbvnvmn', 'أرسل الضيف تحويل InstaPay للحجز #36. المرجع: zxcvxxcvbcvnbvnvmn', '{\"bookingId\":36}', 0, '2026-04-06 01:04:10'),
 (85, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled. Refund: USD 3300.00', 'تم إلغاء حجز. Refund: USD 3300.00', '{\"bookingId\":36}', 0, '2026-04-06 01:11:12'),
@@ -907,9 +1005,7 @@ INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `title_ar`, `body
 (90, 4, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (91, 5, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (92, 6, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(93, 7, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (94, 8, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(95, 10, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 1, '2026-04-07 00:15:08'),
 (97, 15, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
 (98, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Authentic Nubian Guesthouse on the West Bank', 'لديك طلب حجز جديد لـ Authentic Nubian Guesthouse on the West Bank', '{\"bookingId\":\"37\",\"propertyId\":196}', 0, '2026-04-10 20:36:42'),
 (99, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"38\",\"propertyId\":161}', 0, '2026-04-11 15:54:58'),
@@ -918,7 +1014,20 @@ INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `title_ar`, `body
 (102, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"40\",\"propertyId\":161}', 0, '2026-04-11 16:21:30'),
 (103, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled: personal_emergency.', 'تم إلغاء حجز: personal_emergency.', '{\"bookingId\":40}', 0, '2026-04-11 16:22:41'),
 (104, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"41\",\"propertyId\":165}', 0, '2026-04-11 22:10:41'),
-(105, 3, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled.', 'تم إلغاء حجز.', '{\"bookingId\":41}', 0, '2026-04-11 22:11:30');
+(105, 3, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled.', 'تم إلغاء حجز.', '{\"bookingId\":41}', 0, '2026-04-11 22:11:30'),
+(114, 15, 'instapay_proof_uploaded', 'InstaPay Proof Uploaded', 'تم رفع إثبات InstaPay', 'Guest has uploaded an InstaPay payment proof for booking #46. Please review and approve.', 'قام الضيف برفع إثبات الدفع عبر InstaPay للحجز #46. يرجى المراجعة والموافقة.', '{\"bookingId\":46}', 0, '2026-04-25 01:59:53'),
+(137, 15, 'instapay_proof_uploaded', 'InstaPay Proof Uploaded', 'تم رفع إثبات InstaPay', 'Guest has uploaded an InstaPay payment proof for booking #49. Please review and approve.', 'قام الضيف برفع إثبات الدفع عبر InstaPay للحجز #49. يرجى المراجعة والموافقة.', '{\"bookingId\":49}', 0, '2026-04-30 13:31:19'),
+(143, 37, 'system', 'Identity Verified ✅', 'تم التحقق من الهوية ✅', 'Your government ID has been reviewed and approved. You now have full access to all platform features.', 'تمت مراجعة هويتك الحكومية والموافقة عليها. أصبح بإمكانك الآن الوصول الكامل لجميع ميزات المنصة.', '{\"actionUrl\":\"https://oikivo.com/account/verification\"}', 1, '2026-05-03 00:58:30'),
+(145, 37, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for wsdqeerewr', 'لديك طلب حجز جديد لـ wsdqeerewr', '{\"bookingId\":\"52\",\"propertyId\":260}', 1, '2026-05-03 07:09:19'),
+(147, 15, 'instapay_proof_uploaded', 'InstaPay Proof Uploaded', 'تم رفع إثبات InstaPay', 'Guest has uploaded an InstaPay payment proof for booking #52. Please review and approve.', 'قام الضيف برفع إثبات الدفع عبر InstaPay للحجز #52. يرجى المراجعة والموافقة.', '{\"bookingId\":52}', 0, '2026-05-03 07:14:32'),
+(148, 37, 'payment_submitted', 'Payment Submitted', 'تم إرسال الدفع', 'Guest submitted an InstaPay transfer for booking #52. Ref: 232456575788678', 'أرسل الضيف تحويل InstaPay للحجز #52. المرجع: 232456575788678', '{\"bookingId\":52}', 0, '2026-05-03 07:14:32'),
+(150, 37, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled. Refund: EGP 1280.00', 'تم إلغاء حجز. Refund: EGP 1280.00', '{\"bookingId\":52}', 0, '2026-05-03 07:20:34'),
+(151, 15, 'instapay_refund_pending', 'InstaPay Refund Required', 'يلزم استرداد InstaPay يدوياً', 'Booking #52 was cancelled with a paid InstaPay amount of EGP 1280.00. Manual refund required.', 'تم إلغاء الحجز #52 بمبلغ InstaPay مدفوع EGP 1280.00. يلزم الاسترداد اليدوي.', '{\"bookingId\":52}', 0, '2026-05-03 07:20:43'),
+(153, 37, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for wsdqeerewr', 'لديك طلب حجز جديد لـ wsdqeerewr', '{\"bookingId\":\"53\",\"propertyId\":260}', 1, '2026-05-03 08:39:14'),
+(155, 37, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled: found_alternative.', 'تم إلغاء حجز: found_alternative.', '{\"bookingId\":53}', 0, '2026-05-03 09:14:45'),
+(156, 37, 'response_rate_warning', 'Your response rate is low', 'معدل استجابتك منخفض', 'Your response rate is 50.00%. Responding within 24h helps you get more bookings.', 'معدل استجابتك 50.00%. الرد خلال 24 ساعة يساعدك في الحصول على المزيد من الحجوزات.', '{\"responseRate\":\"50.00\"}', 0, '2026-05-04 08:36:48'),
+(157, 37, 'response_rate_warning', 'Your response rate is low', 'معدل استجابتك منخفض', 'Your response rate is 50.00%. Responding within 24h helps you get more bookings.', 'معدل استجابتك 50.00%. الرد خلال 24 ساعة يساعدك في الحصول على المزيد من الحجوزات.', '{\"responseRate\":\"50.00\"}', 0, '2026-05-05 10:45:16'),
+(158, 40, 'system', 'Identity Verified ✅', 'تم التحقق من الهوية ✅', 'Your government ID has been reviewed and approved. You now have full access to all platform features.', 'تمت مراجعة هويتك الحكومية والموافقة عليها. أصبح بإمكانك الآن الوصول الكامل لجميع ميزات المنصة.', '{\"actionUrl\":\"https://oikivo.com/account/verification\"}', 1, '2026-05-05 19:22:18');
 
 -- --------------------------------------------------------
 
@@ -1016,7 +1125,8 @@ INSERT INTO `platform_settings` (`id`, `key`, `value`, `description`, `updated_a
 (2, 'property_host_fee_pct', '1', 'Host commission % deducted from property booking payout', '2026-04-06 22:08:58'),
 (3, 'consultation_user_fee_pct', '10', 'Guest service fee % charged on top of experience booking subtotal', '2026-04-06 21:46:39'),
 (4, 'consultation_consultant_fee_pct', '5', 'Host commission % deducted from experience booking payout', '2026-04-06 21:46:39'),
-(8, 'maintenance_mode', 'false', NULL, '2026-04-19 18:23:21');
+(8, 'maintenance_mode', 'false', NULL, '2026-04-23 09:15:01'),
+(9, 'maintenance_message', 'Platform is under maintenance. Please try again later.', NULL, '2026-04-23 09:05:14');
 
 -- --------------------------------------------------------
 
@@ -1047,7 +1157,7 @@ CREATE TABLE `properties` (
   `category_id` int(10) UNSIGNED DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
-  `space_type` enum('entire_place','private_room','shared_room') NOT NULL DEFAULT 'entire_place',
+  `space_type` enum('entire_place','private_room','shared_room','hotel_room','hotel_suite') NOT NULL DEFAULT 'entire_place',
   `property_kind` varchar(100) NOT NULL DEFAULT 'apartment',
   `price_per_night` decimal(10,2) DEFAULT NULL,
   `weekend_price` decimal(10,2) DEFAULT NULL,
@@ -1055,12 +1165,13 @@ CREATE TABLE `properties` (
   `monthly_discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
   `new_listing_promotion_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `last_minute_discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
-  `booking_mode` enum('instant_book','approve_first_three') NOT NULL DEFAULT 'instant_book',
+  `booking_mode` enum('instant_book','approve_first_three','always_approve') NOT NULL DEFAULT 'instant_book',
   `approved_bookings_count` int(10) UNSIGNED NOT NULL DEFAULT 0,
-  `currency` char(3) NOT NULL DEFAULT 'USD',
+  `currency` char(3) NOT NULL DEFAULT 'EGP',
   `cleaning_fee` decimal(10,2) NOT NULL DEFAULT 0.00,
   `security_deposit` decimal(10,2) NOT NULL DEFAULT 0.00,
   `service_fee_percent` decimal(5,2) NOT NULL DEFAULT 5.00,
+  `host_commission_percent` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT '0% = host keeps full nightly amount; only guests pay service_fee_percent',
   `min_nights` int(11) NOT NULL DEFAULT 1,
   `max_nights` int(11) NOT NULL DEFAULT 365,
   `turnover_days` tinyint(4) NOT NULL DEFAULT 1 COMMENT 'Cleaning/preparation buffer days between bookings',
@@ -1096,78 +1207,26 @@ CREATE TABLE `properties` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `archived_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `uuid` varchar(36) DEFAULT NULL,
   `geo_point` point NOT NULL,
   `require_verified_guest` tinyint(1) NOT NULL DEFAULT 0,
   `min_guest_rating` decimal(2,1) DEFAULT NULL,
   `wifi_name` varchar(100) DEFAULT NULL,
   `wifi_password` varchar(100) DEFAULT NULL,
-  `door_code` varchar(50) DEFAULT NULL
+  `door_code` varchar(50) DEFAULT NULL,
+  `wizard_last_step` int(11) NOT NULL DEFAULT 0 COMMENT 'Highest wizard step saved for this listing (0 = legacy/unknown)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `properties`
 --
 
-INSERT INTO `properties` (`id`, `host_id`, `category_id`, `title`, `description`, `space_type`, `property_kind`, `price_per_night`, `weekend_price`, `weekly_discount_percent`, `monthly_discount_percent`, `new_listing_promotion_enabled`, `last_minute_discount_percent`, `booking_mode`, `approved_bookings_count`, `currency`, `cleaning_fee`, `security_deposit`, `service_fee_percent`, `min_nights`, `max_nights`, `turnover_days`, `max_guests`, `bedrooms`, `bathrooms`, `beds`, `address`, `city`, `timezone`, `state`, `country`, `country_code`, `postal_code`, `latitude`, `longitude`, `check_in_after`, `check_out_before`, `check_in_instructions`, `allows_pets`, `allows_smoking`, `allows_parties`, `allows_children`, `instant_book`, `cancellation_policy`, `is_active`, `status`, `is_featured`, `avg_rating`, `review_count`, `view_count`, `impression_count`, `created_at`, `updated_at`, `archived_at`, `uuid`, `geo_point`, `require_verified_guest`, `min_guest_rating`, `wifi_name`, `wifi_password`, `door_code`) VALUES
-(161, 2, 6, 'Sky Penthouse with Panoramic Garden City Views', 'Three floors of pure luxury perched atop a landmark Maadi tower. A private rooftop pool, cinema room, and fully equipped chef\'s kitchen. This is the finest private accommodation in Cairo for discerning travelers and corporate guests.', 'entire_place', 'apartment', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 100.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 6, 'Road 9, Maadi', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 29.9602000, 31.2587000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 17, 28, 168, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5e93d-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000a779c7293a423f40849ecdaacff53d40, 0, NULL, NULL, NULL, NULL),
-(162, 3, 15, 'Authentic Nubian Guesthouse on the West Bank', 'Step into living history on the West Bank of Luxor. This lovingly restored Nubian guesthouse sits minutes from the Valley of the Kings. Hand-painted walls, rooftop sunsets over the Nile, and home-cooked Egyptian breakfasts every morning.', 'entire_place', 'house', 45.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 10.00, 0.00, 5.00, 1, 365, 1, 6, 3, 2.0, 4, 'Al Gezira, West Bank', 'Luxor', NULL, NULL, 'Egypt', 'EG', NULL, 25.6966000, 32.6103000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.91, 63, 14, 357, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5ef8a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d95f764f1e4e4040c364aa6054b23940, 0, NULL, NULL, NULL, NULL),
-(163, 4, 1, 'Diver\'s Loft with Rooftop ??? Steps from Blue Hole', 'Purpose-built for divers, this modern loft is a 3-minute walk from the legendary Dahab Blue Hole. Storage rooms for gear, freshwater rinse station, high-speed WiFi, and a rooftop hammock area with mountain views. Breakfast included.', 'entire_place', 'apartment', 65.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 15.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Blue Hole Road, Dahab', 'South Sinai', NULL, NULL, 'Egypt', 'EG', NULL, 28.5756000, 34.5150000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 41, 0, 248, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f055-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000052b81e85eb414140de9387855a933c40, 0, NULL, NULL, NULL, NULL),
-(164, 2, 13, 'Desert Ecolodge in Siwa Oasis', 'Disconnect from the world in this eco-lodge built from traditional kershef (salt rock). Solar powered, hot spring access, dune safari at dawn. The ultimate wellness escape in one of Egypt\'s most remote and mystical destinations.', 'entire_place', 'villa', 95.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 30.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Siwa Town Center', 'Siwa', NULL, NULL, 'Egypt', 'EG', NULL, 29.2027000, 25.5185000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 29, 1, 29, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f5f1cb-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000dbf97e6abc84394032e6ae25e4333d40, 0, NULL, NULL, NULL, NULL),
-(165, 3, 8, 'Designer Apartment near Cairo Festival City', 'Chic and fully furnished 2-bedroom in 5th Settlement. 10 minutes from Cairo International Airport, walking distance to Cairo Festival City Mall. High-speed fiber internet, Netflix, and smart home controls.', 'entire_place', 'apartment', 60.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, '5th Settlement, Ring Road', 'New Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0099000, 31.4777000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.74, 52, 31, 276, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f250-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000984c158c4a7a3f40fb3a70ce88023e40, 0, NULL, NULL, NULL, NULL),
-(166, 4, 11, 'Converted Felucca Houseboat ??? Aswan Nile', 'Sleep on the water in this beautifully converted traditional felucca permanently moored on the Nile. Watch Nubian fishermen at sunrise, sunset cocktails on deck, and close to Philae Temple and the Aswan High Dam.', 'entire_place', 'house', 75.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 2, 'Corniche El Nil, Aswan', 'Aswan', NULL, NULL, 'Egypt', 'EG', NULL, 24.0889000, 32.8998000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.86, 38, 0, 247, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f34f-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006c787aa52c734040499d8026c2163840, 0, NULL, NULL, NULL, NULL),
-(167, 2, 1, 'Beachfront Bungalow ??? Ain Sokhna', 'A quick 1.5-hour drive from Cairo, this private beachfront bungalow on the Red Sea Coast is perfect for weekend escapes. Private beach access, covered terrace, outdoor shower, and fully stocked kitchen.', 'entire_place', 'house', 110.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 35.00, 0.00, 5.00, 1, 365, 1, 6, 2, 2.0, 3, 'Porto Sokhna Resort', 'Sokhna', NULL, NULL, 'Egypt', 'EG', NULL, 29.6155000, 32.3508000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.82, 44, 0, 4, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f3c5-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000e9b7af03e72c404021b07268919d3d40, 0, NULL, NULL, NULL, NULL),
-(168, 3, 15, 'Belle ??poque Apartment in Downtown Cairo', 'A gem of Cairo\'s golden age. This lovingly maintained 1920s apartment retains original parquet floors, high stucco ceilings, and French windows overlooking a leafy boulevard. Walk to Tahrir Square, the Egyptian Museum, and Opera House.', 'entire_place', 'apartment', 42.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 12.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 2, 'Talaat Harb Square, Downtown', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0480000, 31.2361000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.68, 71, 0, 269, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f529-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ea95b20c713c3f403f355eba490c3e40, 0, NULL, NULL, NULL, NULL),
-(169, 4, 1, 'White Villa on the Mediterranean ??? North Coast', 'A gleaming white villa on Egypt\'s turquoise Mediterranean coast. Massive private pool, beachfront access, rooftop lounge, and a games room. Sleeps 10 comfortably. Perfect for groups, families, and milestone celebrations.', 'entire_place', 'villa', 450.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 150.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Sidi Heneish, Matruh', 'North Coast', NULL, NULL, 'Egypt', 'EG', NULL, 31.1965000, 27.8742000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 22, 1, 6, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5f5ab-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c7293a92cbdf3b40fca9f1d24d323f40, 0, NULL, NULL, NULL, NULL),
-(170, 2, 3, 'Water Villa with Private Lagoon Dock ??? El Gouna', 'Float between lagoon and sea in this unique water villa. Your private dock means you can kayak or paddleboard directly from home. A golf cart is included, and El Gouna\'s vibrant restaurants and nightlife are minutes away.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 80.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Villa Zone, El Gouna', 'Red Sea', NULL, NULL, 'Egypt', 'EG', NULL, 27.4010000, 33.6843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 31, 0, 31, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f5f69c-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008f53742497d740402db29defa7663b40, 0, NULL, NULL, NULL, NULL),
-(171, 3, 11, 'Whitewashed Caldera Cave House ??? Oia, Santorini', 'The quintessential Santorini experience. This traditional cave house in Oia offers unobstructed caldera views and front-row seats to the world\'s most famous sunset. Plunge pool, private terrace, and champagne on arrival.', 'entire_place', 'villa', 520.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 100.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'Oia Village', 'Oia', NULL, NULL, 'Greece', 'GR', NULL, 36.4625000, 25.3740000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.99, 88, 2, 164, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f70e-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000039b4c876be5f394033333333333b4240, 0, NULL, NULL, NULL, NULL),
-(172, 4, 6, 'Full-Floor Penthouse ??? Dubai Marina Skyline View', 'An entire floor of a Marina tower, 52 floors up. 270-degree views of the Marina, Palm Jumeirah, and Arabian Gulf. Private pool, home cinema, and a chauffeur service available. The definition of Dubai luxury.', 'entire_place', 'apartment', 850.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AED', 300.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.5, 4, 'Marina Walk, Dubai Marina', 'Dubai', NULL, NULL, 'United Arab Emirates', 'AE', NULL, 25.0806000, 55.1439000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 45, 3, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5f800-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000007cf2b0506b924b40bf0e9c33a2143940, 0, NULL, NULL, NULL, NULL),
-(173, 2, 2, 'Jungle Rice Terrace Villa ??? Ubud, Bali', 'Immerse yourself in Bali\'s emerald heartland. Your private infinity pool seems to pour directly into the rice terraces below. Full staff, daily breakfast, and a private driver to Ubud\'s temples and art galleries.', 'entire_place', 'villa', 185.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 50.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Jalan Raya Tegallalang', 'Ubud', NULL, NULL, 'Indonesia', 'ID', NULL, -8.4095000, 115.2820000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 112, 0, 163, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f872-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000355eba490cd25c408b6ce7fba9d120c0, 0, NULL, NULL, NULL, NULL),
-(174, 3, 15, 'Haussmann Apartment ??? Marais District, Paris', 'A perfectly restored Second Empire apartment in Le Marais ??? Paris\'s most sought-after neighborhood. Exposed limestone walls, parquet floors, and a private courtyard. Walk to the Louvre, Centre Pompidou, and Picasso Museum.', 'entire_place', 'apartment', 220.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 60.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Rue de Bretagne, Le Marais', 'Paris', NULL, NULL, 'France', 'FR', NULL, 48.8620000, 2.3592000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.89, 77, 0, 137, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f965-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000001dc9e53fa4df024075931804566e4840, 0, NULL, NULL, NULL, NULL),
-(175, 4, 8, 'Designer Capsule Studio ??? Shinjuku, Tokyo', 'Experience Tokyo\'s ultra-efficient design philosophy in this architect-designed micro-apartment. Smart storage, a meditation nook, and walking distance to Shinjuku Station, Golden Gai, and all the ramen you can eat.', 'entire_place', 'apartment', 18500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 5000.00, 0.00, 5.00, 1, 365, 1, 2, 0, 1.0, 1, '3-chome, Shinjuku', 'Tokyo', NULL, NULL, 'Japan', 'JP', NULL, 35.6938000, 139.7034000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.84, 93, 0, 3, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5f9d4-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000003480b740827661407ffb3a70ced84140, 0, NULL, NULL, NULL, NULL),
-(176, 2, 15, 'Restored Riad with Plunge Pool ??? Medina, Marrakech', 'A 16th-century merchant\'s house restored to its original splendor. Zellij tilework, cedarwood ceilings, a central fountain courtyard, and a rooftop terrace overlooking the medina\'s minarets. Full riad, sleeps 8.', 'entire_place', 'house', 1800.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'MAD', 400.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 6, 'Derb Sidi Ahmed Ou Moussa, Medina', 'Marrakech', NULL, NULL, 'Morocco', 'MA', NULL, 31.6294000, -7.9880000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 58, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5fac3-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c1caa145b6f31fc0371ac05b20a13f40, 0, NULL, NULL, NULL, NULL),
-(177, 3, 1, 'Overwater Bungalow with Glass Floor ??? Maldives', 'Wake up to turquoise lagoon directly beneath you through the glass floor panels. Your own ladder into the Indian Ocean, a hammock over the water, and a butler on call 24/7. Snorkeling gear and kayaks included.', 'entire_place', 'villa', 1200.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'North Mal?? Atoll', 'North Mal??', NULL, NULL, 'Maldives', 'MV', NULL, 4.3085000, 73.5265000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 5.00, 34, 1, 166, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5fbb4-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000004560e2db261524096438b6ce73b1140, 0, NULL, NULL, NULL, NULL),
-(178, 4, 8, 'Industrial Loft in Williamsburg, Brooklyn', 'A 19th-century factory floor transformed into a stunning open-plan loft. Exposed brick, 14-foot ceilings, and a rooftop with Manhattan skyline views. Steps from L train, vibrant restaurants, and Brooklyn\'s best coffee shops.', 'entire_place', 'apartment', 275.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 75.00, 0.00, 5.00, 1, 365, 1, 4, 1, 1.0, 1, 'North 6th Street, Williamsburg', 'New York', NULL, NULL, 'United States', 'US', NULL, 40.7141000, -73.9590000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.87, 66, 0, 16, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5fca4-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000004c378941607d52c06c09f9a0675b4440, 0, NULL, NULL, NULL, NULL),
-(179, 2, 15, 'Georgian Townhouse ??? Notting Hill, London', 'A four-story Georgian townhouse on one of London\'s most photogenic streets, two doors from Portobello Market. Original fireplaces, a private garden, and a wine cellar. Sleeps 8 in period-perfect comfort.', 'entire_place', 'house', 650.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'GBP', 150.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.5, 5, 'Pembridge Crescent, Notting Hill', 'London', NULL, NULL, 'United Kingdom', 'GB', NULL, 51.5127000, -0.2002000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.91, 29, 0, 1, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5fd95-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aa60545227a0c9bf61545227a0c14940, 0, NULL, NULL, NULL, NULL),
-(180, 3, 11, 'Cliffside Lemon Grove Villa ??? Positano, Amalfi', 'A romantic terraced villa clinging to the Amalfi cliffs above Positano. Private pool, lemon grove, and a boat for private coastal excursions. The view from the breakfast terrace will ruin all other breakfasts forever.', 'entire_place', 'villa', 480.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 120.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Via dei Mulini, Positano', 'Positano', NULL, NULL, 'Italy', 'IT', NULL, 40.6277000, 14.4843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 42, 0, 163, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f5fe87-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d5e76a2bf6f72c407fd93d7958504440, 0, NULL, NULL, NULL, NULL),
-(181, 4, 15, 'Machiya Townhouse ??? Gion District, Kyoto', 'A 100-year-old machiya (townhouse) in Kyoto\'s geisha district, thoughtfully updated with underfloor heating and a Japanese soaker bath. A traditional stone garden, tatami rooms, and private tea ceremony available on request.', 'entire_place', 'house', 42000.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 8000.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Gion, Higashiyama-ku', 'Kyoto', NULL, NULL, 'Japan', 'JP', NULL, 35.0039000, 135.7753000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 51, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f5ff75-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d712f241cff860402a3a92cb7f804140, 0, NULL, NULL, NULL, NULL),
-(182, 2, 11, 'Clifftop Villa with Atlantic Views ??? Camps Bay', 'Perched above Camps Bay with 180-degree Atlantic Ocean views, this contemporary villa has an infinity pool that merges with the horizon. Table Mountain looms behind, Camps Bay beach is 5 minutes below.', 'entire_place', 'villa', 380.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 90.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 5, 'The Glen, Camps Bay', 'Cape Town', NULL, NULL, 'South Africa', 'ZA', NULL, -33.9500000, 18.3765000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 38, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f60061-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aaf1d24d626032409a99999999f940c0, 0, NULL, NULL, NULL, NULL),
-(183, 3, 10, 'Ski-in Ski-out Alpine Chalet ??? Verbier', 'A classic Swiss chalet with direct piste access in the legendary Verbier ski resort. Stone fireplace, a sauna for apr??s-ski, a wine rack stocked with Swiss Fendant, and sunset views over the Mont-Blanc massif.', 'entire_place', 'house', 820.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 180.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Hameau de Verbier', 'Verbier', NULL, NULL, 'Switzerland', 'CH', NULL, 46.0977000, 7.2281000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 23, 3, 10, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f6014c-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d3dee00b93e91c40dc68006f810c4740, 0, NULL, NULL, NULL, NULL),
-(184, 4, 6, 'Sky Garden Suite ??? Marina Bay, Singapore', 'A sky terrace apartment on the 48th floor with unobstructed views of Marina Bay Sands, the Gardens by the Bay, and the Singapore Strait. A private sky garden, lap pool, and full concierge service at your disposal.', 'entire_place', 'apartment', 780.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SGD', 200.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Marina Boulevard', 'Singapore', NULL, NULL, 'Singapore', 'SG', NULL, 1.2784000, 103.8593000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.90, 27, 0, 1, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f60926-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000fb5c6dc5fef659406a4df38e5374f43f, 0, NULL, NULL, NULL, NULL),
-(185, 2, 2, 'Restored Farmhouse with Vineyard ??? Chianti, Tuscany', 'A stone farmhouse amid rolling Chianti vineyards with your own olive grove and vineyard terrace. A heated outdoor pool, wood-fired pizza oven, and a private wine cellar. Rolling hills in every direction, total silence at night.', 'entire_place', 'house', 340.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 80.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 5, 'Via Chiantigiana, Greve in Chianti', 'Florence', NULL, NULL, 'Italy', 'IT', NULL, 43.5843000, 11.3178000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 44, 0, 29, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f60a40-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006d567daeb6a22640c286a757caca4540, 0, NULL, NULL, NULL, NULL),
-(186, 3, 6, 'Luxury High-Rise Condo ??? Silom, Bangkok', 'A sleek, hotel-quality condo on the 35th floor in central Bangkok. Rooftop pool, fully equipped gym, and 24-hour concierge. BTS Sala Daeng station is literally downstairs. Perfect for business travelers and luxury seekers.', 'entire_place', 'apartment', 4500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'THB', 1000.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 1, 'Silom Road', 'Bangkok', NULL, NULL, 'Thailand', 'TH', NULL, 13.7233000, 100.5295000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.81, 60, 0, 3, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f60b30-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d9cef753e3215940c364aa6054722b40, 0, NULL, NULL, NULL, NULL),
-(187, 4, 15, 'Azulejo Tile Apartment ??? Alfama, Lisbon', 'Perched in Alfama, Lisbon\'s oldest and most atmospheric neighborhood. This apartment features original azulejo panels, a private balcony for fado evenings, and a spiral staircase to a rooftop with views to the Tagus estuary.', 'entire_place', 'apartment', 130.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 30.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 2, 'Rua dos Remedios, Alfama', 'Lisbon', NULL, NULL, 'Portugal', 'PT', NULL, 38.7120000, -9.1310000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 73, 0, 137, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f60c1a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000508d976e124322c04260e5d0225b4340, 0, NULL, NULL, NULL, NULL),
-(188, 2, 10, 'Lakeview Lodge ??? Queenstown, New Zealand', 'A modern mountain lodge overlooking Lake Wakatipu and The Remarkables mountain range. Hot tub on the deck, a kayak launch, and minutes from Queenstown\'s world-class skiing, bungee jumping, and wine trails.', 'entire_place', 'house', 320.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AUD', 70.00, 0.00, 5.00, 1, 365, 1, 6, 3, 2.0, 4, 'Frankton Road', 'Queenstown', NULL, NULL, 'New Zealand', 'NZ', NULL, -45.0312000, 168.6626000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 35, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f60e4b-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008c4aea04341565404ed1915cfe8346c0, 0, NULL, NULL, NULL, NULL),
-(189, 3, 6, 'Contemporary Villa with Pool ??? Al Nakheel, Riyadh', 'A contemporary villa in one of Riyadh\'s most prestigious neighborhoods. Large entertaining spaces, a private pool and garden, a cinema room, and fully equipped diwaniya. Perfect for families and delegations.', 'entire_place', 'villa', 1500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SAR', 400.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 5, 'Al Nakheel District', 'Riyadh', NULL, NULL, 'Saudi Arabia', 'SA', NULL, 24.7893000, 46.6413000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.83, 19, 0, 2, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f613a9-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000060764f1e1652474099bb96900fca3840, 0, NULL, NULL, NULL, NULL),
-(190, 4, 11, 'Ottoman Mansion on the Bosphorus ??? Bebek', 'A genuine 19th-century waterfront mansion in Bebek, the most prestigious address on the Bosphorus. Private boat dock, original painted ceilings, and uninterrupted views of European and Asian shores simultaneously.', 'entire_place', 'house', 8500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'TRY', 2000.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Bebek Sahil', 'Istanbul', NULL, NULL, 'Turkey', 'TR', NULL, 41.0773000, 29.0462000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 27, 1, 29, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f6143a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000401361c3d30b3d408bfd65f7e4894440, 0, NULL, NULL, NULL, NULL),
-(191, 2, 13, 'Luxury Desert Camp ??? Wadi Rum, Jordan', 'Sleep under a million stars in this luxury Bedouin-style camp in Wadi Rum. Private transparent geodesic dome for stargazing from bed, gourmet Jordanian dinner, and guided jeep tours of the Mars-like landscape included.', 'entire_place', 'villa', 150.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JOD', 30.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'Wadi Rum Protected Area', 'Wadi Rum', NULL, NULL, 'Jordan', 'JO', NULL, 29.5754000, 35.4231000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 48, 0, 164, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f614c1-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000003780b2428b641404f1e166a4d933d40, 0, NULL, NULL, NULL, NULL),
-(192, 3, 15, 'Gothic Quarter Penthouse ??? Barcelona', 'A stunning penthouse apartment in Barcelona\'s 2,000-year-old Gothic Quarter, with a private terrace and views of the Barcelona Cathedral. Steps from Las Ramblas, the Born market, and the best tapas bars in Europe.', 'entire_place', 'apartment', 195.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 50.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Carrer del Bisbe, Gothic', 'Barcelona', NULL, NULL, 'Spain', 'ES', NULL, 41.3831000, 2.1761000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.90, 84, 0, 137, '2026-03-23 22:25:25', '2026-04-19 23:56:43', NULL, '94f61536-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d49ae61da76801407e8cb96b09b14440, 0, NULL, NULL, NULL, NULL),
-(193, 4, 15, '17th-Century Canal House ??? Jordaan, Amsterdam', 'A five-story Golden Age canal house in Amsterdam\'s prettiest neighborhood. The trademark steep Dutch staircase, period furniture, a canal view breakfast room, and a secret garden terrace. Bikes provided for every guest.', 'entire_place', 'house', 285.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 65.00, 0.00, 5.00, 1, 365, 1, 6, 3, 2.0, 4, 'Prinsengracht, Jordaan', 'Amsterdam', NULL, NULL, 'Netherlands', 'NL', NULL, 52.3736000, 4.8811000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 56, 0, 5, '2026-03-23 22:25:25', '2026-04-12 22:19:22', NULL, '94f615a9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000bc0512143f8613408fe4f21fd22f4a40, 0, NULL, NULL, NULL, NULL),
-(194, 2, 1, 'Spice Island Beach Villa ??? Nungwi, Zanzibar', 'A whitewashed villa on the most beautiful beach in Zanzibar. Directly on the Indian Ocean, a private pool, coconut palms, a dhow sunset cruise included, and fresh catch grilled daily by your private cook.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 60.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Nungwi Beach', 'Nungwi', NULL, NULL, 'Tanzania', 'TZ', NULL, -5.7200000, 39.2975000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 39, 0, 30, '2026-03-23 22:25:25', '2026-04-19 23:56:13', NULL, '94f6161e-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ae47e17a14a64340e17a14ae47e116c0, 0, NULL, NULL, NULL, NULL),
-(197, 4, 1, 'Diver\'s Loft with Rooftop — Steps from Blue Hole', 'Purpose-built for divers, this modern loft is a 3-minute walk from the legendary Dahab Blue Hole. Storage rooms for gear, freshwater rinse station, high-speed WiFi, and a rooftop hammock area with mountain views. Breakfast included.', 'entire_place', 'apartment', 65.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 15.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Blue Hole Road, Dahab', 'South Sinai', NULL, NULL, 'Egypt', 'EG', NULL, 28.5756000, 34.5150000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.88, 41, 0, 248, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43062d0-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000052b81e85eb414140de9387855a933c40, 0, NULL, NULL, NULL, NULL),
-(198, 2, 13, 'Desert Ecolodge in Siwa Oasis', 'Disconnect from the world in this eco-lodge built from traditional kershef (salt rock). Solar powered, hot spring access, dune safari at dawn. The ultimate wellness escape in one of Egypt\'s most remote and mystical destinations.', 'entire_place', 'villa', 95.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 30.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 3, 'Siwa Town Center', 'Siwa', NULL, NULL, 'Egypt', 'EG', NULL, 29.2027000, 25.5185000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 29, 0, 35, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43063af-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000dbf97e6abc84394032e6ae25e4333d40, 0, NULL, NULL, NULL, NULL),
-(199, 3, 8, 'Designer Apartment near Cairo Festival City', 'Chic and fully furnished 2-bedroom in 5th Settlement. 10 minutes from Cairo International Airport, walking distance to Cairo Festival City Mall. High-speed fiber internet, Netflix, and smart home controls.', 'entire_place', 'apartment', 60.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, '5th Settlement, Ring Road', 'New Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0099000, 31.4777000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.74, 52, 0, 276, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43065c9-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000984c158c4a7a3f40fb3a70ce88023e40, 0, NULL, NULL, NULL, NULL),
-(200, 4, 11, 'Converted Felucca Houseboat — Aswan Nile', 'Sleep on the water in this beautifully converted traditional felucca permanently moored on the Nile. Watch Nubian fishermen at sunrise, sunset cocktails on deck, and close to Philae Temple and the Aswan High Dam.', 'entire_place', 'house', 75.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 20.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 2, 'Corniche El Nil, Aswan', 'Aswan', NULL, NULL, 'Egypt', 'EG', NULL, 24.0889000, 32.8998000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.86, 38, 4, 245, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306679-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006c787aa52c734040499d8026c2163840, 0, NULL, NULL, NULL, NULL),
-(201, 2, 1, 'Beachfront Bungalow — Ain Sokhna', 'A quick 1.5-hour drive from Cairo, this private beachfront bungalow on the Red Sea Coast is perfect for weekend escapes. Private beach access, covered terrace, outdoor shower, and fully stocked kitchen.', 'entire_place', 'house', 110.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 35.00, 0.00, 5.00, 1, 365, 1, 6, 2, 2.0, 3, 'Porto Sokhna Resort', 'Sokhna', NULL, NULL, 'Egypt', 'EG', NULL, 29.6155000, 32.3508000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.82, 44, 0, 4, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b430670b-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000e9b7af03e72c404021b07268919d3d40, 0, NULL, NULL, NULL, NULL),
-(202, 3, 15, 'Belle Époque Apartment in Downtown Cairo', 'A gem of Cairo\'s golden age. This lovingly maintained 1920s apartment retains original parquet floors, high stucco ceilings, and French windows overlooking a leafy boulevard. Walk to Tahrir Square, the Egyptian Museum, and Opera House.', 'entire_place', 'apartment', 42.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 12.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 2, 'Talaat Harb Square, Downtown', 'Cairo', NULL, NULL, 'Egypt', 'EG', NULL, 30.0480000, 31.2361000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.68, 71, 1, 275, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306855-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000ea95b20c713c3f403f355eba490c3e40, 0, NULL, NULL, NULL, NULL),
-(203, 4, 1, 'White Villa on the Mediterranean — North Coast', 'A gleaming white villa on Egypt\'s turquoise Mediterranean coast. Massive private pool, beachfront access, rooftop lounge, and a games room. Sleeps 10 comfortably. Perfect for groups, families, and milestone celebrations.', 'entire_place', 'villa', 450.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 150.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Sidi Heneish, Matruh', 'North Coast', NULL, NULL, 'Egypt', 'EG', NULL, 31.1965000, 27.8742000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 22, 0, 6, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b43068cc-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c7293a92cbdf3b40fca9f1d24d323f40, 0, NULL, NULL, NULL, NULL),
-(204, 2, 3, 'Water Villa with Private Lagoon Dock — El Gouna', 'Float between lagoon and sea in this unique water villa. Your private dock means you can kayak or paddleboard directly from home. A golf cart is included, and El Gouna\'s vibrant restaurants and nightlife are minutes away.', 'entire_place', 'villa', 280.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 80.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Villa Zone, El Gouna', 'Red Sea', NULL, NULL, 'Egypt', 'EG', NULL, 27.4010000, 33.6843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 31, 0, 31, '2026-03-23 22:26:17', '2026-04-19 23:56:13', NULL, 'b43069a8-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000008f53742497d740402db29defa7663b40, 0, NULL, NULL, NULL, NULL),
-(205, 3, 11, 'Whitewashed Caldera Cave House — Oia, Santorini', 'The quintessential Santorini experience. This traditional cave house in Oia offers unobstructed caldera views and front-row seats to the world\'s most famous sunset. Plunge pool, private terrace, and champagne on arrival.', 'entire_place', 'villa', 520.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 100.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'Oia Village', 'Oia', NULL, NULL, 'Greece', 'GR', NULL, 36.4625000, 25.3740000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.99, 88, 2, 164, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306a32-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000039b4c876be5f394033333333333b4240, 0, NULL, NULL, NULL, NULL),
-(206, 4, 6, 'Full-Floor Penthouse — Dubai Marina Skyline View', 'An entire floor of a Marina tower, 52 floors up. 270-degree views of the Marina, Palm Jumeirah, and Arabian Gulf. Private pool, home cinema, and a chauffeur service available. The definition of Dubai luxury.', 'entire_place', 'apartment', 850.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'AED', 300.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.5, 4, 'Marina Walk, Dubai Marina', 'Dubai', NULL, NULL, 'United Arab Emirates', 'AE', NULL, 25.0806000, 55.1439000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.92, 45, 0, 5, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4306b84-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000007cf2b0506b924b40bf0e9c33a2143940, 0, NULL, NULL, NULL, NULL),
-(207, 2, 2, 'Jungle Rice Terrace Villa — Ubud, Bali', 'Immerse yourself in Bali\'s emerald heartland. Your private infinity pool seems to pour directly into the rice terraces below. Full staff, daily breakfast, and a private driver to Ubud\'s temples and art galleries.', 'entire_place', 'villa', 185.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 50.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Jalan Raya Tegallalang', 'Ubud', NULL, NULL, 'Indonesia', 'ID', NULL, -8.4095000, 115.2820000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 112, 0, 59, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306c36-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000355eba490cd25c408b6ce7fba9d120c0, 0, NULL, NULL, NULL, NULL),
-(208, 3, 15, 'Haussmann Apartment — Marais District, Paris', 'A perfectly restored Second Empire apartment in Le Marais — Paris\'s most sought-after neighborhood. Exposed limestone walls, parquet floors, and a private courtyard. Walk to the Louvre, Centre Pompidou, and Picasso Museum.', 'entire_place', 'apartment', 220.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 60.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Rue de Bretagne, Le Marais', 'Paris', NULL, NULL, 'France', 'FR', NULL, 48.8620000, 2.3592000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.89, 77, 1, 137, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306d67-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000001dc9e53fa4df024075931804566e4840, 0, NULL, NULL, NULL, NULL),
-(209, 4, 8, 'Designer Capsule Studio — Shinjuku, Tokyo', 'Experience Tokyo\'s ultra-efficient design philosophy in this architect-designed micro-apartment. Smart storage, a meditation nook, and walking distance to Shinjuku Station, Golden Gai, and all the ramen you can eat.', 'entire_place', 'apartment', 18500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 5000.00, 0.00, 5.00, 1, 365, 1, 2, 0, 1.0, 1, '3-chome, Shinjuku', 'Tokyo', NULL, NULL, 'Japan', 'JP', NULL, 35.6938000, 139.7034000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.84, 93, 0, 9, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306de8-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000003480b740827661407ffb3a70ced84140, 0, NULL, NULL, NULL, NULL),
-(210, 2, 15, 'Restored Riad with Plunge Pool — Medina, Marrakech', 'A 16th-century merchant\'s house restored to its original splendor. Zellij tilework, cedarwood ceilings, a central fountain courtyard, and a rooftop terrace overlooking the medina\'s minarets. Full riad, sleeps 8.', 'entire_place', 'house', 1800.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'MAD', 400.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 6, 'Derb Sidi Ahmed Ou Moussa, Medina', 'Marrakech', NULL, NULL, 'Morocco', 'MA', NULL, 31.6294000, -7.9880000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.94, 58, 0, 5, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4306e84-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000c1caa145b6f31fc0371ac05b20a13f40, 0, NULL, NULL, NULL, NULL),
-(211, 3, 1, 'Overwater Bungalow with Glass Floor — Maldives', 'Wake up to turquoise lagoon directly beneath you through the glass floor panels. Your own ladder into the Indian Ocean, a hammock over the water, and a butler on call 24/7. Snorkeling gear and kayaks included.', 'entire_place', 'villa', 1200.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 0.00, 0.00, 5.00, 1, 365, 1, 2, 1, 1.0, 1, 'North Malé Atoll', 'North Malé', NULL, NULL, 'Maldives', 'MV', NULL, 4.3085000, 73.5265000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 5.00, 34, 1, 166, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306f0c-26f6-11f1-8811-84a938fc7bd1', 0x00000000010100000004560e2db261524096438b6ce73b1140, 0, NULL, NULL, NULL, NULL),
-(212, 4, 8, 'Industrial Loft in Williamsburg, Brooklyn', 'A 19th-century factory floor transformed into a stunning open-plan loft. Exposed brick, 14-foot ceilings, and a rooftop with Manhattan skyline views. Steps from L train, vibrant restaurants, and Brooklyn\'s best coffee shops.', 'entire_place', 'apartment', 275.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 75.00, 0.00, 5.00, 1, 365, 1, 4, 1, 1.0, 1, 'North 6th Street, Williamsburg', 'New York', NULL, NULL, 'United States', 'US', NULL, 40.7141000, -73.9590000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.87, 66, 0, 16, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4306f7f-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000004c378941607d52c06c09f9a0675b4440, 0, NULL, NULL, NULL, NULL),
-(213, 2, 15, 'Georgian Townhouse — Notting Hill, London', 'A four-story Georgian townhouse on one of London\'s most photogenic streets, two doors from Portobello Market. Original fireplaces, a private garden, and a wine cellar. Sleeps 8 in period-perfect comfort.', 'entire_place', 'house', 650.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'GBP', 150.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.5, 5, 'Pembridge Crescent, Notting Hill', 'London', NULL, NULL, 'United Kingdom', 'GB', NULL, 51.5127000, -0.2002000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.91, 29, 0, 1, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4306fed-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aa60545227a0c9bf61545227a0c14940, 0, NULL, NULL, NULL, NULL),
-(214, 3, 11, 'Cliffside Lemon Grove Villa — Positano, Amalfi', 'A romantic terraced villa clinging to the Amalfi cliffs above Positano. Private pool, lemon grove, and a boat for private coastal excursions. The view from the breakfast terrace will ruin all other breakfasts forever.', 'entire_place', 'villa', 480.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 120.00, 0.00, 5.00, 1, 365, 1, 6, 3, 3.0, 4, 'Via dei Mulini, Positano', 'Positano', NULL, NULL, 'Italy', 'IT', NULL, 40.6277000, 14.4843000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.98, 42, 0, 163, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b4307059-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d5e76a2bf6f72c407fd93d7958504440, 0, NULL, NULL, NULL, NULL),
-(215, 4, 15, 'Machiya Townhouse — Gion District, Kyoto', 'A 100-year-old machiya (townhouse) in Kyoto\'s geisha district, thoughtfully updated with underfloor heating and a Japanese soaker bath. A traditional stone garden, tatami rooms, and private tea ceremony available on request.', 'entire_place', 'house', 42000.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'JPY', 8000.00, 0.00, 5.00, 1, 365, 1, 4, 2, 1.0, 2, 'Gion, Higashiyama-ku', 'Kyoto', NULL, NULL, 'Japan', 'JP', NULL, 35.0039000, 135.7753000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.95, 51, 0, 10, '2026-03-23 22:26:17', '2026-04-19 23:56:13', NULL, 'b43070c5-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d712f241cff860402a3a92cb7f804140, 0, NULL, NULL, NULL, NULL),
-(216, 2, 11, 'Clifftop Villa with Atlantic Views — Camps Bay', 'Perched above Camps Bay with 180-degree Atlantic Ocean views, this contemporary villa has an infinity pool that merges with the horizon. Table Mountain looms behind, Camps Bay beach is 5 minutes below.', 'entire_place', 'villa', 380.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'USD', 90.00, 0.00, 5.00, 1, 365, 1, 8, 4, 4.0, 5, 'The Glen, Camps Bay', 'Cape Town', NULL, NULL, 'South Africa', 'ZA', NULL, -33.9500000, 18.3765000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.93, 38, 0, 5, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b4307130-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000aaf1d24d626032409a99999999f940c0, 0, NULL, NULL, NULL, NULL),
-(217, 3, 10, 'Ski-in Ski-out Alpine Chalet — Verbier', 'A classic Swiss chalet with direct piste access in the legendary Verbier ski resort. Stone fireplace, a sauna for après-ski, a wine rack stocked with Swiss Fendant, and sunset views over the Mont-Blanc massif.', 'entire_place', 'house', 820.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 180.00, 0.00, 5.00, 1, 365, 1, 10, 5, 4.0, 7, 'Hameau de Verbier', 'Verbier', NULL, NULL, 'Switzerland', 'CH', NULL, 46.0977000, 7.2281000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.96, 23, 0, 10, '2026-03-23 22:26:17', '2026-04-19 23:56:13', NULL, 'b43071ac-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d3dee00b93e91c40dc68006f810c4740, 0, NULL, NULL, NULL, NULL),
-(218, 4, 6, 'Sky Garden Suite — Marina Bay, Singapore', 'A sky terrace apartment on the 48th floor with unobstructed views of Marina Bay Sands, the Gardens by the Bay, and the Singapore Strait. A private sky garden, lap pool, and full concierge service at your disposal.', 'entire_place', 'apartment', 780.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'SGD', 200.00, 0.00, 5.00, 1, 365, 1, 4, 2, 2.0, 2, 'Marina Boulevard', 'Singapore', NULL, NULL, 'Singapore', 'SG', NULL, 1.2784000, 103.8593000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.90, 27, 0, 1, '2026-03-23 22:26:17', '2026-04-12 22:19:22', NULL, 'b430725a-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000fb5c6dc5fef659406a4df38e5374f43f, 0, NULL, NULL, NULL, NULL),
-(219, 2, 2, 'Restored Farmhouse with Vineyard — Chianti, Tuscany', 'A stone farmhouse amid rolling Chianti vineyards with your own olive grove and vineyard terrace. A heated outdoor pool, wood-fired pizza oven, and a private wine cellar. Rolling hills in every direction, total silence at night.', 'entire_place', 'house', 340.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'EUR', 80.00, 0.00, 5.00, 1, 365, 1, 8, 4, 3.0, 5, 'Via Chiantigiana, Greve in Chianti', 'Florence', NULL, NULL, 'Italy', 'IT', NULL, 43.5843000, 11.3178000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 4.97, 44, 0, 42, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b43072cc-26f6-11f1-8811-84a938fc7bd1', 0x0000000001010000006d567daeb6a22640c286a757caca4540, 0, NULL, NULL, NULL, NULL),
-(220, 3, 6, 'Luxury High-Rise Condo — Silom, Bangkok', 'A sleek, hotel-quality condo on the 35th floor in central Bangkok. Rooftop pool, fully equipped gym, and 24-hour concierge. BTS Sala Daeng station is literally downstairs. Perfect for business travelers and luxury seekers.', 'entire_place', 'apartment', 4500.00, NULL, 0.00, 0.00, 0, 0.00, 'instant_book', 0, 'THB', 1000.00, 0.00, 5.00, 1, 365, 1, 3, 1, 1.0, 1, 'Silom Road', 'Bangkok', NULL, NULL, 'Thailand', 'TH', NULL, 13.7233000, 100.5295000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 1, 'flexible', 1, 'published', 0, 4.81, 60, 0, 3, '2026-03-23 22:26:17', '2026-04-19 23:56:43', NULL, 'b430733e-26f6-11f1-8811-84a938fc7bd1', 0x000000000101000000d9cef753e3215940c364aa6054722b40, 0, NULL, NULL, NULL, NULL);
+INSERT INTO `properties` (`id`, `host_id`, `category_id`, `title`, `description`, `space_type`, `property_kind`, `price_per_night`, `weekend_price`, `weekly_discount_percent`, `monthly_discount_percent`, `new_listing_promotion_enabled`, `last_minute_discount_percent`, `booking_mode`, `approved_bookings_count`, `currency`, `cleaning_fee`, `security_deposit`, `service_fee_percent`, `host_commission_percent`, `min_nights`, `max_nights`, `turnover_days`, `max_guests`, `bedrooms`, `bathrooms`, `beds`, `address`, `city`, `timezone`, `state`, `country`, `country_code`, `postal_code`, `latitude`, `longitude`, `check_in_after`, `check_out_before`, `check_in_instructions`, `allows_pets`, `allows_smoking`, `allows_parties`, `allows_children`, `instant_book`, `cancellation_policy`, `is_active`, `status`, `is_featured`, `avg_rating`, `review_count`, `view_count`, `impression_count`, `created_at`, `updated_at`, `archived_at`, `deleted_at`, `uuid`, `geo_point`, `require_verified_guest`, `min_guest_rating`, `wifi_name`, `wifi_password`, `door_code`, `wizard_last_step`) VALUES
+(260, 37, 4, 'wsdqeerewr', 'Our place offers a stunning view that guests love. A cozy and well-furnished space perfect for families. Just a short walk to the beach.\n\nWhat makes this place unique:\nSmart home features\nPrivate parking\nLuxury furnishings\nWaterfront / beach access\nRooftop terrace\nPrivate pool', 'entire_place', 'apartment', 500.00, 600.00, 0.00, 0.00, 1, 0.00, 'approve_first_three', 0, 'EGP', 0.00, 500.00, 5.00, 0.00, 2, 365, 1, 3, 4, 2.0, 1, '23 Ismail Al Kabbani', 'Nasr City', NULL, NULL, 'Egypt', NULL, NULL, 30.0589445, 31.3299714, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 0.00, 0, 49, 23, '2026-05-03 01:08:09', '2026-05-05 21:52:14', NULL, NULL, 'fc242111-71de-4f49-96db-32f7a1eba3b9', 0x000000000101000000879d730179543f4071c79bfc160f3e40, 0, NULL, NULL, NULL, NULL, 16),
+(261, 40, 11, 'erwterttyrty', 'Enjoy a peaceful and quiet neighborhood. Just a short walk to the beach. Freshly cleaned linens and towels are provided.\n\nWhat makes this place unique:\nPanoramic views\nRooftop terrace\nPrivate pool\nGarden & outdoor space\nWaterfront / beach access\nLuxury furnishings\nPrivate parking\nSmart home features\nGame room\nEV charger\nPet-friendly\nHome cinema / projector\nFireplace\nHot tub / jacuzzi', 'hotel_room', 'hotel', 500.00, 600.00, 15.00, 15.00, 1, 10.00, 'approve_first_three', 0, 'EGP', 0.00, 250.00, 5.00, 0.00, 5, 365, 1, 4, 4, 2.0, 2, '90 Axis_mahmoud Talaet', 'قسم أول القاهرة الجديدة', NULL, NULL, 'Egypt', NULL, NULL, 30.0158481, 31.4418411, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 0.00, 0, 37, 4, '2026-05-05 19:24:10', '2026-05-05 22:10:38', NULL, NULL, 'b7940dee-ad38-4eec-b5d4-1e89bad85856', 0x0000000001010000005787927f1c713f402834ff9e0e043e40, 0, NULL, NULL, NULL, NULL, 16),
+(262, 40, NULL, 'Untitled listing', '', 'entire_place', 'apartment', 500.00, 600.00, 0.00, 0.00, 1, 0.00, 'approve_first_three', 0, 'EGP', 0.00, 0.00, 5.00, 0.00, 1, 365, 1, 2, 1, 1.0, 1, '', '', NULL, NULL, '', NULL, NULL, 0.0000000, 0.0000000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'draft', 0, 0.00, 0, 1, 0, '2026-05-05 21:22:01', '2026-05-05 21:52:10', NULL, NULL, '38a72446-bd80-4ca7-b7f5-d0df7f0a120c', 0x00000000010100000000000000000000000000000000000000, 0, NULL, NULL, NULL, NULL, 1),
+(263, 40, 5, 'sdsdffgddhgfhfh', 'Just a short walk to the beach. Freshly cleaned linens and towels are provided. Located in a prime area, close to restaurants and shops. Enjoy a peaceful and quiet neighborhood. Our place offers a stunning view that guests love.\n\nWhat makes this place unique:\nSelf check-in', 'entire_place', 'apartment', 500.00, 600.00, 0.00, 0.00, 1, 0.00, 'approve_first_three', 0, 'EGP', 0.00, 0.00, 5.00, 0.00, 1, 365, 1, 2, 1, 1.0, 1, '23 Ismail Al Kabbani', 'Nasr City', NULL, NULL, 'Egypt', NULL, NULL, 30.0589242, 31.3299685, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 0, 'archived', 0, 0.00, 0, 0, 0, '2026-05-05 21:52:26', '2026-05-05 21:55:37', '2026-05-05 15:55:20', '2026-05-05 18:55:37', '6e9ac0af-b11b-44ad-be15-a44dfde91249', 0x000000000101000000ce35ccd078543f4066f107a8150f3e40, 0, NULL, NULL, NULL, NULL, 15);
 
 --
 -- Triggers `properties`
@@ -1197,465 +1256,38 @@ CREATE TABLE `property_amenities` (
 --
 
 INSERT INTO `property_amenities` (`property_id`, `amenity_id`) VALUES
-(161, 1),
-(161, 2),
-(161, 3),
-(161, 4),
-(161, 6),
-(161, 8),
-(161, 9),
-(161, 11),
-(161, 13),
-(161, 21),
-(161, 22),
-(161, 23),
-(162, 1),
-(162, 2),
-(162, 4),
-(162, 21),
-(162, 22),
-(162, 23),
-(163, 1),
-(163, 2),
-(163, 4),
-(163, 18),
-(163, 19),
-(163, 21),
-(163, 22),
-(164, 1),
-(164, 2),
-(164, 11),
-(164, 21),
-(164, 22),
-(164, 23),
-(165, 1),
-(165, 2),
-(165, 4),
-(165, 6),
-(165, 8),
-(165, 9),
-(165, 21),
-(165, 22),
-(166, 1),
-(166, 2),
-(166, 4),
-(166, 9),
-(166, 21),
-(166, 22),
-(167, 1),
-(167, 2),
-(167, 4),
-(167, 14),
-(167, 15),
-(167, 18),
-(167, 21),
-(167, 22),
-(168, 1),
-(168, 2),
-(168, 5),
-(168, 9),
-(168, 21),
-(168, 22),
-(169, 1),
-(169, 2),
-(169, 3),
-(169, 4),
-(169, 5),
-(169, 6),
-(169, 9),
-(169, 11),
-(169, 12),
-(169, 13),
-(169, 14),
-(169, 15),
-(169, 21),
-(169, 22),
-(169, 23),
-(170, 1),
-(170, 2),
-(170, 4),
-(170, 9),
-(170, 11),
-(170, 19),
-(170, 20),
-(170, 21),
-(170, 22),
-(171, 1),
-(171, 2),
-(171, 4),
-(171, 11),
-(171, 12),
-(171, 21),
-(171, 22),
-(171, 23),
-(172, 1),
-(172, 2),
-(172, 3),
-(172, 4),
-(172, 8),
-(172, 11),
-(172, 13),
-(172, 21),
-(172, 22),
-(172, 23),
-(173, 1),
-(173, 2),
-(173, 4),
-(173, 11),
-(173, 14),
-(173, 18),
-(173, 21),
-(173, 22),
-(173, 23),
-(174, 1),
-(174, 2),
-(174, 5),
-(174, 6),
-(174, 9),
-(174, 21),
-(174, 22),
-(175, 1),
-(175, 2),
-(175, 4),
-(175, 8),
-(175, 9),
-(175, 21),
-(175, 22),
-(176, 1),
-(176, 2),
-(176, 4),
-(176, 11),
-(176, 12),
-(176, 14),
-(176, 21),
-(176, 22),
-(176, 23),
-(177, 1),
-(177, 12),
-(177, 15),
-(177, 21),
-(177, 22),
-(177, 23),
-(178, 1),
-(178, 2),
-(178, 5),
-(178, 6),
-(178, 8),
-(178, 9),
-(178, 21),
-(178, 22),
-(179, 1),
-(179, 2),
-(179, 3),
-(179, 5),
-(179, 6),
-(179, 11),
-(179, 13),
-(179, 21),
-(179, 22),
-(180, 1),
-(180, 2),
-(180, 4),
-(180, 11),
-(180, 14),
-(180, 18),
-(180, 21),
-(180, 22),
-(180, 23),
-(181, 1),
-(181, 2),
-(181, 5),
-(181, 21),
-(181, 22),
-(181, 23),
-(182, 1),
-(182, 2),
-(182, 4),
-(182, 11),
-(182, 13),
-(182, 14),
-(182, 21),
-(182, 22),
-(182, 23),
-(183, 1),
-(183, 2),
-(183, 5),
-(183, 12),
-(183, 16),
-(183, 21),
-(183, 22),
-(183, 23),
-(184, 1),
-(184, 2),
-(184, 3),
-(184, 4),
-(184, 8),
-(184, 11),
-(184, 13),
-(184, 21),
-(184, 22),
-(184, 23),
-(185, 1),
-(185, 2),
-(185, 4),
-(185, 9),
-(185, 11),
-(185, 14),
-(185, 19),
-(185, 21),
-(185, 22),
-(186, 1),
-(186, 2),
-(186, 4),
-(186, 8),
-(186, 11),
-(186, 13),
-(186, 21),
-(186, 22),
-(186, 23),
-(187, 1),
-(187, 2),
-(187, 5),
-(187, 8),
-(187, 9),
-(187, 21),
-(187, 22),
-(188, 1),
-(188, 2),
-(188, 5),
-(188, 12),
-(188, 14),
-(188, 19),
-(188, 20),
-(188, 21),
-(188, 22),
-(189, 1),
-(189, 2),
-(189, 3),
-(189, 4),
-(189, 9),
-(189, 11),
-(189, 13),
-(189, 21),
-(189, 22),
-(189, 23),
-(190, 1),
-(190, 2),
-(190, 4),
-(190, 8),
-(190, 9),
-(190, 14),
-(190, 21),
-(190, 22),
-(191, 1),
-(191, 14),
-(191, 18),
-(191, 21),
-(191, 22),
-(191, 23),
-(192, 1),
-(192, 2),
-(192, 4),
-(192, 8),
-(192, 9),
-(192, 11),
-(192, 21),
-(192, 22),
-(192, 23),
-(193, 1),
-(193, 2),
-(193, 5),
-(193, 6),
-(193, 9),
-(193, 19),
-(193, 21),
-(193, 22),
-(194, 1),
-(194, 2),
-(194, 4),
-(194, 11),
-(194, 14),
-(194, 15),
-(194, 18),
-(194, 21),
-(194, 22),
-(194, 23),
-(197, 1),
-(197, 2),
-(197, 4),
-(197, 18),
-(197, 19),
-(197, 21),
-(197, 22),
-(200, 1),
-(200, 2),
-(200, 4),
-(200, 9),
-(200, 21),
-(200, 22),
-(201, 1),
-(201, 2),
-(201, 4),
-(201, 14),
-(201, 15),
-(201, 18),
-(201, 21),
-(201, 22),
-(202, 1),
-(202, 2),
-(202, 5),
-(202, 9),
-(202, 21),
-(202, 22),
-(203, 1),
-(203, 2),
-(203, 3),
-(203, 4),
-(203, 5),
-(203, 6),
-(203, 9),
-(203, 11),
-(203, 12),
-(203, 13),
-(203, 14),
-(203, 15),
-(203, 21),
-(203, 22),
-(203, 23),
-(204, 1),
-(204, 2),
-(204, 4),
-(204, 9),
-(204, 11),
-(204, 19),
-(204, 20),
-(204, 21),
-(204, 22),
-(205, 1),
-(205, 2),
-(205, 4),
-(205, 11),
-(205, 12),
-(205, 21),
-(205, 22),
-(205, 23),
-(206, 1),
-(206, 2),
-(206, 3),
-(206, 4),
-(206, 8),
-(206, 11),
-(206, 13),
-(206, 21),
-(206, 22),
-(206, 23),
-(207, 1),
-(207, 2),
-(207, 4),
-(207, 11),
-(207, 14),
-(207, 18),
-(207, 21),
-(207, 22),
-(207, 23),
-(208, 1),
-(208, 2),
-(208, 5),
-(208, 6),
-(208, 9),
-(208, 21),
-(208, 22),
-(209, 1),
-(209, 2),
-(209, 4),
-(209, 8),
-(209, 9),
-(209, 21),
-(209, 22),
-(210, 1),
-(210, 2),
-(210, 4),
-(210, 11),
-(210, 12),
-(210, 14),
-(210, 21),
-(210, 22),
-(210, 23),
-(211, 1),
-(211, 12),
-(211, 15),
-(211, 21),
-(211, 22),
-(211, 23),
-(213, 1),
-(213, 2),
-(213, 3),
-(213, 5),
-(213, 6),
-(213, 11),
-(213, 13),
-(213, 21),
-(213, 22),
-(214, 1),
-(214, 2),
-(214, 4),
-(214, 11),
-(214, 14),
-(214, 18),
-(214, 21),
-(214, 22),
-(214, 23),
-(215, 1),
-(215, 2),
-(215, 5),
-(215, 21),
-(215, 22),
-(215, 23),
-(216, 1),
-(216, 2),
-(216, 4),
-(216, 11),
-(216, 13),
-(216, 14),
-(216, 21),
-(216, 22),
-(216, 23),
-(217, 1),
-(217, 2),
-(217, 5),
-(217, 12),
-(217, 16),
-(217, 21),
-(217, 22),
-(217, 23),
-(218, 1),
-(218, 2),
-(218, 3),
-(218, 4),
-(218, 8),
-(218, 11),
-(218, 13),
-(218, 21),
-(218, 22),
-(218, 23),
-(219, 1),
-(219, 2),
-(219, 4),
-(219, 9),
-(219, 11),
-(219, 14),
-(219, 19),
-(219, 21),
-(219, 22),
-(220, 1),
-(220, 2),
-(220, 4),
-(220, 8),
-(220, 11),
-(220, 13),
-(220, 21),
-(220, 22),
-(220, 23);
+(260, 1),
+(260, 2),
+(260, 7),
+(260, 12),
+(260, 17),
+(260, 18),
+(261, 1),
+(261, 2),
+(261, 3),
+(261, 5),
+(261, 7),
+(261, 8),
+(261, 9),
+(261, 10),
+(261, 11),
+(261, 12),
+(261, 13),
+(261, 14),
+(261, 15),
+(261, 16),
+(261, 17),
+(261, 18),
+(261, 19),
+(261, 20),
+(261, 21),
+(261, 22),
+(261, 23),
+(261, 24),
+(261, 25),
+(261, 26),
+(263, 2),
+(263, 24);
 
 -- --------------------------------------------------------
 
@@ -1678,58 +1310,42 @@ CREATE TABLE `property_availability` (
 --
 
 INSERT INTO `property_availability` (`id`, `property_id`, `date`, `is_blocked`, `price_override`, `source`, `ical_source_id`) VALUES
-(53, 171, '2026-03-26', 1, NULL, 'host', NULL),
-(54, 171, '2026-03-27', 1, NULL, 'host', NULL),
-(55, 165, '2026-03-27', 1, NULL, 'host', NULL),
-(56, 165, '2026-03-28', 1, NULL, 'host', NULL),
-(57, 165, '2026-03-29', 1, NULL, 'host', NULL),
-(58, 165, '2026-03-30', 1, NULL, 'host', NULL),
-(59, 165, '2026-03-31', 1, NULL, 'host', NULL),
-(60, 165, '2026-04-01', 1, NULL, 'host', NULL),
-(61, 165, '2026-04-02', 1, NULL, 'host', NULL),
-(64, 162, '2026-03-28', 1, NULL, 'host', NULL),
-(65, 162, '2026-03-29', 1, NULL, 'host', NULL),
-(66, 162, '2026-03-30', 1, NULL, 'host', NULL),
-(67, 162, '2026-03-31', 1, NULL, 'host', NULL),
-(68, 165, '2026-04-03', 1, NULL, 'host', NULL),
-(69, 165, '2026-04-04', 1, NULL, 'host', NULL),
-(70, 165, '2026-04-05', 1, NULL, 'host', NULL),
-(71, 165, '2026-04-06', 1, NULL, 'host', NULL),
-(72, 165, '2026-04-07', 1, NULL, 'host', NULL),
-(73, 165, '2026-04-08', 1, NULL, 'host', NULL),
-(74, 165, '2026-04-09', 1, NULL, 'host', NULL),
-(75, 165, '2026-04-10', 1, NULL, 'host', NULL),
-(76, 165, '2026-04-11', 1, NULL, 'host', NULL),
-(77, 165, '2026-04-12', 1, NULL, 'host', NULL),
-(78, 165, '2026-04-13', 1, NULL, 'host', NULL),
-(79, 165, '2026-04-14', 1, NULL, 'host', NULL),
-(80, 165, '2026-04-15', 1, NULL, 'host', NULL),
-(84, 161, '2026-04-08', 0, NULL, 'host', NULL),
-(85, 161, '2026-04-09', 0, NULL, 'host', NULL),
-(86, 161, '2026-04-10', 0, NULL, 'host', NULL),
-(87, 161, '2026-04-11', 1, NULL, 'host', NULL),
-(88, 161, '2026-04-12', 0, NULL, 'host', NULL),
-(89, 161, '2026-04-13', 0, NULL, 'host', NULL),
-(90, 161, '2026-04-14', 0, NULL, 'host', NULL),
-(91, 161, '2026-04-15', 0, NULL, 'host', NULL),
-(92, 161, '2026-04-16', 0, NULL, 'host', NULL),
-(93, 161, '2026-04-17', 0, NULL, 'host', NULL),
-(95, 161, '2026-04-18', 0, NULL, 'host', NULL),
-(96, 161, '2026-04-19', 0, NULL, 'host', NULL),
-(97, 161, '2026-04-20', 0, NULL, 'host', NULL),
-(98, 161, '2026-04-21', 0, NULL, 'host', NULL),
-(99, 161, '2026-04-22', 0, NULL, 'host', NULL),
-(100, 161, '2026-04-23', 0, NULL, 'host', NULL),
-(101, 161, '2026-04-24', 0, NULL, 'host', NULL),
-(102, 165, '2026-04-16', 0, NULL, 'host', NULL),
-(103, 165, '2026-04-17', 0, NULL, 'host', NULL),
-(104, 165, '2026-04-18', 0, NULL, 'host', NULL),
-(105, 165, '2026-04-19', 0, NULL, 'host', NULL),
-(106, 165, '2026-04-20', 0, NULL, 'host', NULL),
-(107, 165, '2026-04-21', 0, NULL, 'host', NULL),
-(108, 165, '2026-04-22', 0, NULL, 'host', NULL),
-(109, 165, '2026-04-23', 0, NULL, 'host', NULL),
-(110, 165, '2026-04-24', 0, NULL, 'host', NULL);
+(515, 260, '2026-05-28', 0, NULL, 'host', NULL),
+(516, 260, '2026-05-29', 0, NULL, 'host', NULL),
+(518, 260, '2026-05-06', 0, NULL, 'host', NULL),
+(519, 260, '2026-05-07', 0, NULL, 'host', NULL),
+(520, 260, '2026-05-08', 0, NULL, 'host', NULL),
+(524, 260, '2026-05-13', 0, NULL, 'booking', NULL),
+(525, 260, '2026-05-14', 0, NULL, 'booking', NULL),
+(526, 260, '2026-05-15', 0, NULL, 'booking', NULL),
+(530, 260, '2026-05-05', 0, NULL, 'host', NULL),
+(531, 260, '2026-05-12', 0, NULL, 'host', NULL),
+(532, 260, '2026-05-11', 0, NULL, 'host', NULL),
+(533, 260, '2026-05-04', 0, NULL, 'host', NULL),
+(534, 260, '2026-05-10', 0, NULL, 'host', NULL),
+(535, 260, '2026-05-17', 0, NULL, 'host', NULL),
+(536, 260, '2026-05-18', 0, NULL, 'host', NULL),
+(537, 260, '2026-05-19', 0, NULL, 'host', NULL),
+(538, 260, '2026-05-20', 0, NULL, 'host', NULL),
+(539, 260, '2026-05-22', 0, NULL, 'host', NULL),
+(540, 260, '2026-05-23', 0, NULL, 'host', NULL),
+(541, 260, '2026-05-21', 0, NULL, 'host', NULL),
+(542, 260, '2026-05-30', 0, NULL, 'host', NULL),
+(543, 260, '2026-05-27', 0, NULL, 'host', NULL),
+(544, 260, '2026-05-26', 0, NULL, 'host', NULL),
+(545, 260, '2026-05-25', 0, NULL, 'host', NULL),
+(546, 260, '2026-05-24', 0, NULL, 'host', NULL),
+(547, 260, '2026-05-31', 0, NULL, 'host', NULL),
+(548, 260, '2026-05-16', 0, NULL, 'host', NULL),
+(549, 260, '2026-05-09', 0, NULL, 'host', NULL),
+(550, 260, '2026-05-03', 0, NULL, 'host', NULL),
+(582, 261, '2026-05-07', 0, NULL, 'host', NULL),
+(583, 261, '2026-05-08', 0, 100000.00, 'host', NULL),
+(584, 261, '2026-05-09', 0, 100000.00, 'host', NULL),
+(585, 261, '2026-05-10', 0, 100000.00, 'host', NULL),
+(586, 261, '2026-05-11', 0, 100000.00, 'host', NULL),
+(587, 261, '2026-05-12', 0, 1.00, 'host', NULL),
+(588, 261, '2026-05-13', 0, NULL, 'host', NULL);
 
 -- --------------------------------------------------------
 
@@ -1743,6 +1359,19 @@ CREATE TABLE `property_house_rules` (
   `rule` varchar(500) NOT NULL,
   `rule_ar` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `property_house_rules`
+--
+
+INSERT INTO `property_house_rules` (`id`, `property_id`, `rule`, `rule_ar`) VALUES
+(355, 260, 'No pets', NULL),
+(356, 260, 'Quiet hours (10 PM – 8 AM)', NULL),
+(357, 260, 'No unregistered guests', NULL),
+(358, 260, 'Government ID required at check-in', NULL),
+(377, 261, 'No pets', NULL),
+(378, 261, 'Quiet hours (10 PM – 8 AM)', NULL),
+(379, 261, 'No shoes inside', NULL);
 
 -- --------------------------------------------------------
 
@@ -1783,132 +1412,21 @@ CREATE TABLE `property_photos` (
 --
 
 INSERT INTO `property_photos` (`id`, `property_id`, `url`, `caption`, `display_order`, `is_cover`, `created_at`) VALUES
-(104, 161, 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(105, 161, 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(106, 161, 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200', NULL, 3, 0, '2026-03-23 22:25:25'),
-(107, 162, 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(108, 162, 'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(109, 163, 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(110, 163, 'https://images.unsplash.com/photo-1682686580950-960d1d513532?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(111, 164, 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(112, 164, 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(113, 165, 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(114, 165, 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(115, 166, 'https://images.unsplash.com/photo-1580674285054-bed31e145f59?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(116, 166, 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(117, 167, 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(118, 167, 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(119, 168, 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(120, 168, 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(121, 169, 'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(122, 169, 'https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(123, 170, 'https://images.unsplash.com/photo-1469796466635-455ede028aca?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(124, 170, 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(125, 171, 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(126, 171, 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(127, 171, 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1200', NULL, 3, 0, '2026-03-23 22:25:25'),
-(128, 172, 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(129, 172, 'https://images.unsplash.com/photo-1582672060674-bc2bd808a8b5?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(130, 173, 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(131, 173, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(132, 173, 'https://images.unsplash.com/photo-1503174971373-b1f69850bded?w=1200', NULL, 3, 0, '2026-03-23 22:25:25'),
-(133, 174, 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(134, 174, 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(135, 175, 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(136, 175, 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(137, 176, 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(138, 176, 'https://images.unsplash.com/photo-1557800636-894a64c1696f?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(139, 177, 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(140, 177, 'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(141, 178, 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(142, 178, 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(143, 179, 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(144, 179, 'https://images.unsplash.com/photo-1444978360867-2e716fcd17a7?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(145, 180, 'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(146, 180, 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(147, 181, 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(148, 181, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(149, 182, 'https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(150, 182, 'https://images.unsplash.com/photo-1576485375217-d6a95e34d043?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(151, 183, 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(152, 183, 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(153, 184, 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(154, 184, 'https://images.unsplash.com/photo-1548484352-ea579e5233a8?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(155, 185, 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(156, 185, 'https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(157, 186, 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(158, 186, 'https://images.unsplash.com/photo-1559628233-100c798642d5?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(159, 187, 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(160, 187, 'https://images.unsplash.com/photo-1548707309-dcebeab9ea9b?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(161, 188, 'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(162, 188, 'https://images.unsplash.com/photo-1434394354979-a235cd36269d?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(163, 189, 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(164, 189, 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(165, 190, 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(166, 190, 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(167, 191, 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(168, 191, 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(169, 192, 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(170, 192, 'https://images.unsplash.com/photo-1464790719320-516ecd75af6c?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(171, 193, 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(172, 193, 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(173, 194, 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=1200', NULL, 1, 1, '2026-03-23 22:25:25'),
-(174, 194, 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1200', NULL, 2, 0, '2026-03-23 22:25:25'),
-(175, 161, 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(176, 161, 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(177, 161, 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200', NULL, 3, 0, '2026-03-23 22:26:18'),
-(178, 162, 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(179, 162, 'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(180, 197, 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(181, 197, 'https://images.unsplash.com/photo-1682686580950-960d1d513532?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(182, 164, 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(183, 164, 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(184, 165, 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(185, 165, 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(186, 200, 'https://images.unsplash.com/photo-1580674285054-bed31e145f59?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(187, 200, 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(188, 201, 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(189, 201, 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(190, 202, 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(191, 202, 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(192, 203, 'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(193, 203, 'https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(194, 204, 'https://images.unsplash.com/photo-1469796466635-455ede028aca?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(195, 204, 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(196, 205, 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(197, 205, 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(198, 205, 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1200', NULL, 3, 0, '2026-03-23 22:26:18'),
-(199, 206, 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(200, 206, 'https://images.unsplash.com/photo-1582672060674-bc2bd808a8b5?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(201, 207, 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(202, 207, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(203, 207, 'https://images.unsplash.com/photo-1503174971373-b1f69850bded?w=1200', NULL, 3, 0, '2026-03-23 22:26:18'),
-(204, 208, 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(205, 208, 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(206, 209, 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(207, 209, 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(208, 210, 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(209, 210, 'https://images.unsplash.com/photo-1557800636-894a64c1696f?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(210, 211, 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(211, 211, 'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(212, 178, 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(213, 178, 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(214, 213, 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(215, 213, 'https://images.unsplash.com/photo-1444978360867-2e716fcd17a7?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(216, 214, 'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(217, 214, 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(218, 215, 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(219, 215, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(220, 216, 'https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(221, 216, 'https://images.unsplash.com/photo-1576485375217-d6a95e34d043?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(222, 217, 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(223, 217, 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(224, 218, 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(225, 218, 'https://images.unsplash.com/photo-1548484352-ea579e5233a8?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(226, 219, 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(227, 219, 'https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=1200', NULL, 2, 0, '2026-03-23 22:26:18'),
-(228, 220, 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200', NULL, 1, 1, '2026-03-23 22:26:18'),
-(229, 220, 'https://images.unsplash.com/photo-1559628233-100c798642d5?w=1200', NULL, 2, 0, '2026-03-23 22:26:18');
+(333, 260, '/uploads/properties/260/photo-1777759764971-802e1725-84ba-412e-919f-593317e77d94.jpg', NULL, 0, 1, '2026-05-03 01:09:25'),
+(334, 260, '/uploads/properties/260/photo-1777759764977-5b9e3b73-031b-48bd-80b0-21cac490ef09.png', NULL, 1, 0, '2026-05-03 01:09:25'),
+(335, 260, '/uploads/properties/260/photo-1777759764987-cbf74395-3473-4428-b127-dde92b48c91f.png', NULL, 2, 0, '2026-05-03 01:09:25'),
+(336, 260, '/uploads/properties/260/photo-1777759765005-67537721-ecdb-4b0f-88e8-fc8cd908610b.png', NULL, 3, 0, '2026-05-03 01:09:25'),
+(337, 260, '/uploads/properties/260/photo-1777759765014-04474995-f9a3-41b8-a3f2-8f6686c6a957.png', NULL, 4, 0, '2026-05-03 01:09:25'),
+(338, 261, '/uploads/properties/261/photo-1777998407391-17ac6600-3ac1-4b8e-9086-fe85a907556d.png', NULL, 0, 1, '2026-05-05 19:26:47'),
+(339, 261, '/uploads/properties/261/photo-1777998407399-97d0e87c-81cc-4a5a-ba4b-0fd58faf7ab0.png', NULL, 1, 0, '2026-05-05 19:26:47'),
+(340, 261, '/uploads/properties/261/photo-1777998407421-3714441f-d99a-409d-bc13-c6e7ce4c1016.jpg', NULL, 2, 0, '2026-05-05 19:26:47'),
+(341, 261, '/uploads/properties/261/photo-1777998407422-e32b64d9-0260-4649-8ec3-21ca2151e8f2.png', NULL, 3, 0, '2026-05-05 19:26:47'),
+(342, 261, '/uploads/properties/261/photo-1777998407439-96e91a09-0f32-45e5-8bf1-e402e47fb43b.png', NULL, 4, 0, '2026-05-05 19:26:47'),
+(343, 263, '/uploads/properties/263/photo-1778007240143-144c52c9-eda2-4344-adf5-e2ce145b3cfe.png', NULL, 0, 1, '2026-05-05 21:54:00'),
+(344, 263, '/uploads/properties/263/photo-1778007240159-e360a73b-1f3c-4b57-b69f-3bf57c398fa7.png', NULL, 1, 0, '2026-05-05 21:54:00'),
+(345, 263, '/uploads/properties/263/photo-1778007240182-57e8360a-f478-46a3-946e-828eeb2e210e.png', NULL, 2, 0, '2026-05-05 21:54:00'),
+(346, 263, '/uploads/properties/263/photo-1778007240182-43357221-d24f-4943-bb3b-819788899b50.png', NULL, 3, 0, '2026-05-05 21:54:00'),
+(347, 263, '/uploads/properties/263/photo-1778007240215-2f8906fd-fcd2-4851-a242-e29ab549019e.png', NULL, 4, 0, '2026-05-05 21:54:00');
 
 -- --------------------------------------------------------
 
@@ -1933,6 +1451,8 @@ CREATE TABLE `reviews` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `booking_id` bigint(20) UNSIGNED NOT NULL,
   `reviewer_id` bigint(20) UNSIGNED NOT NULL,
+  `reviewer_role` enum('guest','host') NOT NULL DEFAULT 'guest' COMMENT 'guest = guest reviewing property; host = host reviewing guest',
+  `reviewed_user_id` bigint(20) UNSIGNED DEFAULT NULL COMMENT 'Populated for host→guest reviews; the guest being reviewed',
   `property_id` bigint(20) UNSIGNED NOT NULL,
   `overall_rating` tinyint(3) UNSIGNED NOT NULL CHECK (`overall_rating` between 1 and 5),
   `cleanliness_rating` tinyint(3) UNSIGNED DEFAULT NULL CHECK (`cleanliness_rating` between 1 and 5),
@@ -2011,6 +1531,8 @@ CREATE TABLE `users` (
   `is_phone_verified` tinyint(1) NOT NULL DEFAULT 0,
   `is_id_verified` tinyint(1) NOT NULL DEFAULT 0,
   `id_document_url` varchar(500) DEFAULT NULL COMMENT 'Path to uploaded government ID document',
+  `id_document_back_url` varchar(500) DEFAULT NULL,
+  `id_document_type` enum('national_id','passport') NOT NULL DEFAULT 'national_id',
   `id_verification_status` enum('none','pending','approved','rejected') NOT NULL DEFAULT 'none' COMMENT 'Current state of government ID verification',
   `is_admin` tinyint(1) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
@@ -2047,19 +1569,35 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `profile_uuid`, `email`, `password_hash`, `first_name`, `last_name`, `avatar_url`, `phone`, `bio`, `date_of_birth`, `is_host`, `is_superhost`, `is_consultant`, `is_email_verified`, `is_phone_verified`, `is_id_verified`, `id_document_url`, `id_verification_status`, `is_admin`, `is_active`, `preferred_language`, `google_id`, `refresh_token`, `created_at`, `updated_at`, `totp_secret`, `is_totp_enabled`, `last_login_at`, `failed_login_attempts`, `locked_until`, `last_booking_at`, `last_profile_edit_at`, `host_cancelled_bookings_count`, `last_host_cancellation_at`, `auto_payout_enabled`, `auto_payout_frequency`, `auto_payout_day`, `auto_payout_min_balance`, `auto_payout_method`, `auto_payout_account_details`, `notification_preferences`, `auto_reply_enabled`, `auto_reply_message`, `fcm_token`, `average_response_minutes`, `response_rate`, `id_rejection_reason`) VALUES
-(2, 'c2f153d2-26ed-11f1-8811-84a938fc7bd1', 'ahmed.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Ahmed', 'Hassan', NULL, NULL, 'Passionate host based in Cairo. Love showing guests the best of Egypt!', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, '$2b$10$D2vf3mg40qEImUx1CLQsFuE6Q7gz6LlGuR6d1joP6xAyJyD/G3HMa', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(3, 'c2f17149-26ed-11f1-8811-84a938fc7bd1', 'sara.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Sara', 'Mohamed', NULL, NULL, 'Superhost with 5 years of experience. I love meeting travelers!', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(4, 'c2f1725e-26ed-11f1-8811-84a938fc7bd1', 'omar.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Omar', 'Khalil', NULL, NULL, 'Professional property manager in Hurghada and Sharm El Sheikh.', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(5, 'c2f172c5-26ed-11f1-8811-84a938fc7bd1', 'guest1@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Layla', 'Ibrahim', NULL, NULL, 'Love exploring new places!', NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'ar', NULL, '$2b$10$sXrVtm5rCaJ0epXA3xZp3.rUBZOvjq39Q2XYexOh7PzqxZvYT2b3a', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(6, 'c2f17abb-26ed-11f1-8811-84a938fc7bd1', 'guest2@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'James', 'Wilson', NULL, NULL, 'Digital nomad always looking for cozy workspaces.', NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(7, 'c2f17bea-26ed-11f1-8811-84a938fc7bd1', 'test@test.com', '$2b$12$W7Skfw1pI.HmTCiRAPCjkuYw1kY8FMS3CeU0q7/PO1EC3YVDO5alq', 'Test', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$7hRD3T32FNHYjas2zijTfePO0NtnXm5Gn87cEYbJFnija.Www/AqS', '2026-03-17 01:16:17', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(8, 'c2f17c50-26ed-11f1-8811-84a938fc7bd1', 'new20892@test.com', '$2b$12$b.65UQmEBB8E8HAl5Ve.5OuCIXT9MiBi9lcJdSWGhjpLKYavq0bV2', 'New', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$D.7jHC3Nke.W7YrqE.1sm.w0ns3z4N83Sr.TlmGmBnu40/uP5lVNi', '2026-03-17 01:23:54', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(10, 'c2f17cb5-26ed-11f1-8811-84a938fc7bd1', 'tahamoataz@gmail.com', '$2b$12$5nnbEX5UkSLFZiouo16JrOtbrLhBI9G0uVRYOnCPtAvvmuf/ccHre', 'taha', 'moataz', '/uploads/avatars/avatar-1774381377258-749934226.png', NULL, NULL, NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$W3vAr533b0LercWMEs4KMuz/BsV1P66SNbFjHPFzfnIQnn9N2Aa1O', '2026-03-20 11:39:30', '2026-04-07 00:16:38', NULL, 0, '2026-04-06 22:16:38.082000', 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(15, 'c2f17e01-26ed-11f1-8811-84a938fc7bd1', 'admin@sakan.app', '$2b$10$qhup6zWen75uuBiJICCb4.RUKGGU8pE91LjfZI/apirVgF.5I0Lm6', 'Admin', 'Sakan', NULL, NULL, 'Platform administrator', NULL, 1, 0, 0, 1, 0, 0, NULL, 'none', 1, 1, 'en', NULL, '$2b$10$ioGABw4s4lxALKMDJQXdluIr7AQ5fv4Oe.Ar08Vp1eeIq.S8S40jS', '2026-03-23 11:21:24', '2026-04-19 20:00:15', NULL, 0, '2026-04-19 18:00:15.310000', 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(29, 'f19ae354-f436-4f7f-946b-77084223be65', 'taha@bme-global.com', '$2b$12$.1eEXsnivXLc8fecoosZtujcSwj26kvMeOrCWVHyDwC.VbjDLVA0.', 'Taha', 'Moataz', NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$HsikquL45LCd2r0JAJuNL.AmbxkPBcI.fYZcTlWWN86bzHb4fyUdO', '2026-04-10 23:32:44', '2026-04-10 23:32:44', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(31, '8a3d43b9-5946-4d33-9519-566cdffe70d3', 'tahamoata@gmail.com', '$2b$12$N.zG5eTqZdp3Guc8rDb0l.jPwq.ZsGrchvloD3LWGtTwjhOs2uGmi', 'taha', 'moataz', NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 'none', 0, 1, 'en', NULL, '$2b$10$vvp/.uKpKBnIP5o6C98yQuZ6cZB4QEjxbj1XWw2tjJky8oC6jaLem', '2026-04-11 16:26:10', '2026-04-19 23:43:44', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(33, '301dae64-e100-41f9-908b-9709b3a3c35c', 'tahamoataz5@gmail.com', NULL, 'taha', 'moataz', 'https://lh3.googleusercontent.com/a/ACg8ocIhokSZ7I-yDtXC4sLNCE8-xCGOriQx5JjDqruvwAn73AvoaWOg=s96-c', '+201153450920', '', NULL, 1, 0, 0, 1, 1, 0, NULL, 'none', 0, 1, 'en', '111444434132856504879', '$2b$10$CzapFAXNTAMBsjjEJkKYVuUq3tVNGBrOut2.VHwPAwRQUUBx/lPs.', '2026-04-11 19:28:29', '2026-04-19 23:47:12', NULL, 0, NULL, 0, NULL, '2026-04-11 20:10:41.246000', '2026-04-11 17:28:47.747000', 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL);
+INSERT INTO `users` (`id`, `profile_uuid`, `email`, `password_hash`, `first_name`, `last_name`, `avatar_url`, `phone`, `bio`, `date_of_birth`, `is_host`, `is_superhost`, `is_consultant`, `is_email_verified`, `is_phone_verified`, `is_id_verified`, `id_document_url`, `id_document_back_url`, `id_document_type`, `id_verification_status`, `is_admin`, `is_active`, `preferred_language`, `google_id`, `refresh_token`, `created_at`, `updated_at`, `totp_secret`, `is_totp_enabled`, `last_login_at`, `failed_login_attempts`, `locked_until`, `last_booking_at`, `last_profile_edit_at`, `host_cancelled_bookings_count`, `last_host_cancellation_at`, `auto_payout_enabled`, `auto_payout_frequency`, `auto_payout_day`, `auto_payout_min_balance`, `auto_payout_method`, `auto_payout_account_details`, `notification_preferences`, `auto_reply_enabled`, `auto_reply_message`, `fcm_token`, `average_response_minutes`, `response_rate`, `id_rejection_reason`) VALUES
+(2, 'c2f153d2-26ed-11f1-8811-84a938fc7bd1', 'ahmed.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Ahmed', 'Hassan', NULL, NULL, 'Passionate host based in Cairo. Love showing guests the best of Egypt!', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'ar', NULL, '$2b$10$D2vf3mg40qEImUx1CLQsFuE6Q7gz6LlGuR6d1joP6xAyJyD/G3HMa', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(3, 'c2f17149-26ed-11f1-8811-84a938fc7bd1', 'sara.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Sara', 'Mohamed', NULL, NULL, 'Superhost with 5 years of experience. I love meeting travelers!', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(4, 'c2f1725e-26ed-11f1-8811-84a938fc7bd1', 'omar.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Omar', 'Khalil', NULL, NULL, 'Professional property manager in Hurghada and Sharm El Sheikh.', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'ar', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(5, 'c2f172c5-26ed-11f1-8811-84a938fc7bd1', 'guest1@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Layla', 'Ibrahim', NULL, NULL, 'Love exploring new places!', NULL, 0, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'ar', NULL, '$2b$10$sXrVtm5rCaJ0epXA3xZp3.rUBZOvjq39Q2XYexOh7PzqxZvYT2b3a', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(6, 'c2f17abb-26ed-11f1-8811-84a938fc7bd1', 'guest2@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'James', 'Wilson', NULL, NULL, 'Digital nomad always looking for cozy workspaces.', NULL, 0, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(8, 'c2f17c50-26ed-11f1-8811-84a938fc7bd1', 'new20892@test.com', '$2b$12$b.65UQmEBB8E8HAl5Ve.5OuCIXT9MiBi9lcJdSWGhjpLKYavq0bV2', 'New', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'en', NULL, '$2b$10$D.7jHC3Nke.W7YrqE.1sm.w0ns3z4N83Sr.TlmGmBnu40/uP5lVNi', '2026-03-17 01:23:54', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(15, 'c2f17e01-26ed-11f1-8811-84a938fc7bd1', 'admin@sakan.app', '$2b$10$qhup6zWen75uuBiJICCb4.RUKGGU8pE91LjfZI/apirVgF.5I0Lm6', 'Admin', 'Sakan', NULL, NULL, 'Platform administrator', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 1, 1, 'en', NULL, '$2b$10$iyqE36qVRzB3G9nYvrVtT.zJ9e95ypddu63nPJUhnjFh1CTgTcZt6', '2026-03-23 11:21:24', '2026-05-05 19:21:45', NULL, 0, '2026-05-05 16:21:45.550000', 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(37, 'bfd7268b-6a6e-45cf-b41e-77e764da7d65', 'oikivo.support@gmail.com', '$2b$12$OGAAYaqmoLxk3ZhIQDTseuf0KngOFZhbO3yW/K14vXallzox.A/Xu', 'Oikivo', '', 'https://lh3.googleusercontent.com/a/ACg8ocIEtHaerdKPumc8Zt6qqMm1erYhs0zUaOLbwcLYa-UUbntn0b0=s400-c', '+201153450921', '', NULL, 1, 0, 0, 1, 0, 1, '/uploads/id-documents/id-1777754117405-548991430.jpg', '/uploads/id-documents/id-back-1777754117453-723683007.png', 'national_id', 'approved', 0, 1, 'en', '106051725765162573852', '$2b$10$w1MkxPAsJ0gKSCBlzH8WLuJUczkvhrZ/CvrM6391h5qkv.6FciTYC', '2026-05-02 23:30:42', '2026-05-03 08:48:19', 'MYACGNC3EUOUCBAJ', 1, '2026-05-03 05:14:27.741000', 0, NULL, NULL, '2026-05-03 04:27:54.257000', 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 9.0, 50.00, NULL),
+(40, '507e6ba7-bc3c-4e74-9f95-9aef28f4aeea', 'tahamoataz5@gmail.com', NULL, 'taha', 'moataz', 'https://lh3.googleusercontent.com/a/ACg8ocIhokSZ7I-yDtXC4sLNCE8-xCGOriQx5JjDqruvwAn73AvoaWOg=s400-c', '+201153450920', '', NULL, 1, 0, 0, 1, 1, 1, '/uploads/id-documents/id-1777998030113-892420816.pdf', '/uploads/id-documents/id-back-1777998030170-749547500.png', 'national_id', 'approved', 0, 1, 'en', '111444434132856504879', '$2b$10$BT.Y833/i/DD2PL4d4lJWuXL59y26z3qzfDK5bshM1aHLrQO8EZUm', '2026-05-03 16:50:53', '2026-05-05 21:51:49', NULL, 0, NULL, 0, NULL, NULL, '2026-05-05 16:20:53.619000', 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_reports`
+--
+
+CREATE TABLE `user_reports` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `reporter_id` bigint(20) UNSIGNED NOT NULL,
+  `reported_user_id` bigint(20) UNSIGNED NOT NULL,
+  `report_type` enum('spam','harassment','inappropriate','fraud','other') NOT NULL,
+  `reason` text DEFAULT NULL,
+  `status` enum('pending','reviewed','resolved','dismissed') NOT NULL DEFAULT 'pending',
+  `reviewed_by_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `admin_notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -2072,6 +1610,8 @@ CREATE TABLE `user_sessions` (
   `user_id` bigint(20) UNSIGNED NOT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `user_agent` varchar(500) DEFAULT NULL,
+  `os_name` varchar(100) DEFAULT NULL,
+  `device_name` varchar(150) DEFAULT NULL,
   `expires_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `last_active_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -2081,14 +1621,31 @@ CREATE TABLE `user_sessions` (
 -- Dumping data for table `user_sessions`
 --
 
-INSERT INTO `user_sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `expires_at`, `created_at`, `last_active_at`) VALUES
-(1, 10, '::1', NULL, '2026-05-05 13:34:04', '2026-04-05 16:34:04', '2026-04-05 16:34:04'),
-(2, 15, '::1', NULL, '2026-05-05 19:43:54', '2026-04-05 22:43:54', '2026-04-05 22:43:54'),
-(3, 15, '::1', NULL, '2026-05-06 17:54:44', '2026-04-06 20:54:44', '2026-04-06 20:54:44'),
-(4, 15, '::1', NULL, '2026-05-06 19:06:04', '2026-04-06 22:06:04', '2026-04-06 22:06:04'),
-(5, 10, '::1', NULL, '2026-05-06 19:16:38', '2026-04-06 22:16:38', '2026-04-06 22:16:38'),
-(6, 15, '::1', NULL, '2026-05-10 15:22:15', '2026-04-10 18:22:15', '2026-04-10 18:22:15'),
-(7, 15, '::1', NULL, '2026-05-19 15:00:15', '2026-04-19 18:00:15', '2026-04-19 18:00:15');
+INSERT INTO `user_sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `os_name`, `device_name`, `expires_at`, `created_at`, `last_active_at`) VALUES
+(2, 15, '::1', NULL, NULL, NULL, '2026-05-05 19:43:54', '2026-04-05 22:43:54', '2026-04-05 22:43:54'),
+(3, 15, '::1', NULL, NULL, NULL, '2026-05-06 17:54:44', '2026-04-06 20:54:44', '2026-04-06 20:54:44'),
+(4, 15, '::1', NULL, NULL, NULL, '2026-05-06 19:06:04', '2026-04-06 22:06:04', '2026-04-06 22:06:04'),
+(6, 15, '::1', NULL, NULL, NULL, '2026-05-10 15:22:15', '2026-04-10 18:22:15', '2026-04-10 18:22:15'),
+(7, 15, '::1', NULL, NULL, NULL, '2026-05-19 15:00:15', '2026-04-19 18:00:15', '2026-04-19 18:00:15'),
+(8, 15, '::1', NULL, NULL, NULL, '2026-05-23 04:56:47', '2026-04-23 07:56:47', '2026-04-23 07:56:47'),
+(9, 15, '::1', NULL, NULL, NULL, '2026-05-23 05:49:33', '2026-04-23 08:49:33', '2026-04-23 08:49:33'),
+(10, 15, '::1', NULL, NULL, NULL, '2026-05-23 06:13:09', '2026-04-23 09:13:09', '2026-04-23 09:13:09'),
+(11, 15, '::1', NULL, NULL, NULL, '2026-05-23 07:37:07', '2026-04-23 10:37:07', '2026-04-23 10:37:07'),
+(12, 15, '::1', NULL, NULL, NULL, '2026-05-23 09:56:44', '2026-04-23 12:56:44', '2026-04-23 12:56:44'),
+(13, 15, '::1', NULL, NULL, NULL, '2026-05-23 11:06:39', '2026-04-23 14:06:39', '2026-04-23 14:06:39'),
+(14, 15, '::1', NULL, NULL, NULL, '2026-05-23 12:39:06', '2026-04-23 15:39:06', '2026-04-23 15:39:06'),
+(16, 15, '::1', NULL, NULL, NULL, '2026-05-24 10:29:05', '2026-04-24 13:29:05', '2026-04-24 13:29:05'),
+(22, 15, '::1', NULL, NULL, NULL, '2026-05-24 20:06:37', '2026-04-24 23:06:37', '2026-04-24 23:06:37'),
+(23, 15, '::1', NULL, NULL, NULL, '2026-05-25 08:11:07', '2026-04-25 11:11:07', '2026-04-25 11:11:07'),
+(34, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 08:49:43', '2026-04-28 11:49:43', '2026-04-28 11:49:43'),
+(35, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 09:30:11', '2026-04-28 12:30:11', '2026-04-28 12:30:11'),
+(36, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 11:01:09', '2026-04-28 14:01:09', '2026-04-28 14:01:09'),
+(38, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 14:21:27', '2026-04-28 17:21:27', '2026-04-28 17:21:27'),
+(39, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-30 07:10:04', '2026-04-30 10:10:04', '2026-04-30 10:10:04'),
+(42, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-01 18:58:19', '2026-05-02 21:58:19', '2026-05-02 21:58:19'),
+(44, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-02 01:07:10', '2026-05-03 04:07:10', '2026-05-03 04:07:10'),
+(45, 37, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-02 02:14:27', '2026-05-03 05:14:27', '2026-05-03 05:14:27'),
+(46, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-04 13:21:45', '2026-05-05 16:21:45', '2026-05-05 16:21:45');
 
 -- --------------------------------------------------------
 
@@ -2111,9 +1668,8 @@ CREATE TABLE `verification_tokens` (
 --
 
 INSERT INTO `verification_tokens` (`id`, `user_id`, `type`, `token`, `expires_at`, `used_at`, `created_at`) VALUES
-(28, 29, 'email', 'b1503c13-ad02-4db5-9cf8-5f903139310e', '2026-04-11 21:32:44', NULL, '2026-04-10 23:32:44'),
-(33, 33, 'phone', '208086', '2026-04-11 17:38:51', '2026-04-11 17:29:07', '2026-04-11 19:28:51'),
-(34, 31, 'email', 'ebd81742-692a-4e17-ad3c-819a9660bfc2', '2026-04-12 19:03:13', NULL, '2026-04-11 21:03:13');
+(47, 37, 'phone', '580098', '2026-05-02 22:07:20', '2026-05-02 21:57:44', '2026-05-03 00:57:20'),
+(54, 40, 'phone', '462737', '2026-05-05 16:30:57', '2026-05-05 16:21:07', '2026-05-05 19:20:57');
 
 -- --------------------------------------------------------
 
@@ -2123,6 +1679,7 @@ INSERT INTO `verification_tokens` (`id`, `user_id`, `type`, `token`, `expires_at
 
 CREATE TABLE `wishlists` (
   `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` varchar(36) NOT NULL,
   `user_id` bigint(20) UNSIGNED NOT NULL,
   `name` varchar(150) NOT NULL DEFAULT 'Wishlist',
   `visibility` enum('private','public') NOT NULL DEFAULT 'private',
@@ -2135,9 +1692,8 @@ CREATE TABLE `wishlists` (
 -- Dumping data for table `wishlists`
 --
 
-INSERT INTO `wishlists` (`id`, `user_id`, `name`, `visibility`, `share_token`, `cover_photo`, `created_at`) VALUES
-(1, 5, 'Egypt Favorites', 'private', '4d3d5b2d-304e-11f1-b636-84a938fc7bd1', NULL, '2026-03-17 01:21:28'),
-(10, 29, 'My Wishlist', 'private', '3832a226-bfe4-4bbb-bb1f-f68f89561fa7', NULL, '2026-04-10 23:43:01');
+INSERT INTO `wishlists` (`id`, `uuid`, `user_id`, `name`, `visibility`, `share_token`, `cover_photo`, `created_at`) VALUES
+(1, 'c26cd612-40a9-11f1-86ee-84a938fc7bd1', 5, 'Egypt Favorites', 'private', '4d3d5b2d-304e-11f1-b636-84a938fc7bd1', NULL, '2026-03-17 01:21:28');
 
 -- --------------------------------------------------------
 
@@ -2151,13 +1707,6 @@ CREATE TABLE `wishlist_items` (
   `property_id` bigint(20) UNSIGNED NOT NULL,
   `added_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `wishlist_items`
---
-
-INSERT INTO `wishlist_items` (`id`, `wishlist_id`, `property_id`, `added_at`) VALUES
-(7, 10, 205, '2026-04-10 23:43:01');
 
 -- --------------------------------------------------------
 
@@ -2194,6 +1743,15 @@ ALTER TABLE `audit_logs`
   ADD KEY `idx_audit_actor_date` (`actor_id`,`created_at`),
   ADD KEY `idx_audit_entity` (`entity_type`,`entity_id`),
   ADD KEY `idx_audit_event_date` (`event_type`,`created_at`);
+
+--
+-- Indexes for table `blocked_users`
+--
+ALTER TABLE `blocked_users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_block` (`blocker_id`,`blocked_user_id`),
+  ADD KEY `idx_blocker` (`blocker_id`),
+  ADD KEY `idx_blocked` (`blocked_user_id`);
 
 --
 -- Indexes for table `bookings`
@@ -2330,6 +1888,7 @@ ALTER TABLE `conversations`
 --
 ALTER TABLE `disputes`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_disputes_uuid` (`uuid`),
   ADD KEY `idx_disputes_booking` (`booking_id`),
   ADD KEY `idx_disputes_raised_by` (`raised_by_id`),
   ADD KEY `idx_disputes_status` (`status`),
@@ -2422,14 +1981,6 @@ ALTER TABLE `experience_schedule`
   ADD KEY `idx_exps_exp` (`experience_id`);
 
 --
--- Indexes for table `login_attempts`
---
-ALTER TABLE `login_attempts`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_login_email_time` (`email`,`attempted_at`),
-  ADD KEY `idx_login_ip_time` (`ip_address`,`attempted_at`);
-
---
 -- Indexes for table `messages`
 --
 ALTER TABLE `messages`
@@ -2448,7 +1999,8 @@ ALTER TABLE `notifications`
   ADD KEY `idx_notifications_read` (`user_id`,`is_read`),
   ADD KEY `idx_notifications_user_time` (`user_id`,`created_at`),
   ADD KEY `idx_notifications_user_unread` (`user_id`,`is_read`,`created_at`),
-  ADD KEY `idx_notifications_user_read` (`user_id`,`is_read`);
+  ADD KEY `idx_notifications_user_read` (`user_id`,`is_read`),
+  ADD KEY `idx_notifications_read_created` (`is_read`,`created_at`);
 
 --
 -- Indexes for table `password_resets`
@@ -2571,7 +2123,8 @@ ALTER TABLE `property_price_history`
 --
 ALTER TABLE `reviews`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `booking_id` (`booking_id`),
+  ADD UNIQUE KEY `idx_reviews_booking_role` (`booking_id`,`reviewer_role`),
+  ADD UNIQUE KEY `uq_review_booking_role` (`booking_id`,`reviewer_role`),
   ADD KEY `idx_reviews_property` (`property_id`),
   ADD KEY `idx_reviews_reviewer` (`reviewer_id`),
   ADD KEY `idx_reviews_property_date` (`property_id`,`created_at`),
@@ -2596,6 +2149,15 @@ ALTER TABLE `users`
   ADD KEY `idx_users_consultant` (`is_consultant`,`is_active`);
 
 --
+-- Indexes for table `user_reports`
+--
+ALTER TABLE `user_reports`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_reporter` (`reporter_id`),
+  ADD KEY `idx_reported` (`reported_user_id`),
+  ADD KEY `idx_report_status` (`status`);
+
+--
 -- Indexes for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
@@ -2618,6 +2180,7 @@ ALTER TABLE `verification_tokens`
 --
 ALTER TABLE `wishlists`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_wishlists_uuid` (`uuid`),
   ADD UNIQUE KEY `uidx_wishlists_share_token` (`share_token`),
   ADD KEY `idx_wishlists_user` (`user_id`);
 
@@ -2637,7 +2200,7 @@ ALTER TABLE `wishlist_items`
 -- AUTO_INCREMENT for table `admin_activity_logs`
 --
 ALTER TABLE `admin_activity_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=183;
 
 --
 -- AUTO_INCREMENT for table `amenities`
@@ -2649,13 +2212,19 @@ ALTER TABLE `amenities`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+
+--
+-- AUTO_INCREMENT for table `blocked_users`
+--
+ALTER TABLE `blocked_users`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT for table `booking_status_history`
@@ -2727,19 +2296,19 @@ ALTER TABLE `consultation_reviews`
 -- AUTO_INCREMENT for table `conversations`
 --
 ALTER TABLE `conversations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `disputes`
 --
 ALTER TABLE `disputes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `earnings`
 --
 ALTER TABLE `earnings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `expenses`
@@ -2796,22 +2365,16 @@ ALTER TABLE `experience_schedule`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
--- AUTO_INCREMENT for table `login_attempts`
---
-ALTER TABLE `login_attempts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=106;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=159;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -2841,43 +2404,43 @@ ALTER TABLE `payout_items`
 -- AUTO_INCREMENT for table `platform_settings`
 --
 ALTER TABLE `platform_settings`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `price_alerts`
 --
 ALTER TABLE `price_alerts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `properties`
 --
 ALTER TABLE `properties`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=239;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=264;
 
 --
 -- AUTO_INCREMENT for table `property_availability`
 --
 ALTER TABLE `property_availability`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=590;
 
 --
 -- AUTO_INCREMENT for table `property_house_rules`
 --
 ALTER TABLE `property_house_rules`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=380;
 
 --
 -- AUTO_INCREMENT for table `property_ical_sources`
 --
 ALTER TABLE `property_ical_sources`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `property_photos`
 --
 ALTER TABLE `property_photos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=281;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=348;
 
 --
 -- AUTO_INCREMENT for table `property_price_history`
@@ -2901,31 +2464,37 @@ ALTER TABLE `saved_searches`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+
+--
+-- AUTO_INCREMENT for table `user_reports`
+--
+ALTER TABLE `user_reports`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `verification_tokens`
 --
 ALTER TABLE `verification_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `wishlists`
 --
 ALTER TABLE `wishlists`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `wishlist_items`
 --
 ALTER TABLE `wishlist_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- Constraints for dumped tables
@@ -2936,6 +2505,13 @@ ALTER TABLE `wishlist_items`
 --
 ALTER TABLE `admin_activity_logs`
   ADD CONSTRAINT `fk_activity_admin` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `blocked_users`
+--
+ALTER TABLE `blocked_users`
+  ADD CONSTRAINT `fk_blocked_users_blocked` FOREIGN KEY (`blocked_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_blocked_users_blocker` FOREIGN KEY (`blocker_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `bookings`
@@ -3186,6 +2762,13 @@ ALTER TABLE `reviews`
 --
 ALTER TABLE `saved_searches`
   ADD CONSTRAINT `fk_saved_searches_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_reports`
+--
+ALTER TABLE `user_reports`
+  ADD CONSTRAINT `fk_user_reports_reported` FOREIGN KEY (`reported_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_user_reports_reporter` FOREIGN KEY (`reporter_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `user_sessions`

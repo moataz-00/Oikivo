@@ -3,22 +3,25 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   ParseIntPipe,
   ForbiddenException,
   BadRequestException,
   NotFoundException,
   Res,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler'; // FIX BUG-GC1
@@ -29,7 +32,31 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserEntity } from '../entities/user.entity';
-import { MailService } from '../mail/mail.service';
+import { MailService, tplAdminInstapaySubmitted } from '../mail/mail.service';
+
+// ─── Deposit evidence multer storage ─────────────────────────────────────────
+const depositEvidenceStorage = diskStorage({
+  destination: (req, _file, cb) => {
+    const bookingId = req.params.id;
+    const dir = join(process.cwd(), 'uploads', 'deposits', String(bookingId));
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    cb(null, `deposit-evidence-${Date.now()}-${randomUUID()}${extname(file.originalname)}`);
+  },
+});
+
+const depositEvidenceFilter = (
+  _req: Express.Request,
+  file: Express.Multer.File,
+  cb: (error: Error | null, accept: boolean) => void,
+) => {
+  if (!file.mimetype.match(/\/(jpg|jpeg|png|webp|gif|pdf)$/)) {
+    return cb(new BadRequestException('Only images and PDFs are allowed for deposit evidence'), false);
+  }
+  cb(null, true);
+};
 
 @ApiTags('bookings')
 @Controller('bookings')
@@ -249,23 +276,34 @@ export class BookingsController {
     // Notify support team of new InstaPay proof upload
     try {
       const booking = await this.bookingsService.findOne(id);
-      const guestName = booking?.guest ? `${booking.guest.firstName} ${booking.guest.lastName}` : `Guest #${user.id}`;
+      const guest = booking?.guest;
+      const guestName = guest ? `${guest.firstName} ${guest.lastName}` : `Guest #${user.id}`;
+      const guestEmail = guest?.email ?? '';
       const propertyTitle = booking?.property?.title ?? `Booking #${id}`;
-      const amount = booking ? `${booking.currency ?? 'EGP'} ${Number(booking.totalAmount).toFixed(2)}` : 'N/A';
+      const currency = booking?.currency ?? 'EGP';
+      const totalAmount = booking ? Number(booking.totalAmount).toFixed(2) : 'N/A';
+      const checkIn = booking?.checkIn ? new Date(booking.checkIn).toLocaleDateString('en-GB') : 'N/A';
+      const checkOut = booking?.checkOut ? new Date(booking.checkOut).toLocaleDateString('en-GB') : 'N/A';
+      const reference = (booking as any)?.instapayReference ?? '';
+      const proofUrl = (booking as any)?.paymentProofUrl ?? null;
+      const adminUrl = `${process.env.ADMIN_URL ?? 'http://localhost:3002'}/bookings`;
       await this.mailService.send(
         'oikivo.support@gmail.com',
-        `[Action Required] InstaPay Proof Uploaded — Booking #${id}`,
-        `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-  <h2 style="color:#4f46e5;">New InstaPay Payment Proof</h2>
-  <p>A guest has uploaded an InstaPay payment proof and is awaiting manual verification.</p>
-  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Booking</td><td style="padding:8px 0;font-weight:600;">#${id}</td></tr>
-    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Guest</td><td style="padding:8px 0;font-weight:600;">${guestName}</td></tr>
-    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Property</td><td style="padding:8px 0;font-weight:600;">${propertyTitle}</td></tr>
-    <tr><td style="padding:8px 0;color:#64748b;font-size:14px;">Amount</td><td style="padding:8px 0;font-weight:600;">${amount}</td></tr>
-  </table>
-  <p style="font-size:13px;color:#64748b;">Please log in to the admin panel to review and approve or decline this payment.</p>
-</div>`,
+        `⚡ InstaPay Payment Submitted — Booking #${id} needs verification`,
+        tplAdminInstapaySubmitted(
+          guestName,
+          guestEmail,
+          `#${id}`,
+          propertyTitle,
+          checkIn,
+          checkOut,
+          totalAmount,
+          currency,
+          reference,
+          proofUrl,
+          48,
+          adminUrl,
+        ),
       );
     } catch (_e) {
       // Non-blocking — don't fail the upload if email fails
@@ -338,14 +376,55 @@ export class BookingsController {
 
   // ─── Security Deposit ──────────────────────────────────────────────────────
 
+  @Post(':id/deposit/evidence')
+  @ApiOperation({ summary: 'Upload evidence photos for a deposit claim (host only, up to 10 files)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      storage: depositEvidenceStorage,
+      fileFilter: depositEvidenceFilter,
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async uploadDepositEvidence(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) throw new BadRequestException('No files uploaded');
+    const booking = await this.bookingsService.findOne(id);
+    if (booking.hostId !== user.id) throw new ForbiddenException('Not your booking');
+    const paths = files.map((f) => `/uploads/deposits/${id}/${f.filename}`);
+    return { message: `${files.length} file(s) uploaded`, paths };
+  }
+
   @Post(':id/deposit/claim')
   @ApiOperation({ summary: 'Host claims security deposit (within 48 h of checkout)' })
   claimDeposit(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: UserEntity,
-    @Body() body: { reason: string },
+    @Body() body: { reason: string; evidencePaths?: string[] },
   ) {
-    return this.bookingsService.claimDeposit(id, user.id, body.reason);
+    return this.bookingsService.claimDeposit(id, user.id, body.reason, body.evidencePaths);
+  }
+
+  @Delete(':id/deposit/claim')
+  @ApiOperation({ summary: 'Host cancels a pending deposit claim (reverts to held)' })
+  cancelDepositClaim(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.bookingsService.cancelDepositClaim(id, user.id);
+  }
+
+  @Patch(':id/deposit/claim')
+  @ApiOperation({ summary: 'Host edits a pending deposit claim (reason / evidence)' })
+  editDepositClaim(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+    @Body() body: { reason: string; evidencePaths?: string[] },
+  ) {
+    return this.bookingsService.editDepositClaim(id, user.id, body.reason, body.evidencePaths);
   }
 
   @Patch(':id/deposit/release')

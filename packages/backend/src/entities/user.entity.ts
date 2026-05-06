@@ -69,6 +69,17 @@ export class UserEntity {
   @Column({ name: 'id_document_url', length: 500, nullable: true })
   idDocumentUrl: string | null;
 
+  @Column({ name: 'id_document_back_url', length: 500, nullable: true })
+  idDocumentBackUrl: string | null;
+
+  @Column({
+    name: 'id_document_type',
+    type: 'enum',
+    enum: ['national_id', 'passport'],
+    default: 'national_id',
+  })
+  idDocumentType: 'national_id' | 'passport';
+
   @Column({
     name: 'id_verification_status',
     type: 'enum',

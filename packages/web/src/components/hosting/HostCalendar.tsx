@@ -3,17 +3,12 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import type { Booking } from '@/types';
 import { formatPrice, getImageUrl, formatDate } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
-
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 function sameDay(a: Date, b: Date) {
   return (
@@ -32,6 +27,17 @@ interface Props {
 }
 
 export function HostCalendar({ reservations }: Props) {
+  const locale = useLocale();
+  const t = useTranslations('hosting');
+  const DAYS = [
+    t('calWeekSun'), t('calWeekMon'), t('calWeekTue'), t('calWeekWed'),
+    t('calWeekThu'), t('calWeekFri'), t('calWeekSat'),
+  ];
+  const MONTHS = [
+    t('calMonthJan'), t('calMonthFeb'), t('calMonthMar'), t('calMonthApr'),
+    t('calMonthMay'), t('calMonthJun'), t('calMonthJul'), t('calMonthAug'),
+    t('calMonthSep'), t('calMonthOct'), t('calMonthNov'), t('calMonthDec'),
+  ];
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
@@ -72,7 +78,7 @@ export function HostCalendar({ reservations }: Props) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       {/* ── Calendar grid ─────────────────────────────────────────── */}
       <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
         {/* Month header */}
@@ -81,7 +87,7 @@ export function HostCalendar({ reservations }: Props) {
             onClick={prevMonth}
             className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
           >
-            <ChevronLeft className="h-4 w-4 text-neutral-600" />
+            <ChevronLeft className="h-4 w-4 text-neutral-600 rtl:rotate-180" />
           </button>
           <h2 className="text-base font-semibold text-neutral-900">
             {MONTHS[month]} {year}
@@ -90,7 +96,7 @@ export function HostCalendar({ reservations }: Props) {
             onClick={nextMonth}
             className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
           >
-            <ChevronRight className="h-4 w-4 text-neutral-600" />
+            <ChevronRight className="h-4 w-4 text-neutral-600 rtl:rotate-180" />
           </button>
         </div>
 
@@ -168,11 +174,11 @@ export function HostCalendar({ reservations }: Props) {
       <div className="flex items-center gap-4 text-xs text-neutral-500">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          Check-in
+          {t('calLegendCheckIn')}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-rose-500" />
-          Check-out
+          {t('calLegendCheckOut')}
         </span>
       </div>
 
@@ -181,7 +187,7 @@ export function HostCalendar({ reservations }: Props) {
         <div className="rounded-2xl border border-indigo-100 bg-white overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 bg-indigo-50/40">
             <h3 className="text-sm font-semibold text-neutral-900">
-              {selectedDate.toLocaleDateString('en-US', {
+              {selectedDate.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
                 weekday: 'long',
                 month: 'long',
                 day: 'numeric',
@@ -189,13 +195,13 @@ export function HostCalendar({ reservations }: Props) {
               })}
             </h3>
             <span className="text-xs text-neutral-500">
-              {selRes.length} reservation{selRes.length !== 1 ? 's' : ''}
+              {t('calReservationCount', { count: selRes.length })}
             </span>
           </div>
 
           {selRes.length === 0 ? (
             <div className="py-10 text-center text-sm text-neutral-400">
-              No reservations on this day
+              {t('calNoReservationsOnDay')}
             </div>
           ) : (
             <div className="divide-y divide-neutral-100">
@@ -232,17 +238,17 @@ export function HostCalendar({ reservations }: Props) {
                             <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                               {isCI && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                                  ✈️ Check-in
+                                  ✈️ {t('calCheckIn')}
                                 </span>
                               )}
                               {isCO && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                                  🏁 Check-out
+                                  🏁 {t('calCheckOut')}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="text-right shrink-0">
+                          <div className="text-end shrink-0">
                             <p className="text-sm font-bold text-indigo-700">
                               {formatPrice(res.total, 'EGP')}
                             </p>
@@ -282,10 +288,10 @@ export function HostCalendar({ reservations }: Props) {
                         {/* Stay details grid */}
                         <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                           {[
-                            { label: 'Check-in', val: formatDate(res.checkIn, 'MMM d, yyyy') },
-                            { label: 'Check-out', val: formatDate(res.checkOut, 'MMM d, yyyy') },
-                            { label: 'Nights', val: String(res.nights) },
-                            { label: 'Guests', val: String(res.guests) },
+                            { label: t('calCheckIn'), val: formatDate(res.checkIn, 'MMM d, yyyy') },
+                            { label: t('calCheckOut'), val: formatDate(res.checkOut, 'MMM d, yyyy') },
+                            { label: t('calNights'), val: String(res.nights) },
+                            { label: t('calGuests'), val: String(res.guests) },
                           ].map(({ label, val }) => (
                             <div key={label} className="rounded-lg bg-neutral-50 px-3 py-2">
                               <p className="text-xs text-neutral-400">{label}</p>
@@ -300,7 +306,7 @@ export function HostCalendar({ reservations }: Props) {
                             💳 {res.paymentMethod ?? 'N/A'}
                           </span>
                           <span className="rounded-lg bg-neutral-50 border border-neutral-100 px-2 py-1">
-                            Payment: {res.paymentStatus ?? 'N/A'}
+                            {t('calPaymentLabel')}: {res.paymentStatus ?? 'N/A'}
                           </span>
                           {res.paymentReference && (
                             <span className="rounded-lg bg-neutral-50 border border-neutral-100 px-2 py-1 font-mono">
@@ -312,13 +318,13 @@ export function HostCalendar({ reservations }: Props) {
                         {/* Price breakdown */}
                         <div className="mt-3 rounded-xl bg-neutral-50 border border-neutral-100 px-4 py-3 space-y-1.5">
                           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
-                            Price Breakdown
+                            {t('calPriceBreakdown')}
                           </p>
                           {[
-                            { label: 'Base price', val: res.basePrice },
-                            { label: 'Cleaning fee', val: res.cleaningFee },
-                            { label: 'Service fee', val: res.serviceFee },
-                            { label: 'Taxes', val: res.taxes },
+                            { label: t('calBasePrice'), val: res.basePrice },
+                            { label: t('calCleaningFee'), val: res.cleaningFee },
+                            { label: t('calServiceFee'), val: res.serviceFee },
+                            { label: t('calTaxes'), val: res.taxes },
                           ].map(({ label, val }) => (
                             <div
                               key={label}
@@ -331,7 +337,7 @@ export function HostCalendar({ reservations }: Props) {
                             </div>
                           ))}
                           <div className="border-t border-neutral-200 pt-1.5 flex items-center justify-between text-sm font-bold">
-                            <span className="text-neutral-900">Total</span>
+                            <span className="text-neutral-900">{t('calTotal')}</span>
                             <span className="text-indigo-700">
                               {formatPrice(res.total, 'EGP')}
                             </span>
@@ -351,7 +357,7 @@ export function HostCalendar({ reservations }: Props) {
       {!selectedDate && reservations.length > 0 && (
         <div>
           <h3 className="text-base font-semibold text-neutral-900 mb-4">
-            All Reservations ({reservations.length})
+            {t('calAllReservations', { count: reservations.length })}
           </h3>
           <div className="space-y-3">
             {sortedAll.map((res) => {
@@ -383,7 +389,7 @@ export function HostCalendar({ reservations }: Props) {
                     <p className="text-xs text-neutral-500 mt-0.5">
                       📅 {formatDate(res.checkIn, 'MMM d')} –{' '}
                       {formatDate(res.checkOut, 'MMM d, yyyy')} · {res.nights}n ·{' '}
-                      {res.guests} guest{res.guests > 1 ? 's' : ''}
+                      {t('calGuestCount', { count: res.guests })}
                     </p>
                   </div>
 
@@ -394,7 +400,7 @@ export function HostCalendar({ reservations }: Props) {
                       lastName={res.guest.lastName}
                       size="sm"
                     />
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className="text-sm font-bold text-indigo-700">
                         {formatPrice(res.total, 'EGP')}
                       </p>
@@ -422,9 +428,9 @@ export function HostCalendar({ reservations }: Props) {
       {!selectedDate && reservations.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <p className="text-4xl mb-4">🗓️</p>
-          <p className="text-base font-semibold text-neutral-700">No reservations yet</p>
+          <p className="text-base font-semibold text-neutral-700">{t('calNoReservations')}</p>
           <p className="text-sm text-neutral-400 mt-1">
-            When guests book your properties, their stays will appear here.
+            {t('calNoReservationsDesc')}
           </p>
         </div>
       )}

@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, MessageSquare, CalendarClock, Home, Compass, ShieldCheck, Send } from 'lucide-react';
+import { Check, X, MessageSquare, CalendarClock, Home, Compass, ShieldCheck, Send, Paperclip } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { bookingsApi, experienceBookingsApi, messagesApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,18 +47,52 @@ const fadeUp = {
 
 function DepositClaimButton({ bookingId, claimDeadline, amount }: { bookingId: number; claimDeadline?: string | null; amount?: number }) {
   const queryClient = useQueryClient();
+  const t = useTranslations('hosting');
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [evidencePreviews, setEvidencePreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const deadline = claimDeadline ? new Date(claimDeadline) : null;
   const expired = deadline ? new Date() > deadline : false;
   if (expired) return null;
 
+  const handleClose = () => {
+    setOpen(false);
+    setReason('');
+    evidencePreviews.forEach((url) => URL.revokeObjectURL(url));
+    setEvidenceFiles([]);
+    setEvidencePreviews([]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const combined = [...evidenceFiles, ...files].slice(0, 10);
+    setEvidenceFiles(combined);
+    setEvidencePreviews(combined.map((f) => URL.createObjectURL(f)));
+    e.target.value = '';
+  };
+
+  const removeFile = (idx: number) => {
+    URL.revokeObjectURL(evidencePreviews[idx]);
+    setEvidenceFiles((prev) => prev.filter((_, i) => i !== idx));
+    setEvidencePreviews((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const claim = useMutation({
-    mutationFn: () => bookingsApi.claimDeposit(bookingId, reason),
+    mutationFn: async () => {
+      let evidencePaths: string[] = [];
+      if (evidenceFiles.length > 0) {
+        const result = await bookingsApi.uploadDepositEvidence(bookingId, evidenceFiles);
+        evidencePaths = result.paths ?? [];
+      }
+      return bookingsApi.claimDeposit(bookingId, reason, evidencePaths);
+    },
     onSuccess: () => {
       toast.success('Deposit claim submitted');
-      setOpen(false);
+      handleClose();
       queryClient.invalidateQueries({ queryKey: ['host-reservations'] });
     },
     onError: () => toast.error('Failed to claim deposit'),
@@ -71,45 +105,317 @@ function DepositClaimButton({ bookingId, claimDeadline, amount }: { bookingId: n
         className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors"
       >
         <ShieldCheck className="h-3.5 w-3.5" />
-        Claim deposit {amount ? `(${formatPrice(amount, 'EGP')})` : ''}
+        {t('claimDeposit')}{amount ? ` (${formatPrice(amount, 'EGP')})` : ''}
       </button>
 
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-start justify-between mb-4">
+          {/* Scrollable modal */}
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl flex flex-col max-h-[90vh]">
+            {/* Sticky header */}
+            <div className="flex items-start justify-between p-6 pb-4 border-b border-gray-100 shrink-0">
               <div>
-                <h3 className="text-lg font-bold text-neutral-900">Claim security deposit</h3>
+                <h3 className="text-lg font-bold text-neutral-900">{t('claimSecurityDeposit')}</h3>
                 {amount ? (
                   <p className="text-sm text-neutral-500 mt-0.5">
-                    Deposit amount: <strong className="text-neutral-800">{formatPrice(amount, 'EGP')}</strong>
+                    {t('depositAmountLabel')} <strong className="text-neutral-800">{formatPrice(amount, 'EGP')}</strong>
                   </p>
                 ) : null}
               </div>
-              <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors">
+              <button onClick={handleClose} className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-sm text-neutral-500 mb-4">
-              Describe the damage clearly. Your claim will be reviewed by our team before any funds are released.
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 p-6 pt-4 space-y-4">
+              <p className="text-sm text-neutral-500">
+                {t('describeDamageInfo')}
+              </p>
+
+              {/* Reason textarea */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                  {t('reasonForClaim')} <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={4}
+                  placeholder="Describe the damage or reason for claiming the deposit..."
+                  className="w-full rounded-xl border border-neutral-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                />
+                {!reason.trim() && reason.length > 0 && (
+                  <p className="text-xs text-red-500 mt-1">Please provide a reason for your claim.</p>
+                )}
+              </div>
+
+              {/* Evidence photo upload */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                  {t('evidencePhotosLabel')} <span className="text-gray-400">{t('evidenceOptional')}</span>
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Upload photos showing the damage or issue. This helps Oikivo review your claim faster.
+                </p>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+
+                {/* Photo previews */}
+                {evidencePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {evidencePreviews.map((src, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={src}
+                          alt={`Evidence ${i + 1}`}
+                          className="w-16 h-16 object-cover rounded-xl border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFile(i)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={evidenceFiles.length >= 10}
+                  className="flex items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors w-full justify-center disabled:opacity-40"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  {evidenceFiles.length === 0 ? t('addEvidencePhotos') : `${t('addEvidencePhotos')} (${evidenceFiles.length}/10)`}
+                </button>
+              </div>
+
+              {/* Info note */}
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  {t('depositReviewNote')}
+                </p>
+              </div>
+            </div>
+
+            {/* Sticky footer */}
+            <div className="flex gap-3 p-6 pt-4 border-t border-gray-100 shrink-0">
+              <Button variant="outline" size="sm" onClick={handleClose} className="flex-1">{t('cancel')}</Button>
+              <Button
+                size="sm"
+                isLoading={claim.isPending}
+                onClick={() => claim.mutate()}
+                disabled={!reason.trim()}
+                className="flex-1"
+              >
+                {t('submitClaim')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Shown when depositStatus === 'claimed' — lets host cancel or edit the claim before admin decides */
+function DepositClaimManageButtons({ bookingId, amount, existingReason, existingEvidence }: {
+  bookingId: number;
+  amount?: number;
+  existingReason?: string | null;
+  existingEvidence?: string[] | null;
+}) {
+  const queryClient = useQueryClient();
+  const t = useTranslations('hosting');
+  const [editOpen, setEditOpen] = useState(false);
+  const [reason, setReason] = useState(existingReason ?? '');
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [evidencePreviews, setEvidencePreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleEditClose = () => {
+    setEditOpen(false);
+    setReason(existingReason ?? '');
+    evidencePreviews.forEach((u) => URL.revokeObjectURL(u));
+    setEvidenceFiles([]);
+    setEvidencePreviews([]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const combined = [...evidenceFiles, ...files].slice(0, 10);
+    setEvidenceFiles(combined);
+    setEvidencePreviews(combined.map((f) => URL.createObjectURL(f)));
+    e.target.value = '';
+  };
+
+  const removeFile = (idx: number) => {
+    URL.revokeObjectURL(evidencePreviews[idx]);
+    setEvidenceFiles((p) => p.filter((_, i) => i !== idx));
+    setEvidencePreviews((p) => p.filter((_, i) => i !== idx));
+  };
+
+  const cancelClaim = useMutation({
+    mutationFn: () => bookingsApi.cancelDepositClaim(bookingId),
+    onSuccess: () => {
+      toast.success('Deposit claim cancelled');
+      queryClient.invalidateQueries({ queryKey: ['host-reservations'] });
+    },
+    onError: () => toast.error('Failed to cancel claim'),
+  });
+
+  const editClaim = useMutation({
+    mutationFn: async () => {
+      let evidencePaths: string[] = [];
+      if (evidenceFiles.length > 0) {
+        const result = await bookingsApi.uploadDepositEvidence(bookingId, evidenceFiles);
+        evidencePaths = result.paths ?? [];
+      }
+      return bookingsApi.editDepositClaim(bookingId, reason, evidencePaths.length ? evidencePaths : existingEvidence ?? undefined);
+    },
+    onSuccess: () => {
+      toast.success('Deposit claim updated');
+      handleEditClose();
+      queryClient.invalidateQueries({ queryKey: ['host-reservations'] });
+    },
+    onError: () => toast.error('Failed to update claim'),
+  });
+
+  return (
+    <>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-medium">
+          <ShieldCheck className="h-3 w-3" /> {t('depositClaimUnderReview')}
+        </span>
+        <button
+          onClick={() => setEditOpen(true)}
+          className="flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+        >
+          {t('editClaim')}
+        </button>
+        <button
+          disabled={cancelClaim.isPending}
+          onClick={() => cancelClaim.mutate()}
+          className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+        >
+          {cancelClaim.isPending ? '…' : t('cancelClaim')}
+        </button>
+      </div>
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          onClick={(e) => { if (e.target === e.currentTarget) handleEditClose(); }}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl flex flex-col max-h-[90vh]">
+            <div className="flex items-start justify-between p-6 pb-4 border-b border-gray-100 shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900">{t('editDepositClaim')}</h3>
+                {amount ? (
+                  <p className="text-sm text-neutral-500 mt-0.5">{t('amountColonLabel')} <strong className="text-neutral-800">{formatPrice(amount, 'EGP')}</strong></p>
+                ) : null}
+              </div>
+              <button onClick={handleEditClose} className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-6 pt-4 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('reasonLabel')} <span className="text-red-500">*</span></label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={4}
+                  placeholder="Describe the damage..."
+                  className="w-full rounded-xl border border-neutral-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('addMoreEvidencePhotos')}</label>
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={handleFileSelect} />
+                {evidencePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {evidencePreviews.map((src, i) => (
+                      <div key={i} className="relative group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt="" className="w-16 h-16 object-cover rounded-xl border border-gray-200" />
+                        <button type="button" onClick={() => removeFile(i)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={evidenceFiles.length >= 10}
+                  className="flex items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors w-full justify-center disabled:opacity-40">
+                  <Paperclip className="w-4 h-4" /> {t('addPhotos')}
+                </button>
+              </div>
+              {(existingEvidence?.length ?? 0) > 0 && (
+                <p className="text-xs text-neutral-400">{t('previousEvidenceKept')}</p>
+              )}
+            </div>
+            <div className="flex gap-3 p-6 pt-4 border-t border-gray-100 shrink-0">
+              <Button variant="outline" size="sm" onClick={handleEditClose} className="flex-1">{t('cancel')}</Button>
+              <Button size="sm" isLoading={editClaim.isPending} onClick={() => editClaim.mutate()} disabled={!reason.trim()} className="flex-1">
+                {t('saveChanges')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Shown when depositStatus === 'held' and booking is completed — lets host release without claiming */
+function ReleaseDepositButton({ bookingId, amount }: { bookingId: number; amount?: number }) {
+  const queryClient = useQueryClient();
+  const t = useTranslations('hosting');
+  const [confirm, setConfirm] = useState(false);
+
+  const release = useMutation({
+    mutationFn: () => bookingsApi.releaseDeposit(bookingId),
+    onSuccess: () => {
+      toast.success('Deposit marked as released to guest');
+      queryClient.invalidateQueries({ queryKey: ['host-reservations'] });
+    },
+    onError: () => toast.error('Failed to release deposit'),
+  });
+
+  return (
+    <>
+      <button
+        onClick={() => setConfirm(true)}
+        className="flex items-center gap-1 rounded-lg border border-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+      >
+        {t('releaseDeposit')}{amount ? ` (${formatPrice(amount, 'EGP')})` : ''}
+      </button>
+
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setConfirm(false); }}>
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl p-6">
+            <h3 className="text-base font-bold text-neutral-900 mb-2">{t('releaseDepositTitle')}</h3>
+            <p className="text-sm text-neutral-600 mb-5">
+              {t('releaseDepositDesc')}{amount ? ` (${formatPrice(amount, 'EGP')})` : ''}
             </p>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={4}
-              placeholder="Describe the damage or reason for claiming the deposit..."
-              className="w-full rounded-xl border border-neutral-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-            />
-            {!reason.trim() && reason.length > 0 && (
-              <p className="text-xs text-red-500 mt-1">Please provide a reason for your claim.</p>
-            )}
-            <div className="flex gap-3 mt-5 justify-end">
-              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button size="sm" isLoading={claim.isPending} onClick={() => claim.mutate()} disabled={!reason.trim()}>
-                Submit claim
+            <div className="flex gap-3">
+              <Button variant="outline" size="sm" onClick={() => setConfirm(false)} className="flex-1">{t('cancel')}</Button>
+              <Button size="sm" isLoading={release.isPending} onClick={() => { release.mutate(); setConfirm(false); }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                {t('yesRelease')}
               </Button>
             </div>
           </div>
@@ -201,25 +507,39 @@ function ReservationCard({
               className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
             >
               <MessageSquare className="h-3.5 w-3.5" />
-              💬 Message guest
+              💬 {t('messageGuest')}
             </button>
-
-            {/* Security deposit actions */}
             {booking.status === 'completed' && booking.depositStatus === 'held' && (
-              <DepositClaimButton
-                bookingId={booking.id}
-                claimDeadline={booking.depositClaimDeadline}
-                amount={booking.depositAmount}
-              />
+              <div className="flex items-center gap-2 flex-wrap">
+                <DepositClaimButton
+                  bookingId={booking.id}
+                  claimDeadline={booking.depositClaimDeadline}
+                  amount={booking.depositAmount}
+                />
+                <ReleaseDepositButton bookingId={booking.id} amount={booking.depositAmount} />
+              </div>
             )}
             {booking.depositStatus === 'claimed' && (
-              <span className="flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-medium">
-                <ShieldCheck className="h-3 w-3" /> Deposit claim under review
+              <DepositClaimManageButtons
+                bookingId={booking.id}
+                amount={booking.depositAmount}
+                existingReason={booking.depositClaimReason}
+                existingEvidence={booking.depositClaimEvidence}
+              />
+            )}
+            {booking.depositStatus === 'approved' && (
+              <span className="flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-medium">
+                <ShieldCheck className="h-3 w-3" /> {t('depositClaimApproved')}
+              </span>
+            )}
+            {booking.depositStatus === 'rejected' && (
+              <span className="flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-medium">
+                <ShieldCheck className="h-3 w-3" /> {t('claimRejected')}
               </span>
             )}
             {booking.depositStatus === 'released' && (booking.depositAmount ?? 0) > 0 && (
               <span className="flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-medium">
-                <ShieldCheck className="h-3 w-3" /> Deposit released to guest
+                <ShieldCheck className="h-3 w-3" /> {t('depositReleased')}
               </span>
             )}
           </div>
@@ -241,6 +561,7 @@ function ExperienceReservationCard({
   onMsgGuest: (guestId: number, guestName: string, propertyId?: number) => void;
 }) {
   const locale = useLocale();
+  const t = useTranslations('hosting');
   const coverPhoto = booking.experience.photos?.find((p) => p.isCover) ?? booking.experience.photos?.[0];
 
   return (
@@ -297,11 +618,11 @@ function ExperienceReservationCard({
               <>
                 <Button size="sm" onClick={() => onConfirm(booking.id)} className="gap-1.5">
                   <Check className="h-4 w-4" />
-                  Confirm
+                  {t('confirmReservation')}
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => onDecline(booking.id)} className="gap-1.5">
                   <X className="h-4 w-4" />
-                  Decline
+                  {t('declineReservation')}
                 </Button>
               </>
             )}
@@ -311,7 +632,7 @@ function ExperienceReservationCard({
               className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
             >
               <MessageSquare className="h-3.5 w-3.5" />
-              💬 Message guest
+              💬 {t('messageGuest')}
             </button>
           </div>
         </div>
@@ -323,6 +644,7 @@ function ExperienceReservationCard({
 export default function ReservationsPage() {
   const t = useTranslations('hosting');
   const locale = useLocale();
+  const isRTL = locale === 'ar';
   const router = useRouter();
   const { isLoggedIn, isHost, hasHydrated } = useAuth();
   const queryClient = useQueryClient();
@@ -350,10 +672,10 @@ export default function ReservationsPage() {
   const statuses = ['upcoming', 'pending', 'completed', 'cancelled'] as const;
   const expStatuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 
-  const upcomingQuery = useQuery({ queryKey: ['host-reservations', 'upcoming'], queryFn: () => bookingsApi.getHostReservations('upcoming'), enabled: isLoggedIn && isHost, staleTime: 2 * 60 * 1000 });
-  const pendingQuery = useQuery({ queryKey: ['host-reservations', 'pending'], queryFn: () => bookingsApi.getHostReservations('pending'), enabled: isLoggedIn && isHost, staleTime: 2 * 60 * 1000 });
-  const completedQuery = useQuery({ queryKey: ['host-reservations', 'completed'], queryFn: () => bookingsApi.getHostReservations('completed'), enabled: isLoggedIn && isHost, staleTime: 5 * 60 * 1000 });
-  const cancelledQuery = useQuery({ queryKey: ['host-reservations', 'cancelled'], queryFn: () => bookingsApi.getHostReservations('cancelled'), enabled: isLoggedIn && isHost, staleTime: 5 * 60 * 1000 });
+  const upcomingQuery = useQuery({ queryKey: ['host-reservations', 'upcoming'], queryFn: () => bookingsApi.getHostReservations('upcoming'), enabled: isLoggedIn && isHost, staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true });
+  const pendingQuery = useQuery({ queryKey: ['host-reservations', 'pending'], queryFn: () => bookingsApi.getHostReservations('pending'), enabled: isLoggedIn && isHost, staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true });
+  const completedQuery = useQuery({ queryKey: ['host-reservations', 'completed'], queryFn: () => bookingsApi.getHostReservations('completed'), enabled: isLoggedIn && isHost, staleTime: 60_000, refetchInterval: 60_000, refetchOnWindowFocus: true });
+  const cancelledQuery = useQuery({ queryKey: ['host-reservations', 'cancelled'], queryFn: () => bookingsApi.getHostReservations('cancelled'), enabled: isLoggedIn && isHost, staleTime: 60_000, refetchInterval: 60_000, refetchOnWindowFocus: true });
 
   const queryMap: Record<string, { data?: Booking[]; isLoading: boolean }> = {
     upcoming: upcomingQuery,
@@ -362,10 +684,10 @@ export default function ReservationsPage() {
     cancelled: cancelledQuery,
   };
 
-  const expPendingQuery = useQuery({ queryKey: ['host-exp-reservations', 'pending'], queryFn: () => experienceBookingsApi.getHostReservations('pending'), enabled: isLoggedIn && isHost, staleTime: 2 * 60 * 1000 });
-  const expConfirmedQuery = useQuery({ queryKey: ['host-exp-reservations', 'confirmed'], queryFn: () => experienceBookingsApi.getHostReservations('confirmed'), enabled: isLoggedIn && isHost, staleTime: 2 * 60 * 1000 });
-  const expCompletedQuery = useQuery({ queryKey: ['host-exp-reservations', 'completed'], queryFn: () => experienceBookingsApi.getHostReservations('completed'), enabled: isLoggedIn && isHost, staleTime: 5 * 60 * 1000 });
-  const expCancelledQuery = useQuery({ queryKey: ['host-exp-reservations', 'cancelled'], queryFn: () => experienceBookingsApi.getHostReservations('cancelled'), enabled: isLoggedIn && isHost, staleTime: 5 * 60 * 1000 });
+  const expPendingQuery = useQuery({ queryKey: ['host-exp-reservations', 'pending'], queryFn: () => experienceBookingsApi.getHostReservations('pending'), enabled: isLoggedIn && isHost, staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true });
+  const expConfirmedQuery = useQuery({ queryKey: ['host-exp-reservations', 'confirmed'], queryFn: () => experienceBookingsApi.getHostReservations('confirmed'), enabled: isLoggedIn && isHost, staleTime: 30_000, refetchInterval: 30_000, refetchOnWindowFocus: true });
+  const expCompletedQuery = useQuery({ queryKey: ['host-exp-reservations', 'completed'], queryFn: () => experienceBookingsApi.getHostReservations('completed'), enabled: isLoggedIn && isHost, staleTime: 60_000, refetchInterval: 60_000, refetchOnWindowFocus: true });
+  const expCancelledQuery = useQuery({ queryKey: ['host-exp-reservations', 'cancelled'], queryFn: () => experienceBookingsApi.getHostReservations('cancelled'), enabled: isLoggedIn && isHost, staleTime: 60_000, refetchInterval: 60_000, refetchOnWindowFocus: true });
 
   const expQueryMap: Record<string, { data?: ExperienceBooking[]; isLoading: boolean }> = {
     pending: expPendingQuery,
@@ -401,26 +723,26 @@ export default function ReservationsPage() {
   if (!hasHydrated || !isLoggedIn || !isHost) return <FullPageSpinner />;
 
   const tabConfig: Record<string, { label: string; emoji: string; emptyEmoji: string; emptyText: string }> = {
-    upcoming: { label: 'Upcoming', emoji: '🗓️', emptyEmoji: '🌅', emptyText: 'No upcoming check-ins yet' },
-    pending: { label: 'Pending', emoji: '⏳', emptyEmoji: '✨', emptyText: 'No pending requests — all clear!' },
-    completed: { label: 'Completed', emoji: '✅', emptyEmoji: '🏆', emptyText: 'Completed stays will appear here' },
-    cancelled: { label: 'Cancelled', emoji: '❌', emptyEmoji: '😌', emptyText: 'No cancellations — great!' },
+    upcoming: { label: t('upcoming'), emoji: '🗓️', emptyEmoji: '🌅', emptyText: t('emptyUpcoming') },
+    pending: { label: t('tabPending'), emoji: '⏳', emptyEmoji: '✨', emptyText: t('emptyPending') },
+    completed: { label: t('tabCompleted'), emoji: '✅', emptyEmoji: '🏆', emptyText: t('emptyCompleted') },
+    cancelled: { label: t('tabCancelled'), emoji: '❌', emptyEmoji: '😌', emptyText: t('emptyCancelled') },
   };
 
   const expTabConfig: Record<string, { label: string; emoji: string; emptyEmoji: string; emptyText: string }> = {
-    pending: { label: 'Pending', emoji: '⏳', emptyEmoji: '✨', emptyText: 'No pending experience requests' },
-    confirmed: { label: 'Confirmed', emoji: '✅', emptyEmoji: '🎭', emptyText: 'No confirmed bookings yet' },
-    completed: { label: 'Completed', emoji: '🏆', emptyEmoji: '🏆', emptyText: 'Completed experiences appear here' },
-    cancelled: { label: 'Cancelled', emoji: '❌', emptyEmoji: '😌', emptyText: 'No cancellations — great!' },
+    pending: { label: t('tabPending'), emoji: '⏳', emptyEmoji: '✨', emptyText: t('emptyExpPending') },
+    confirmed: { label: t('tabConfirmed'), emoji: '✅', emptyEmoji: '🎭', emptyText: t('emptyExpConfirmed') },
+    completed: { label: t('tabCompleted'), emoji: '🏆', emptyEmoji: '🏆', emptyText: t('emptyExpCompleted') },
+    cancelled: { label: t('tabCancelled'), emoji: '❌', emptyEmoji: '😌', emptyText: t('emptyCancelled') },
   };
 
   const listingTypeTabs = [
-    { id: 'properties' as const, label: 'Homes', icon: Home },
-    { id: 'experiences' as const, label: 'Experiences', icon: Compass },
+    { id: 'properties' as const, label: t('tabHomes'), icon: Home },
+    { id: 'experiences' as const, label: t('tabExperiences'), icon: Compass },
   ];
 
   return (
-    <>
+    <div dir={isRTL ? 'rtl' : 'ltr'}>
     <div className="relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(79,70,229,0.09),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(245,158,11,0.07),transparent_35%)]" />
       <div className="relative mx-auto max-w-5xl px-4 sm:px-6 py-10">
@@ -431,10 +753,10 @@ export default function ReservationsPage() {
             <div>
               <p className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
                 <CalendarClock className="h-3.5 w-3.5" />
-                🗓️ Reservation operations
+                🗓️ {t('reservationOps')}
               </p>
               <h1 className="mt-3 text-3xl font-semibold text-neutral-900">{t('reservations')}</h1>
-              <p className="mt-1 text-sm text-neutral-500">Review check-ins, reply fast, and keep occupancy stable.</p>
+              <p className="mt-1 text-sm text-neutral-500">{t('reservationsPageDesc')}</p>
             </div>
             <div className="flex items-center gap-3">
               <Link
@@ -442,10 +764,10 @@ export default function ReservationsPage() {
                 className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors shadow-sm"
               >
                 <CalendarClock className="h-4 w-4 text-indigo-500" />
-                Calendar View
+                {t('calendarView')}
               </Link>
               <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-                ⚡ Reply within 24h
+                ⚡ {t('replyWithin24h')}
               </div>
             </div>
           </div>
@@ -480,7 +802,7 @@ export default function ReservationsPage() {
                     className="relative px-5 py-3 text-sm font-medium text-neutral-500 border-b-2 border-transparent data-[state=active]:text-indigo-600 data-[state=active]:border-indigo-600 hover:text-neutral-700 transition-colors whitespace-nowrap shrink-0">
                     <span>{cfg.emoji} {cfg.label}</span>
                     {count > 0 && (
-                      <span className="ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold px-1">
+                      <span className="ms-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold px-1">
                         {count}
                       </span>
                     )}
@@ -538,7 +860,7 @@ export default function ReservationsPage() {
                     className="relative px-5 py-3 text-sm font-medium text-neutral-500 border-b-2 border-transparent data-[state=active]:text-indigo-600 data-[state=active]:border-indigo-600 hover:text-neutral-700 transition-colors whitespace-nowrap shrink-0">
                     <span>{cfg.emoji} {cfg.label}</span>
                     {count > 0 && (
-                      <span className="ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold px-1">
+                      <span className="ms-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold px-1">
                         {count}
                       </span>
                     )}
@@ -606,7 +928,7 @@ export default function ReservationsPage() {
                   <MessageSquare className="h-4 w-4 text-indigo-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-900">Message guest</h3>
+                  <h3 className="text-sm font-semibold text-neutral-900">{t('messageGuest')}</h3>
                   <p className="text-xs text-neutral-500">{msgModal.guestName}</p>
                 </div>
               </div>
@@ -618,7 +940,7 @@ export default function ReservationsPage() {
               rows={4}
               value={msgText}
               onChange={(e) => setMsgText(e.target.value)}
-              placeholder="Write your message to the guest…"
+              placeholder={t('writeMessagePlaceholder')}
               className="w-full rounded-xl border border-neutral-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
               autoFocus
             />
@@ -627,7 +949,7 @@ export default function ReservationsPage() {
                 onClick={() => { setMsgModal(null); setMsgText(''); }}
                 className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={() => msgModal && msgText.trim() && sendMsgMutation.mutate({ guestId: msgModal.guestId, body: msgText.trim(), propertyId: msgModal.propertyId })}
@@ -635,13 +957,13 @@ export default function ReservationsPage() {
                 className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
               >
                 <Send className="h-3.5 w-3.5" />
-                {sendMsgMutation.isPending ? 'Sending…' : 'Send message'}
+                {sendMsgMutation.isPending ? t('sendingMessage') : t('sendMessage')}
               </button>
             </div>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
-    </>
+    </div>
   );
 }

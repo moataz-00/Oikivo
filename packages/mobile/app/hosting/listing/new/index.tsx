@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   FlatList,
   Alert,
   Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -19,6 +20,8 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAlert } from '@/components/ui/AlertModal';
+import { useAuth } from '@/hooks/useAuth';
+import VerificationGate from '@/components/VerificationGate';
 import type { Category, SpaceType, Amenity, CancellationPolicy } from '@/types';
 
 const SPACE_TYPES: { value: SpaceType; label: string; description: string }[] =
@@ -61,6 +64,28 @@ const CANCELLATION_POLICIES: { value: CancellationPolicy; label: string; descrip
 export default function NewListingScreen() {
   const router = useRouter();
   const { alert, error: showError } = useAlert();
+  const { user } = useAuth();
+  const [gateVisible, setGateVisible] = useState(false);
+
+  // Show verification gate immediately if host is not verified
+  useEffect(() => {
+    const idSubmitted =
+      !!user?.idVerificationStatus && user.idVerificationStatus !== 'none';
+    if (!user?.isEmailVerified || !user?.isPhoneVerified || !idSubmitted) {
+      setGateVisible(true);
+    }
+  }, [user]);
+  const { user } = useAuth();
+  const [gateVisible, setGateVisible] = useState(false);
+
+  // Show verification gate immediately if user is not verified
+  useEffect(() => {
+    const idSubmitted =
+      !!user?.idVerificationStatus && user.idVerificationStatus !== 'none';
+    if (!user?.isEmailVerified || !user?.isPhoneVerified || !idSubmitted) {
+      setGateVisible(true);
+    }
+  }, [user]);
 
   // ---------------------------------------------------------------------------
   // Form state
@@ -248,7 +273,25 @@ export default function NewListingScreen() {
   // ---------------------------------------------------------------------------
   // Submit handler
   // ---------------------------------------------------------------------------
+  const checkVerification = (): boolean => {
+    const idSubmitted =
+      !!user?.idVerificationStatus && user.idVerificationStatus !== 'none';
+    if (!user?.isEmailVerified || !user?.isPhoneVerified || !idSubmitted) {
+      setGateVisible(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleCreate = () => {
+    // Guard: re-check verification before creating
+    const idSubmitted =
+      !!user?.idVerificationStatus && user.idVerificationStatus !== 'none';
+    if (!user?.isEmailVerified || !user?.isPhoneVerified || !idSubmitted) {
+      setGateVisible(true);
+      return;
+    }
+
     if (!isValid) {
       alert({
         type: 'warning',
@@ -347,6 +390,13 @@ export default function NewListingScreen() {
     <View className="flex-1 bg-white">
       <ScreenHeader title="Create a Listing" />
 
+      <VerificationGate
+        visible={gateVisible}
+        onClose={() => setGateVisible(false)}
+        user={user ?? null}
+        context="create a listing"
+      />
+
       {/* -- Step progress bar -------------------------------------------- */}
       <View className="px-6 pt-3 pb-1">
         <View className="flex-row items-center mb-1">
@@ -360,7 +410,7 @@ export default function NewListingScreen() {
           ))}
         </View>
         <Text className="text-xs text-gray-500 mt-1">
-          Step {step + 1} of {TOTAL_STEPS} — {STEP_TITLES[step]}
+          Step {step + 1} of {TOTAL_STEPS} ï¿½ {STEP_TITLES[step]}
         </Text>
       </View>
 
@@ -594,20 +644,26 @@ export default function NewListingScreen() {
                 </Text>
               </Text>
 
-              <View className="flex-row flex-wrap gap-2">
+              <View className="flex-row flex-wrap" style={{ gap: 10 }}>
                 {amenities.map((amenity: Amenity) => {
                   const isActive = selectedAmenityIds.includes(amenity.id);
+                  const cardWidth = (Dimensions.get('window').width - 48 - 10) / 2;
                   return (
                     <TouchableOpacity
                       key={amenity.id}
                       onPress={() => toggleAmenity(amenity.id)}
                       activeOpacity={0.8}
-                      className={`flex-row items-center px-3 py-2 rounded-full border ${
+                      style={{ width: cardWidth, height: 80 }}
+                      className={`items-center justify-center rounded-xl border ${
                         isActive ? 'bg-brand border-brand' : 'bg-white border-gray-200'
                       }`}
                     >
-                      <Text className="text-sm mr-1">{amenity.icon}</Text>
-                      <Text className={`text-xs font-medium ${isActive ? 'text-white' : 'text-gray-700'}`}>
+                      <Text style={{ fontSize: 24, marginBottom: 4 }}>{amenity.icon}</Text>
+                      <Text
+                        className={`text-xs font-medium text-center px-2`}
+                        style={{ color: isActive ? '#fff' : '#374151' }}
+                        numberOfLines={2}
+                      >
                         {amenity.name}
                       </Text>
                     </TouchableOpacity>
@@ -890,7 +946,10 @@ export default function NewListingScreen() {
 
           {step < TOTAL_STEPS - 1 ? (
             <TouchableOpacity
-              onPress={() => setStep((s) => s + 1)}
+              onPress={() => {
+                if (step === 0 && !checkVerification()) return;
+                setStep((s) => s + 1);
+              }}
               className={`flex-1 h-12 rounded-xl items-center justify-center bg-indigo-600 ${step === 0 ? 'flex-1' : ''}`}
             >
               <Text className="text-sm font-semibold text-white">Next</Text>

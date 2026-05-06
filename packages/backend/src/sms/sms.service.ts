@@ -1,113 +1,190 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as https from 'https';
-import * as http from 'http';
 
 /**
- * WhySMS HTTP API integration
+ * WhatsApp messaging via t7km Plus API
+ * Docs   : https://wa.t7kmplus.com.eg/developer
+ * Endpoint: POST https://wac.t7km.com/api/whats/sendMessage
+ * Header : X-API-Key: <T7KM_API_KEY>
+ * Body   : { number: "201XXXXXXXXX", message: "..." }
  *
- * Set the following environment variables:
- *   WHYSMS_API_URL   — Base API URL   (verify exact path from your PDF docs,
- *                      default: https://www.whysms.net/api/)
- *   WHYSMS_USERNAME  — Account username
- *   WHYSMS_PASSWORD  — Account password
- *   WHYSMS_SENDER    — Registered sender ID shown to recipients
- *
- * Response codes (WhySMS standard):
- *   100 — Message sent successfully
- *   101 — Invalid username or password
- *   102 — Invalid or unreachable mobile number
- *   103 — Insufficient SMS credit
- *   200 — Message queued / pending
- *   500 — Server-side error
+ * Required env var:
+ *   T7KM_API_KEY � API key from https://wa.t7kmplus.com.eg/device
  */
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
 
+  /** Serial queue — ensures messages are sent one at a time with a gap between them */
+  private sendQueue: Promise<void> = Promise.resolve();
+  /** Minimum gap in ms between consecutive WhatsApp sends */
+  private static readonly SEND_GAP_MS = 1_500;
+
   constructor(private readonly config: ConfigService) {}
 
-  // ─── Public API ───────────────────────────────────────────────────────────
-
   /**
-   * Send a plain-text SMS.
-   * Normalises Egyptian mobile numbers (01X → 201X).
-   * Throws on HTTP transport errors; logs (but does NOT throw) on API-level
-   * rejection so a single bad number never crashes the caller.
+   * Check whether the WhatsApp device is still connected.
+   * Returns true if connected, false otherwise.
    */
-  async send(to: string, message: string): Promise<void> {
-    const username = this.config.get<string>('WHYSMS_USERNAME');
-    const password = this.config.get<string>('WHYSMS_PASSWORD');
-    const sender   = this.config.get<string>('WHYSMS_SENDER', 'JourneyStay');
-    const baseUrl  = this.config.get<string>('WHYSMS_API_URL', 'https://www.whysms.net/api/');
-
-    if (!username || !password) {
-      this.logger.warn('WHYSMS_USERNAME / WHYSMS_PASSWORD not configured — SMS skipped');
-      return;
-    }
-
-    const mobile = this.normalisePhone(to);
-    // FIX O5: Send credentials in POST body instead of URL query parameters
-    // to prevent them from appearing in server logs and error reporting
-    const formBody = new URLSearchParams({ username, password, mobile, message, sender }).toString();
-    const url = baseUrl.replace(/\/$/, '');
-
-    let responseBody = '';
+  async checkOnline(): Promise<boolean> {
+    const apiKey = this.config.get<string>('T7KM_API_KEY');
+    if (!apiKey) return false;
     try {
-      responseBody = await this.httpPost(url, formBody);
-    } catch (err: any) {
-      this.logger.error(`WhySMS transport error for ${mobile}: ${err.message}`);
-      throw err;
-    }
-
-    // WhySMS returns a numeric status code as plain text (e.g. "100")
-    const code = responseBody.trim();
-    if (code === '100' || code === '200') {
-      this.logger.log(`SMS sent to ${mobile} (status ${code})`);
-    } else {
-      this.logger.warn(`WhySMS returned code ${code} for ${mobile}`);
-      // Don't throw — the OTP was stored; the user can request again
+      const resp   = await this.httpGetJson('https://wac.t7km.com/api/whats/check-online', { 'X-API-Key': apiKey });
+      const parsed = JSON.parse(resp) as { isSuccess: boolean };
+      return parsed.isSuccess === true;
+    } catch {
+      return false;
     }
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
+  /**
+   * Send a WhatsApp message via t7km Plus.
+   * Calls are serialised — each one waits for the previous to finish
+   * plus a 1.5-second gap, so we never flood the API.
+   * Throws on any failure so callers can fall back to email.
+   */
+  sendWhatsApp(to: string, message: string): Promise<void> {
+    // Attach this send to the tail of the queue
+    const result = this.sendQueue.then(() => this.doSendWhatsApp(to, message));
+
+    // Advance the queue pointer; always wait SEND_GAP_MS after this slot
+    // regardless of success/failure, so subsequent sends are never blocked
+    this.sendQueue = result
+      .then(() => this.delay(SmsService.SEND_GAP_MS))
+      .catch(() => this.delay(SmsService.SEND_GAP_MS));
+
+    // Return the raw result so the caller gets the real resolve/reject
+    return result;
+  }
+
+  // Internal: the real send logic (no queue awareness)
+  private async doSendWhatsApp(to: string, message: string): Promise<void> {
+    const apiKey = this.config.get<string>('T7KM_API_KEY');
+    if (!apiKey) throw new Error('T7KM_API_KEY is not configured');
+
+    const online = await this.checkOnline();
+    if (!online) throw new Error('WhatsApp device is not connected (check t7km dashboard to scan QR)');
+
+    const number = this.normalisePhone(to);
+    this.logger.debug(`Sending WhatsApp OTP to normalised number: ${number.slice(0, 4)}***`);
+
+    const url     = 'https://wac.t7km.com/api/whats/sendMessage';
+    const payload = JSON.stringify({ number, message });
+
+    const resp   = await this.httpPostJson(url, payload, { 'X-API-Key': apiKey });
+    const parsed = JSON.parse(resp) as { isSuccess: boolean; message: string | null };
+
+    if (!parsed.isSuccess) throw new Error(`t7km API error: ${parsed.message ?? 'isSuccess=false'}`);
+
+    this.logger.log(`WhatsApp sent to ${number.slice(0, 4)}*** via t7km`);
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  // --- Helpers --------------------------------------------------------------
 
   /**
-   * Normalise Egyptian mobile numbers to international format (e.g. 01012345678 → 201012345678).
-   * Numbers that already start with a country code (2, 20, +20) are left unchanged.
+   * Normalise any phone number to digits-only international format (no '+').
+   * Internal zeros are NEVER removed — only non-digit characters are stripped
+   * and a country-code prefix is added when missing.
+   *
+   *   '+49 160 99858405'  →  '4916099858405'   (international, kept as-is)
+   *   '+201012345678'     →  '201012345678'    (Egypt with +, kept as-is)
+   *   '201012345678'      →  '201012345678'    (Egypt with CC, kept as-is)
+   *   '01014676645'       →  '201014676645'    (Egypt local: prepend '2', keep the '0')
+   *   '1014676645'        →  '201014676645'    (Egypt local no leading 0: prepend '20')
+   *
+   * The '0' inside numbers like 1014676645 (Vodafone 10-prefix) is ALWAYS preserved.
    */
   normalisePhone(phone: string): string {
-    let digits = phone.replace(/\D/g, '');
+    // Step 1: strip leading + if present, then remove all non-digit characters
+    const stripped = phone.trim();
 
-    // Remove leading + if present (already handled by replace above)
-    if (digits.startsWith('20') && digits.length === 12) return digits;          // already correct
-    if (digits.startsWith('0') && digits.length === 11) return `2${digits}`;     // 01X... → 201X...
-    if (!digits.startsWith('0') && digits.length === 10) return `20${digits}`;   // 1X... → 201X...
-    return digits; // leave as-is for non-Egyptian or already-normalised numbers
+    if (stripped.startsWith('+')) {
+      return stripped.replace(/\D/g, '');
+    }
+
+    // Keep only digits — spaces, dashes, dots removed; no digit (incl. 0) is ever dropped
+    const digits = stripped.replace(/\D/g, '');
+
+    // Already has full country code (e.g. 201014676645 = 12 digits for Egypt)
+    if (digits.length >= 12 && !digits.startsWith('0')) return digits;
+
+    // Egyptian local with trunk zero: 01XXXXXXXXX (11 digits)
+    // → prepend '2', trunk '0' is kept, giving 20 + 1XXXXXXXXX
+    if (digits.startsWith('0') && digits.length === 11) return `2${digits}`;
+
+    // Egyptian local without trunk zero: 1XXXXXXXXX (10 digits)
+    // → prepend '20' directly
+    if (digits.length === 10 && !digits.startsWith('0')) return `20${digits}`;
+
+    // Other numbers already carrying a country code (11 digits, no leading 0)
+    if (digits.length >= 11 && !digits.startsWith('0')) return digits;
+
+    return digits;
   }
 
-  private httpPost(url: string, body: string): Promise<string> {
+  private httpGetJson(
+    url: string,
+    headers: Record<string, string>,
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
-      const transport = url.startsWith('https') ? https : http;
       const parsedUrl = new URL(url);
       const options = {
         hostname: parsedUrl.hostname,
-        port: parsedUrl.port || (url.startsWith('https') ? 443 : 80),
-        path: parsedUrl.pathname,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(body),
-        },
+        port:     parsedUrl.port || 443,
+        path:     `${parsedUrl.pathname}${parsedUrl.search}`,
+        method:   'GET',
+        headers:  { accept: '*/*', ...headers },
       };
-      const req = transport.request(options, (res) => {
+      const req = https.request(options, (res) => {
         let data = '';
-        res.on('data', (chunk) => { data += chunk; });
+        res.on('data', (chunk: Buffer) => { data += chunk; });
         res.on('end', () => resolve(data));
       });
       req.on('error', reject);
+      req.setTimeout(8_000, () => req.destroy(new Error('t7km GET timed out')));
+      req.end();
+    });
+  }
+
+  private httpPostJson(
+    url: string,
+    body: string,
+    headers: Record<string, string>,
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const options = {
+        hostname: parsedUrl.hostname,
+        port:     parsedUrl.port || 443,
+        path:     `${parsedUrl.pathname}${parsedUrl.search}`,
+        method:   'POST',
+        headers:  {
+          'Content-Type':   'application/json',
+          'Content-Length': Buffer.byteLength(body),
+          accept:           '*/*',
+          ...headers,
+        },
+      };
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`t7km HTTP ${res.statusCode}: ${data.slice(0, 200)}`));
+          } else {
+            resolve(data);
+          }
+        });
+      });
+      req.on('error', reject);
       req.setTimeout(10_000, () => {
-        req.destroy(new Error('WhySMS request timed out after 10 s'));
+        req.destroy(new Error('t7km request timed out after 10 s'));
       });
       req.write(body);
       req.end();

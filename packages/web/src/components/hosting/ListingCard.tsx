@@ -48,6 +48,27 @@ const STATUS_CONFIG = {
   },
 };
 
+function PhotoWithFallback({ src, alt }: { src: string; alt: string }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 select-none bg-gradient-to-br from-neutral-100 to-neutral-200">
+        <Home className="h-12 w-12 text-neutral-300" />
+        <span className="text-xs text-neutral-400 font-medium">Photo unavailable</span>
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
 export function ListingCard({ property }: ListingCardProps) {
   const locale = useLocale();
   const queryClient = useQueryClient();
@@ -93,15 +114,10 @@ export function ListingCard({ property }: ListingCardProps) {
       transition={{ type: 'spring', stiffness: 280, damping: 22 }}
       className="group relative bg-white rounded-3xl border border-neutral-200/80 overflow-hidden flex flex-col shadow-sm"
     >
-      {/* â”€â”€ Image â”€â”€ */}
+      {/* ── Image ── */}
       <div className="relative h-48 overflow-hidden bg-neutral-100 shrink-0">
         {coverImage ? (
-          <Image
-            src={getImageUrl(coverImage.url)}
-            alt={property.title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-          />
+          <PhotoWithFallback src={getImageUrl(coverImage.url)} alt={property.title} />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 select-none bg-gradient-to-br from-neutral-100 to-neutral-200">
             <Home className="h-12 w-12 text-neutral-300" />

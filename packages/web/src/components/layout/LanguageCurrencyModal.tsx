@@ -57,8 +57,8 @@ const CURRENCIES = [
 ];
 
 const LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇺🇸', region: 'United States' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦', region: 'Saudi Arabia' },
+  { code: 'en', label: 'English', flagSrc: 'https://flagcdn.com/w40/gb.png', region: 'United Kingdom' },
+  { code: 'ar', label: 'العربية', flagSrc: 'https://flagcdn.com/w40/eg.png', region: 'Egypt' },
 ];
 
 type Tab = 'language' | 'currency';
@@ -104,6 +104,9 @@ export function LanguageCurrencyModal({ isOpen, onClose }: Props) {
       : path === `/${locale}`
       ? `/${newLocale}`
       : `/${newLocale}${path}`;
+    // Signal to the wizard's beforeunload guard that this is a locale switch,
+    // not a real "leave page" — so it won't show the browser confirmation dialog.
+    try { sessionStorage.setItem('oikivo_locale_switch', '1'); } catch { /* ignore */ }
     window.location.href = newPath;
     onClose();
   };
@@ -175,7 +178,7 @@ export function LanguageCurrencyModal({ isOpen, onClose }: Props) {
                           : 'border-neutral-200 hover:border-neutral-400'
                       )}
                     >
-                      <span className="text-2xl">{lang.flag}</span>
+                      <img src={lang.flagSrc} alt={lang.region} className="w-8 h-auto rounded-sm shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-neutral-900">{lang.label}</p>
                         <p className="text-xs text-neutral-500">{lang.region}</p>

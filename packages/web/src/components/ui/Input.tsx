@@ -27,26 +27,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400">
+            <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-neutral-400">
               {leftIcon}
             </div>
           )}
           <input
             ref={ref}
             id={inputId}
+            dir="auto"
             className={cn(
               'block w-full rounded-xl border border-neutral-300 bg-white px-3 py-3 text-sm text-neutral-900 placeholder-neutral-400 transition',
               'focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900',
               'disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500',
               error && 'border-red-500 focus:border-red-500 focus:ring-red-500',
-              leftIcon && 'pl-10',
-              rightIcon && 'pr-10',
+              leftIcon && 'ps-10',
+              rightIcon && 'pe-10',
               className
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-400">
+            <div className="absolute inset-y-0 end-0 flex items-center pe-3 text-neutral-400">
               {rightIcon}
             </div>
           )}

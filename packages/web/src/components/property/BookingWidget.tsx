@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, differenceInDays, subDays } from 'date-fns';
-import { Star, Minus, Plus, ChevronDown, ShieldCheck } from 'lucide-react';
+import { format, differenceInDays, addDays, subDays } from 'date-fns';
+import { Star, Minus, Plus, ChevronDown, ShieldCheck, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Separator } from '@/components/ui/Separator';
@@ -60,6 +60,14 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
   const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
   const avgRatingText = formatRating(property.avgRating);
 
+  // Determine if this property requires host approval
+  const isRequestToBook = !property.instantBook && property.bookingMode !== 'instant_book';
+  // For request-to-book: check-in must be ≥ 3 days away (72 h — host 24h + payment 24h + buffer 24h)
+  const minCheckInDate = isRequestToBook ? addDays(new Date(), 3) : new Date();
+  const approvedCount = property.bookingMode === 'approve_first_three'
+    ? (property as any).approvedBookingsCount ?? 0
+    : null;
+
   const { data: pricePreview, isLoading: priceLoading } = useQuery({
     queryKey: ['price-preview', property.id, checkIn, checkOut, totalGuests],
     queryFn: () =>
@@ -78,6 +86,7 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       // Invalidate availability so the booked dates immediately show as taken
       queryClient.invalidateQueries({ queryKey: ['property', property.uuid] });
       queryClient.invalidateQueries({ queryKey: ['availability', property.id] });
+      queryClient.invalidateQueries({ queryKey: ['calendar', property.id] });
       queryClient.invalidateQueries({ queryKey: ['price-preview', property.id] });
       if (booking.status === 'confirmed' || property.instantBook) {
         // Instant Book — payment modal opens immediately
@@ -89,7 +98,12 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       }
     },
     onError: (error) => {
-      toast.error(getBookingErrorMessage(error, t('bookingFailed')));
+      const msg = getBookingErrorMessage(error, t('bookingFailed'));
+      toast.error(msg);
+      // For verification errors, redirect to the verification page after a short delay
+      if (msg.includes('Account → Verification')) {
+        setTimeout(() => router.push(`/${locale}/account/verification`), 1500);
+      }
     },
   });
 
@@ -106,6 +120,16 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       toast.error(t('minOneNight'));
       setShowDatePicker(true);
       return;
+    }
+    // Enforce 72h minimum check-in for request-to-book properties
+    if (isRequestToBook) {
+      const minCI = addDays(new Date(), 3);
+      minCI.setHours(0, 0, 0, 0);
+      if (checkIn < minCI) {
+        toast.error('Check-in must be at least 3 days from today to allow time for host approval and payment.');
+        setShowDatePicker(true);
+        return;
+      }
     }
     createBooking.mutate({
       propertyId: property.id,
@@ -131,6 +155,27 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
   const serviceFee = pricePreview?.serviceFee ?? Math.round((discountedBase + cleaningFee) * (property.serviceFeePercent ?? 5) / 100);
   const taxes = pricePreview?.taxes ?? 0;
   const total = pricePreview?.total ?? (nights > 0 ? discountedBase + cleaningFee + serviceFee + taxes : 0);
+
+  /** Group a flat per-night breakdown into consecutive runs of the same price. */
+  function groupNights(breakdown: { date: string; price: number }[]) {
+    if (!breakdown.length) return [] as { price: number; count: number }[];
+    const groups: { price: number; count: number }[] = [];
+    let cur = { price: breakdown[0].price, count: 1 };
+    for (let i = 1; i < breakdown.length; i++) {
+      if (breakdown[i].price === cur.price) {
+        cur.count++;
+      } else {
+        groups.push(cur);
+        cur = { price: breakdown[i].price, count: 1 };
+      }
+    }
+    groups.push(cur);
+    return groups;
+  }
+
+  const nightlyGroups = pricePreview?.nightlyBreakdown
+    ? groupNights(pricePreview.nightlyBreakdown)
+    : null;
 
   return (
     <>
@@ -250,6 +295,7 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
               minNights={property.minNights}
               maxNights={property.maxNights ?? undefined}
               numberOfMonths={1}
+              minDate={minCheckInDate}
             />
           </motion.div>
         )}
@@ -325,14 +371,24 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
           ) : (
             <>
               <div className="space-y-2.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600 underline decoration-dotted cursor-help">
-                    {property.weekendPrice && property.weekendPrice !== property.price
-                      ? t('weekendRate', { count: nights })
-                      : `${formatPrice(property.price, property.currency ?? 'EGP')} × ${t('nightCount', { count: nights })}`}
-                  </span>
-                  <span className="text-neutral-900">{formatPrice(baseTotal, property.currency ?? 'EGP')}</span>
-                </div>
+                {/* Per-night breakdown: grouped rows when prices vary, simple row otherwise */}
+                {nightlyGroups && nightlyGroups.length > 0 ? (
+                  nightlyGroups.map((g, i) => (
+                    <div key={i} className="flex justify-between">
+                      <span className="text-neutral-600 underline decoration-dotted cursor-help">
+                        {formatPrice(g.price, property.currency ?? 'EGP')} × {t('nightCount', { count: g.count })}
+                      </span>
+                      <span className="text-neutral-900">{formatPrice(g.price * g.count, property.currency ?? 'EGP')}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600 underline decoration-dotted cursor-help">
+                      {`${formatPrice(property.price, property.currency ?? 'EGP')} × ${t('nightCount', { count: nights })}`}
+                    </span>
+                    <span className="text-neutral-900">{formatPrice(baseTotal, property.currency ?? 'EGP')}</span>
+                  </div>
+                )}
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-emerald-600">
                     <span>{t('discountLabel', { pct: discountPercent, type: nights >= 28 ? 'monthly' : 'weekly' })}</span>
@@ -345,15 +401,7 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
                     <span className="text-neutral-900">{formatPrice(cleaningFee, property.currency ?? 'EGP')}</span>
                   </div>
                 )}
-                {(property.securityDeposit ?? 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600 flex items-center gap-1">
-                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                      Security deposit <span className="text-xs text-neutral-400 ml-0.5">(refundable)</span>
-                    </span>
-                    <span className="text-neutral-900">{formatPrice(property.securityDeposit!, property.currency ?? 'EGP')}</span>
-                  </div>
-                )}
+
                 <div className="flex justify-between">
                   <span className="text-neutral-600 underline decoration-dotted cursor-help">{tProp('serviceFee')}</span>
                   <span className="text-neutral-900">{formatPrice(serviceFee, property.currency ?? 'EGP')}</span>
@@ -376,10 +424,13 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
                 </p>
               )}
               {(property.securityDeposit ?? 0) > 0 && (
-                <p className="text-xs text-neutral-400 flex items-start gap-1.5 mt-1">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                  Security deposit of {formatPrice(property.securityDeposit!, property.currency ?? 'EGP')} is returned within 48 h of checkout if no damage is reported.
-                </p>
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                  <ShieldCheck className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="text-xs leading-relaxed text-amber-800">
+                    <p className="font-semibold">Security deposit: {formatPrice(property.securityDeposit!, property.currency ?? 'EGP')}</p>
+                    <p className="mt-0.5">You won&apos;t be charged this amount now. By booking, you acknowledge that if any damage occurs during your stay, the host may request up to this amount from you.</p>
+                  </div>
+                </div>
               )}
             </>
           )}
@@ -390,6 +441,33 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
       {/* UX-02: Payment method notice */}
       <PaymentMethodBanner compact className="mb-3" />
 
+      {/* Request-to-book info badge */}
+      {isRequestToBook && (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5">
+          <Clock className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+          <div className="text-xs leading-relaxed text-blue-800">
+            {property.bookingMode === 'approve_first_three' && approvedCount !== null ? (
+              <>
+                <p className="font-semibold">
+                  Host approval required — booking {approvedCount + 1} of 3
+                </p>
+                <p className="mt-0.5">
+                  After {3 - approvedCount} more confirmed booking{3 - approvedCount !== 1 ? 's' : ''}, this property switches to Instant Book.
+                  Check-in must be at least 3 days away to allow time for approval (24 h) and payment (24 h).
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Host approval required</p>
+                <p className="mt-0.5">
+                  Check-in must be at least 3 days away to allow time for host approval (24 h) and payment (24 h).
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Reserve button */}
       <Button
         onClick={handleReserve}
@@ -398,10 +476,10 @@ export function BookingWidget({ property, checkIn: extCheckIn, checkOut: extChec
         size="lg"
         className="mt-1"
       >
-        {property.instantBook ? tProp('instantBook') : tProp('requestToBook')}
+        {isRequestToBook ? tProp('requestToBook') : tProp('instantBook')}
       </Button>
 
-      {!property.instantBook && (
+      {isRequestToBook && (
         <p className="mt-3 text-center text-sm text-neutral-500">{t('youWontBeChargedYet')}</p>
       )}
 

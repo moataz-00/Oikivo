@@ -15,6 +15,7 @@ import { PasswordResetEntity } from '../entities/password-reset.entity';
 import { VerificationTokenEntity } from '../entities/verification-token.entity';
 import { AvailabilityEntity } from '../entities/availability.entity';
 import { ReviewEntity } from '../entities/review.entity';
+import { NotificationEntity } from '../entities/notification.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailService, tplInstapayPaymentDeclined, tplPreArrivalReminder, tplMonthlyEarningsSummary, tplBookingAccepted, tplPaymentReminder, tplBookingCancelled, tplReviewRequest } from '../mail/mail.service';
 import { PayoutsService } from '../payouts/payouts.service';
@@ -52,6 +53,8 @@ export class SchedulerService {
     private availabilityRepo: Repository<AvailabilityEntity>,
     @InjectRepository(ReviewEntity)
     private reviewsRepo: Repository<ReviewEntity>,
+    @InjectRepository(NotificationEntity)
+    private notificationsRepo: Repository<NotificationEntity>,
     private dataSource: DataSource,
     private notificationsService: NotificationsService,
     private mail: MailService,
@@ -120,6 +123,20 @@ export class SchedulerService {
         } as any)
         .whereInIds(ids)
         .execute();
+
+      // Unblock dates for each auto-cancelled booking
+      await Promise.allSettled(
+        unpaid.map(async (booking) => {
+          const ci = new Date(booking.checkIn);
+          const co = new Date(booking.checkOut);
+          for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
+            await this.availabilityRepo.update(
+              { propertyId: booking.propertyId, date: localDateStr(d) },
+              { isBlocked: false },
+            );
+          }
+        }),
+      );
 
       // Notify guests
       await Promise.allSettled(
@@ -537,11 +554,11 @@ export class SchedulerService {
 
   /**
    * Hourly job: auto-decline InstaPay submissions that have been in 'submitted'
-   * state for more than 48 hours without admin action.
+   * state for more than 24 hours without admin action.
    */
   @Cron('0 * * * *')
   async autoDeclineStaleInstapaySubmissions(): Promise<void> {
-    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     try {
       const stale = await this.bookingsRepo.find({
         where: {
@@ -560,7 +577,7 @@ export class SchedulerService {
         .update(BookingEntity)
         .set({
           paymentStatus: 'declined',
-          paymentNote: 'Auto-declined: no admin action within 48 hours',
+          paymentNote: 'Auto-declined: no admin action within 24 hours',
           status: 'cancelled',
           cancelledAt: new Date(),
           cancelledBy: 'system',
@@ -568,15 +585,19 @@ export class SchedulerService {
         .whereInIds(ids)
         .execute();
 
-      // WF-02: Remove the 'booking' source availability rows to unblock dates
-      await this.availabilityRepo
-        .createQueryBuilder()
-        .delete()
-        .from(AvailabilityEntity)
-        .where('source = :src', { src: 'booking' })
-        .andWhere('propertyId IN (SELECT property_id FROM bookings WHERE id IN (:...ids))', { ids })
-        .execute()
-        .catch((e: Error) => this.logger.warn(`[CRON] Could not unblock dates: ${e.message}`));
+      // Unblock dates for each auto-cancelled stale InstaPay booking
+      await Promise.allSettled(
+        stale.map(async (booking) => {
+          const ci = new Date(booking.checkIn);
+          const co = new Date(booking.checkOut);
+          for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
+            await this.availabilityRepo.update(
+              { propertyId: booking.propertyId, date: localDateStr(d) },
+              { isBlocked: false },
+            );
+          }
+        }),
+      );
 
       this.logger.log(`[CRON] ${stale.length} stale InstaPay submission(s) auto-declined`);
 
@@ -588,8 +609,8 @@ export class SchedulerService {
             'payment_declined',
             'Payment Could Not Be Verified',
             'تعذّر التحقق من الدفع',
-            `Your InstaPay payment for booking #${booking.id} could not be verified within 48 hours. Please go to My Trips and retry.`,
-            `تعذّر التحقق من دفعك للحجز #${booking.id} خلال 48 ساعة. يرجى الانتقال إلى رحلاتي والمحاولة مرة أخرى.`,
+            `Your InstaPay payment for booking #${booking.id} could not be verified within 24 hours. Please go to My Trips and retry.`,
+            `تعذّر التحقق من دفعك للحجز #${booking.id} خلال 24 ساعة. يرجى الانتقال إلى رحلاتي والمحاولة مرة أخرى.`,
             { bookingId: booking.id },
           );
           if (booking.guest?.email) {
@@ -600,7 +621,7 @@ export class SchedulerService {
                 booking.guest.firstName,
                 `#${booking.id}`,
                 booking.property?.title ?? 'your booking',
-                'No admin response within 48 hours. Please retry.',
+                'No admin response within 24 hours. Please retry.',
                 '#',
               ),
             ).catch((e) => {
@@ -749,6 +770,41 @@ export class SchedulerService {
       if (notified) this.logger.log(`[CRON] Sent ${notified} price drop alert(s)`);
     } catch (err) {
       this.logger.error(`[CRON] Error running price drop alerts: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * Auto-purge old notifications to keep the database lean.
+   * Strategy: delete READ notifications older than 30 days, UNREAD older than 60 days.
+   * Runs daily at 03:00 UTC (low-traffic window).
+   */
+  @Cron('0 3 * * *')
+  async purgeOldNotifications(): Promise<void> {
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
+      const [readResult, unreadResult] = await Promise.all([
+        // Delete read notifications older than 30 days
+        this.notificationsRepo
+          .createQueryBuilder()
+          .delete()
+          .where('is_read = :read AND created_at < :cutoff', { read: true, cutoff: thirtyDaysAgo })
+          .execute(),
+        // Delete unread notifications older than 60 days (they will never be acted on)
+        this.notificationsRepo
+          .createQueryBuilder()
+          .delete()
+          .where('is_read = :read AND created_at < :cutoff', { read: false, cutoff: sixtyDaysAgo })
+          .execute(),
+      ]);
+
+      const total = (readResult.affected ?? 0) + (unreadResult.affected ?? 0);
+      if (total > 0) {
+        this.logger.log(`[CRON] Purged ${total} old notifications (${readResult.affected} read, ${unreadResult.affected} unread)`);
+      }
+    } catch (err) {
+      this.logger.error(`[CRON] Error purging old notifications: ${(err as Error).message}`);
     }
   }
 
@@ -1045,7 +1101,6 @@ export class SchedulerService {
           const serviceFee = parseFloat(row.b_service_fee);
           const baseAmt = parseFloat(row.b_base_amount ?? row.b_total_amount);
           const cleaningFee = parseFloat(row.b_cleaning_fee ?? '0');
-          const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
           const checkOutDate = new Date(row.b_check_out);
           const availableAt = new Date(checkOutDate);
           availableAt.setDate(availableAt.getDate() + 1);
@@ -1055,8 +1110,8 @@ export class SchedulerService {
             this.earningsRepo.create({
               hostId: row.b_host_id,
               bookingId: row.b_id,
-              amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
-              platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
+              amount: parseFloat((baseAmt + cleaningFee).toFixed(2)),
+              platformFee: serviceFee,
               currency: row.b_currency ?? 'EGP',
               status: now >= availableAt ? 'available' : 'pending',
               availableAt,
@@ -1100,6 +1155,16 @@ export class SchedulerService {
           cancelledAt: new Date(),
           cancellationReason: 'Auto-declined: host did not respond within 48 hours.',
         } as any);
+
+        // Unblock dates so they become available for new bookings
+        const ci = new Date(booking.checkIn);
+        const co = new Date(booking.checkOut);
+        for (let d = new Date(ci); d < co; d.setDate(d.getDate() + 1)) {
+          await this.availabilityRepo.update(
+            { propertyId: booking.propertyId, date: localDateStr(d) },
+            { isBlocked: false },
+          ).catch(() => {});
+        }
 
         // Notify guest
         if (booking.guest) {

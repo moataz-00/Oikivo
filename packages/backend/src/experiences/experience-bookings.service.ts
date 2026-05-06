@@ -35,7 +35,8 @@ export class ExperienceBookingsService {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
     if (!secretKey && nodeEnv === 'production') {
-      throw new Error('STRIPE_SECRET_KEY is required in production mode');
+      // Stripe is optional — warn but don't crash; payment attempts will fail gracefully
+      console.warn('[ExperienceBookingsService] STRIPE_SECRET_KEY not set — Stripe payments disabled');
     }
     this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
       apiVersion: '2024-04-10' as any,

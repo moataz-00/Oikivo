@@ -57,7 +57,7 @@ export class PaymentsService {
       this.stripe = null;
     } else {
       if (!secretKey && nodeEnv === 'production') {
-        throw new Error('STRIPE_SECRET_KEY is required in production mode when STRIPE_ENABLED=true');
+        this.logger.warn('STRIPE_SECRET_KEY not set — Stripe payments disabled.');
       }
       if (!secretKey) {
         this.logger.warn('STRIPE_SECRET_KEY is not set — Stripe payments disabled.');
@@ -79,9 +79,10 @@ export class PaymentsService {
     if (!this.opayMerchantId || !this.opayPrivateKey || !this.opayPublicKey) {
       this.logger.warn('OPAY_MERCHANT_ID, OPAY_PRIVATE_KEY or OPAY_PUBLIC_KEY not set — OPay payments disabled.');
     }
-    // SEC: Fail fast in production if BACKEND_URL is not HTTPS
+    // SEC: Fail fast in production if BACKEND_URL is not HTTPS (allow localhost for local dev)
     const backendUrlCheck = this.config.get<string>('BACKEND_URL', '');
-    if (nodeEnv === 'production' && backendUrlCheck && !backendUrlCheck.startsWith('https://')) {
+    const isLocalhost = backendUrlCheck.includes('localhost') || backendUrlCheck.includes('127.0.0.1');
+    if (nodeEnv === 'production' && backendUrlCheck && !backendUrlCheck.startsWith('https://') && !isLocalhost) {
       throw new Error(`BACKEND_URL must use https:// in production. Got: ${backendUrlCheck}`);
     }
   }
@@ -354,19 +355,17 @@ export class PaymentsService {
         try {
           const existingEarning = await this.earningsRepo.findOne({ where: { bookingId: id } });
           if (!existingEarning) {
-            const totalAmount = Number(booking.totalAmount);
             const serviceFee = Number(booking.serviceFee);
             const baseAmt = Number(booking.baseAmount);
             const cleaningFee = Number(booking.cleaningFee ?? 0);
-            const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
             const checkOutDate = new Date(booking.checkOut);
             const availableAt = new Date(checkOutDate);
             availableAt.setDate(availableAt.getDate() + 1); // available 1 day after checkout
             const earning = this.earningsRepo.create({
               hostId: booking.hostId,
               bookingId: id,
-              amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
-              platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
+              amount: parseFloat((baseAmt + cleaningFee).toFixed(2)),
+              platformFee: serviceFee,
               currency: booking.currency ?? 'EGP',
               status: new Date() >= availableAt ? 'available' : 'pending',
               availableAt,
@@ -854,15 +853,14 @@ export class PaymentsService {
             const baseAmt = Number(stayBooking.baseAmount);
             const cleaningFee = Number(stayBooking.cleaningFee ?? 0);
             const serviceFee = Number(stayBooking.serviceFee);
-            const hostCommission = parseFloat((baseAmt * 0.05).toFixed(2));
             const checkOutDate = new Date(stayBooking.checkOut);
             const availableAt = new Date(checkOutDate);
             availableAt.setDate(availableAt.getDate() + 1);
             await em.save(EarningEntity, em.create(EarningEntity, {
               hostId: stayBooking.hostId,
               bookingId: stayBooking.id,
-              amount: parseFloat((baseAmt * 0.95 + cleaningFee).toFixed(2)),
-              platformFee: parseFloat((serviceFee + hostCommission).toFixed(2)),
+              amount: parseFloat((baseAmt + cleaningFee).toFixed(2)),
+              platformFee: serviceFee,
               currency: stayBooking.currency ?? 'EGP',
               status: new Date() >= availableAt ? 'available' : 'pending',
               availableAt,

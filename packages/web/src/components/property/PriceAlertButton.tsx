@@ -100,7 +100,7 @@ export function PriceAlertButton({ propertyId, currentPrice, className }: PriceA
         <span>{t('set')}</span>
       </button>
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={t('modalTitle')}>
+      <Modal open={showModal} onOpenChange={setShowModal} title={t('modalTitle')}>
         <div className="space-y-4">
           <p className="text-sm text-neutral-600">{t('modalDescription')}</p>
 

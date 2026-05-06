@@ -19,7 +19,8 @@ export interface User {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isIdVerified: boolean;
-  idVerificationStatus?: 'pending' | 'approved' | 'rejected' | null;
+  idVerificationStatus?: 'none' | 'pending' | 'approved' | 'rejected' | null;
+  idDocumentType?: 'national_id' | 'passport' | null;
   isAdmin: boolean;
   isConsultant?: boolean;
   preferredLanguage: Language;
@@ -102,7 +103,8 @@ export interface Property extends PropertyListItem {
   amenities: Amenity[];
   houseRules: HouseRule[];
   cancellationPolicy?: CancellationPolicy;
-  bookingMode?: 'instant_book' | 'approve_first_three';
+  bookingMode?: 'instant_book' | 'approve_first_three' | 'always_approve';
+  approvedBookingsCount?: number;
   weeklyDiscount?: number;
   monthlyDiscount?: number;
   weekendPrice?: number;

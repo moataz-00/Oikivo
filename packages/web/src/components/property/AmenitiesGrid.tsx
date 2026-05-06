@@ -102,7 +102,7 @@ export function AmenitiesGrid({ amenities }: AmenitiesGridProps) {
           className="mt-6"
           onClick={() => setShowAll(true)}
         >
-          {t('showAllAmenities').replace('{count}', String(amenities.length))}
+          {t('showAllAmenities', { count: amenities.length })}
         </Button>
       )}
 

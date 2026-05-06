@@ -15,8 +15,9 @@ import { ExperienceEntity } from '../entities/experience.entity';
 import { ExperiencePhotoEntity } from '../entities/experience-photo.entity';
 import { MessageEntity } from '../entities/message.entity';
 import { BlockedUserEntity } from '../entities/blocked-user.entity';
+import { VerificationTokenEntity } from '../entities/verification-token.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { EGYPTIAN_PHONE_REGEX } from './dto/update-profile.dto';
+import { PHONE_REGEX } from './dto/update-profile.dto';
 import { tplHostActivationRequest, MailService, tplAdminIdDocumentPending } from '../mail/mail.service';
 
 const ADMIN_NOTIFY_EMAIL = 'oikivo.support@gmail.com';
@@ -42,6 +43,8 @@ export class UsersService {
     private messagesRepo: Repository<MessageEntity>,
     @InjectRepository(BlockedUserEntity)
     private blockedUsersRepo: Repository<BlockedUserEntity>,
+    @InjectRepository(VerificationTokenEntity)
+    private verificationTokenRepo: Repository<VerificationTokenEntity>,
     private jwtService: JwtService,
     private config: ConfigService,
     private mail: MailService,
@@ -77,9 +80,11 @@ export class UsersService {
 
   async updateProfile(userId: number, dto: UpdateProfileDto): Promise<UserEntity> {
     const user = await this.findById(userId);
-    // If phone changed, require re-verification
+    // If phone changed, require re-verification and clear old OTP tokens
+    // so the user can request a new code immediately without hitting the cooldown
     if (dto.phone && dto.phone !== user.phone) {
       (user as any).isPhoneVerified = false;
+      await this.verificationTokenRepo.delete({ userId, type: 'phone' });
     }
     // FIX U1: Explicitly pick allowed fields instead of Object.assign to prevent privilege escalation
     const allowedFields: (keyof UpdateProfileDto)[] = [
@@ -97,14 +102,14 @@ export class UsersService {
   async makeHost(userId: number): Promise<UserEntity> {
     const user = await this.findById(userId);
 
-    if (!user.phone || !EGYPTIAN_PHONE_REGEX.test(user.phone)) {
+    if (!user.phone || !PHONE_REGEX.test(user.phone)) {
       throw new BadRequestException(
-        'A verified Egyptian mobile number is required to become a host. Please add your Egyptian number (+2010x / 010x) in your profile first.',
+        'A verified phone number is required to become a host. Please add your phone number in your profile first.',
       );
     }
     if (!user.isPhoneVerified) {
       throw new BadRequestException(
-        'Your Egyptian mobile number must be verified before you can start hosting.',
+        'Your phone number must be verified before you can start hosting.',
       );
     }
 
@@ -125,14 +130,14 @@ export class UsersService {
       return { message: 'Your hosting account is already active.' };
     }
 
-    if (!user.phone || !EGYPTIAN_PHONE_REGEX.test(user.phone)) {
+    if (!user.phone || !PHONE_REGEX.test(user.phone)) {
       throw new BadRequestException(
-        'A verified Egyptian mobile number is required to host on Oikivo. Please add your Egyptian number (+2010x / 010x) in your profile settings.',
+        'A verified phone number is required to host on Oikivo. Please add your phone number in your profile settings.',
       );
     }
     if (!user.isPhoneVerified) {
       throw new BadRequestException(
-        'Your Egyptian mobile number must be verified before you can activate hosting.',
+        'Your phone number must be verified before you can activate hosting.',
       );
     }
 
@@ -404,10 +409,13 @@ export class UsersService {
     }));
   }
 
-  async submitIdDocument(userId: number, docUrl: string) {
+  async submitIdDocument(userId: number, docUrl: string, docType: 'national_id' | 'passport' = 'national_id') {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     await this.usersRepo.update(userId, {
       idDocumentUrl: docUrl,
+      idDocumentType: docType,
+      // For passport: immediately set pending (no back needed).
+      // For national ID: set pending now; back upload is separate.
       idVerificationStatus: 'pending',
       isIdVerified: false,
     } as any);
@@ -425,10 +433,71 @@ export class UsersService {
     return { message: 'ID document submitted for review. Verification typically takes 1–2 business days.' };
   }
 
+  async submitIdDocumentBack(userId: number, docUrl: string) {
+    await this.usersRepo.update(userId, {
+      idDocumentBackUrl: docUrl,
+    } as any);
+    return { message: 'ID document back side uploaded. Your full document is now under review.' };
+  }
+
   async deleteAccount(userId: number): Promise<void> {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
     if (user.isAdmin) throw new ForbiddenException('Admin accounts cannot be deleted');
+
+    const mgr = this.bookingsRepo.manager;
+
+    // Blocker 1: active bookings as guest
+    const guestBookingCount: number = await this.bookingsRepo.count({
+      where: [
+        { guestId: userId, status: 'pending' as any },
+        { guestId: userId, status: 'confirmed' as any },
+        { guestId: userId, status: 'in_progress' as any },
+      ],
+    });
+    if (guestBookingCount > 0) {
+      throw new BadRequestException(
+        `You have ${guestBookingCount} active booking${guestBookingCount > 1 ? 's' : ''} as a guest. Please cancel or wait for them to complete before deleting your account.`,
+      );
+    }
+
+    // Blocker 2: active bookings as host
+    const hostBookingCount: number = await this.bookingsRepo.count({
+      where: [
+        { hostId: userId, status: 'pending' as any },
+        { hostId: userId, status: 'confirmed' as any },
+        { hostId: userId, status: 'in_progress' as any },
+      ],
+    });
+    if (hostBookingCount > 0) {
+      throw new BadRequestException(
+        `You have ${hostBookingCount} active booking${hostBookingCount > 1 ? 's' : ''} as a host. Please complete or cancel them before deleting your account.`,
+      );
+    }
+
+    // Blocker 3: open disputes
+    const [disputeRows] = await mgr.query<[{ cnt: string }]>(
+      `SELECT COUNT(*) AS cnt FROM disputes WHERE raised_by_id = ? AND status IN ('open','under_review')`,
+      [userId],
+    );
+    const disputeCount = parseInt(disputeRows.cnt, 10);
+    if (disputeCount > 0) {
+      throw new BadRequestException(
+        `You have ${disputeCount} open dispute${disputeCount > 1 ? 's' : ''}. Please wait for them to be resolved before deleting your account.`,
+      );
+    }
+
+    // Blocker 4: pending payouts
+    const [payoutRows] = await mgr.query<[{ cnt: string }]>(
+      `SELECT COUNT(*) AS cnt FROM payouts WHERE host_id = ? AND status IN ('pending','processing')`,
+      [userId],
+    );
+    const payoutCount = parseInt(payoutRows.cnt, 10);
+    if (payoutCount > 0) {
+      throw new BadRequestException(
+        `You have ${payoutCount} pending payout${payoutCount > 1 ? 's' : ''}. Please wait for them to be processed before deleting your account.`,
+      );
+    }
 
     const uploadsRoot = join(process.cwd(), 'uploads');
     const filesToDelete: string[] = [];

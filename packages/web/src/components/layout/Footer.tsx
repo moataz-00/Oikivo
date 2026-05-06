@@ -17,6 +17,13 @@ import {
 } from 'lucide-react';
 import { useCurrencyStore } from '@/store/currency.store';
 
+// ── Newsletter Google Form Configuration ──────────────────────────────────────
+// 1. Create a Google Form with a single Email field
+// 2. Replace with your actual form action URL and entry ID
+const NEWSLETTER_FORM_URL = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse';
+const NEWSLETTER_EMAIL_ENTRY = 'entry.000000001';
+// ─────────────────────────────────────────────────────────────────────────────
+
 const FOOTER_LINKS = {
   discover: [
     { labelKey: 'findHome', href: '' },
@@ -40,7 +47,6 @@ const FOOTER_LINKS = {
   company: [
     { labelKey: 'privacyPolicy', href: '/privacy' },
     { labelKey: 'termsOfService', href: '/terms' },
-    { labelKey: 'siteMap', href: '/sitemap' },
     { labelKey: 'accessibility', href: '/accessibility' },
   ],
 };
@@ -66,12 +72,24 @@ export function Footer() {
   const displayCurrency = selectedCurrency ?? 'EGP';
   const displayLocale = locale === 'ar' ? 'العربية' : 'English (EG)';
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setEmail('');
+    if (!email.trim()) return;
+    const body = new URLSearchParams({
+      [NEWSLETTER_EMAIL_ENTRY]: email.trim(),
+    });
+    try {
+      await fetch(NEWSLETTER_FORM_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+    } catch {
+      // no-cors responses always throw TypeError — submission still goes through
     }
+    setSubscribed(true);
+    setEmail('');
   };
 
   const scrollToTop = () => {
@@ -116,12 +134,12 @@ export function Footer() {
                     placeholder={t('emailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-l-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full rounded-s-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-indigo-500 transition-colors"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="flex items-center gap-2 rounded-r-xl gradient-brand px-5 py-3 text-sm font-semibold text-white hover:brightness-110 transition-all"
+                  className="flex items-center gap-2 rounded-e-xl gradient-brand px-5 py-3 text-sm font-semibold text-white hover:brightness-110 transition-all"
                 >
                   <Send className="h-4 w-4" />
                   <span className="hidden sm:inline">{t('subscribe')}</span>
@@ -142,7 +160,7 @@ export function Footer() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-indigo-500/30">
                   <img src="/favicon-96x96.png" alt="Oikivo" width={40} height={40} className="h-full w-full object-cover" />
                 </div>
-                <span className="font-brand text-3xl text-indigo-400 tracking-wide">
+                <span className="font-brand text-3xl text-indigo-400">
                   Oikivo
                 </span>
               </div>

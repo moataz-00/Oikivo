@@ -13,22 +13,22 @@ import { disputesApi } from '@/lib/api';
 import { FadeIn } from '@/components/ui/Motion';
 import { getImageUrl } from '@/lib/utils';
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; icon: React.ElementType }> = {
-  open:         { label: 'Open',         bg: 'bg-amber-50 border-amber-200',  text: 'text-amber-700', icon: AlertCircle  },
-  under_review: { label: 'Under review', bg: 'bg-blue-50 border-blue-200',    text: 'text-blue-700',  icon: Search       },
-  resolved:     { label: 'Resolved',     bg: 'bg-green-50 border-green-200',  text: 'text-green-700', icon: CheckCircle2 },
-  closed:       { label: 'Closed',       bg: 'bg-gray-50 border-gray-200',    text: 'text-gray-600',  icon: XCircle      },
+const STATUS_CONFIG: Record<string, { label: string; labelAr: string; bg: string; text: string; icon: React.ElementType }> = {
+  open:         { label: 'Open',         labelAr: 'مفتوح',         bg: 'bg-amber-50 border-amber-200',  text: 'text-amber-700', icon: AlertCircle  },
+  under_review: { label: 'Under review', labelAr: 'قيد المراجعة',  bg: 'bg-blue-50 border-blue-200',    text: 'text-blue-700',  icon: Search       },
+  resolved:     { label: 'Resolved',     labelAr: 'تم الحل',       bg: 'bg-green-50 border-green-200',  text: 'text-green-700', icon: CheckCircle2 },
+  closed:       { label: 'Closed',       labelAr: 'مغلق',          bg: 'bg-gray-50 border-gray-200',    text: 'text-gray-600',  icon: XCircle      },
 };
 
-const STATUS_STEPS: Array<{ key: string; label: string }> = [
-  { key: 'open',         label: 'Dispute filed'  },
-  { key: 'under_review', label: 'Under review'   },
-  { key: 'resolved',     label: 'Resolved'       },
+const STATUS_STEPS: Array<{ key: string; label: string; labelAr: string }> = [
+  { key: 'open',         label: 'Dispute filed',  labelAr: 'تم تقديم النزاع' },
+  { key: 'under_review', label: 'Under review',   labelAr: 'قيد المراجعة'   },
+  { key: 'resolved',     label: 'Resolved',       labelAr: 'تم الحل'         },
 ];
 
 const STEP_ORDER = ['open', 'under_review', 'resolved', 'closed'];
 
-function StatusTimeline({ status }: { status: string }) {
+function StatusTimeline({ status, locale }: { status: string; locale: string }) {
   const currentIdx = STEP_ORDER.indexOf(status);
   return (
     <ol className="flex items-start gap-0 relative">
@@ -53,7 +53,7 @@ function StatusTimeline({ status }: { status: string }) {
               {done ? '✓' : idx + 1}
             </span>
             <span className={`mt-2 text-xs font-medium text-center ${active ? 'text-emerald-600' : done ? 'text-gray-700' : 'text-gray-400'}`}>
-              {step.label}
+              {locale === 'ar' ? step.labelAr : step.label}
             </span>
           </li>
         );
@@ -91,14 +91,14 @@ export default function DisputeDetailPage() {
   if (isError || !dispute) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Dispute not found.
+        {locale === 'ar' ? 'لم يتم العثور على النزاع.' : 'Dispute not found.'}
       </div>
     );
   }
 
   const cfg        = STATUS_CONFIG[dispute.status] ?? STATUS_CONFIG.open;
   const StatusIcon = cfg.icon;
-  const filedDate  = new Date(dispute.createdAt).toLocaleDateString('en-GB', {
+  const filedDate  = new Date(dispute.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
     day: '2-digit', month: 'long', year: 'numeric',
   });
   const booking = dispute.booking;
@@ -110,37 +110,45 @@ export default function DisputeDetailPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-20" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <div className="max-w-2xl mx-auto px-4 py-8">
         <FadeIn>
           <Link
             href={`/${locale}/trips/disputes`}
             className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            All disputes
+            <ArrowLeft className={`w-4 h-4 ${locale === 'ar' ? 'rotate-180' : ''}`} />
+            {locale === 'ar' ? 'جميع النزاعات' : 'All disputes'}
           </Link>
 
           {/* Status banner */}
           <div className={`flex items-center gap-3 border rounded-2xl p-4 mb-6 ${cfg.bg}`}>
             <StatusIcon className={`w-6 h-6 shrink-0 ${cfg.text}`} />
             <div>
-              <p className={`font-semibold ${cfg.text}`}>Status: {cfg.label}</p>
-              <p className="text-xs text-gray-500">Filed on {filedDate}</p>
+              <p className={`font-semibold ${cfg.text}`}>
+                {locale === 'ar' ? 'الحالة:' : 'Status:'} {locale === 'ar' ? cfg.labelAr : cfg.label}
+              </p>
+              <p className="text-xs text-gray-500">
+                {locale === 'ar' ? `تم تقديمه في ${filedDate}` : `Filed on ${filedDate}`}
+              </p>
             </div>
           </div>
 
           {/* Progress timeline */}
           {dispute.status !== 'closed' && (
             <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-5">Progress</h2>
-              <StatusTimeline status={dispute.status} />
+              <h2 className="text-sm font-semibold text-gray-700 mb-5">
+                {locale === 'ar' ? 'التقدم' : 'Progress'}
+              </h2>
+              <StatusTimeline status={dispute.status} locale={locale} />
             </div>
           )}
 
           {/* Dispute details */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Your dispute</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">
+              {locale === 'ar' ? 'نزاعك' : 'Your dispute'}
+            </h2>
             <p className="font-bold text-gray-900 mb-1">{dispute.title}</p>
             <span className="inline-block text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full mb-3 capitalize">
               {(dispute.category ?? '').replace(/_/g, ' ')}
@@ -151,7 +159,9 @@ export default function DisputeDetailPage() {
           {/* Booking summary */}
           {booking && (
             <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Related booking</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-3">
+                {locale === 'ar' ? 'الحجز المرتبط' : 'Related booking'}
+              </h2>
               {(() => {
                 const coverImage = booking.property?.photos?.find((img: any) => img.isCover) ?? booking.property?.photos?.[0];
                 return coverImage ? (
@@ -173,16 +183,20 @@ export default function DisputeDetailPage() {
                   <div className="flex items-center gap-2">
                     <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
                     <span>
-                      {new Date(booking.checkIn).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {new Date(booking.checkIn).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                       {' → '}
-                      {new Date(booking.checkOut).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {new Date(booking.checkOut).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
                 )}
                 {booking.guestsCount && (
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span>{booking.guestsCount} guest{booking.guestsCount !== 1 ? 's' : ''}</span>
+                    <span>
+                      {locale === 'ar'
+                        ? `${booking.guestsCount} ${booking.guestsCount === 1 ? 'ضيف' : 'ضيوف'}`
+                        : `${booking.guestsCount} guest${booking.guestsCount !== 1 ? 's' : ''}`}
+                    </span>
                   </div>
                 )}
               </div>
@@ -192,7 +206,9 @@ export default function DisputeDetailPage() {
           {/* Evidence */}
           {evidenceUrls.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Evidence submitted</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-3">
+                {locale === 'ar' ? `أدلتك (${evidenceUrls.length})` : `Your evidence (${evidenceUrls.length})`}
+              </h2>
               <div className="grid grid-cols-2 gap-2">
                 {evidenceUrls.map((src, idx) => (
                   <button
@@ -216,7 +232,9 @@ export default function DisputeDetailPage() {
           {/* Admin note */}
           {dispute.adminNote && (
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-5">
-              <h2 className="text-sm font-semibold text-blue-800 mb-2">Note from support</h2>
+              <h2 className="text-sm font-semibold text-blue-800 mb-2">
+                {locale === 'ar' ? 'ملاحظة من الدعم' : 'Note from support'}
+              </h2>
               <p className="text-sm text-blue-700 leading-relaxed">{dispute.adminNote}</p>
             </div>
           )}
@@ -224,12 +242,14 @@ export default function DisputeDetailPage() {
           {/* Resolution */}
           {dispute.resolution && (
             <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-green-800 mb-2">Resolution</h2>
+              <h2 className="text-sm font-semibold text-green-800 mb-2">
+                {locale === 'ar' ? 'القرار' : 'Resolution'}
+              </h2>
               <p className="text-sm text-green-700 leading-relaxed">{dispute.resolution}</p>
               {dispute.resolvedAt && (
                 <p className="text-xs text-green-600 mt-2">
-                  Resolved on{' '}
-                  {new Date(dispute.resolvedAt).toLocaleDateString('en-GB', {
+                  {locale === 'ar' ? 'تم الحل في' : 'Resolved on'}{' '}
+                  {new Date(dispute.resolvedAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
                     day: '2-digit', month: 'long', year: 'numeric',
                   })}
                 </p>

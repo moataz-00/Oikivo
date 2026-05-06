@@ -166,6 +166,18 @@ export class ReviewsController {
     return this.reviewsService.addPhotos(reviewId, user.id, photoPaths);
   }
 
+  @Delete(':id/reply')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete host reply from a review' })
+  deleteReply(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.reviewsService.deleteReply(id, user.id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

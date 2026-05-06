@@ -58,7 +58,7 @@ function DualBarChart({
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-neutral-900">Monthly Performance (12 months)</h3>
+        <h3 className="font-semibold text-neutral-900">{t('monthlyPerformance')}</h3>
         <div className="flex items-center gap-4 text-xs text-neutral-500">
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-indigo-600 inline-block" /> {t('revenue')}</span>
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 inline-block" /> {t('bookings')}</span>
@@ -105,18 +105,18 @@ function StatusBreakdown({
 }) {
   const t = useTranslations('hosting');
   const statuses = [
-    { key: 'confirmed', label: 'Confirmed', color: 'bg-emerald-500', text: 'text-emerald-700' },
-    { key: 'completed', label: 'Completed', color: 'bg-indigo-600', text: 'text-neutral-700' },
-    { key: 'pending', label: 'Pending', color: 'bg-amber-400', text: 'text-amber-700' },
-    { key: 'cancelled', label: 'Cancelled', color: 'bg-red-400', text: 'text-red-700' },
-    { key: 'declined', label: 'Declined', color: 'bg-neutral-300', text: 'text-neutral-600' },
+    { key: 'confirmed', label: t('confirmed'), color: 'bg-emerald-500', text: 'text-emerald-700' },
+    { key: 'completed', label: t('completed'), color: 'bg-indigo-600', text: 'text-neutral-700' },
+    { key: 'pending', label: t('pending'), color: 'bg-amber-400', text: 'text-amber-700' },
+    { key: 'cancelled', label: t('cancelled'), color: 'bg-red-400', text: 'text-red-700' },
+    { key: 'declined', label: t('declined'), color: 'bg-neutral-300', text: 'text-neutral-600' },
   ];
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <h3 className="font-semibold text-neutral-900 mb-4">{t('bookingStatus')}</h3>
       {total === 0 ? (
-        <p className="text-sm text-neutral-400 py-6 text-center">No bookings yet</p>
+        <p className="text-sm text-neutral-400 py-6 text-center">{t('noBookingsYet')}</p>
       ) : (
         <>
           {/* Stacked bar */}
@@ -166,30 +166,30 @@ function RevenueBreakdown({
 }) {
   const t = useTranslations('hosting');
   const items = [
-    { label: 'Base rent', amount: base, color: 'bg-indigo-600' },
-    { label: 'Cleaning fees', amount: cleaning, color: 'bg-neutral-500' },
+    { id: 'base', label: t('baseRent'), amount: base, color: 'bg-indigo-600' },
+    { id: 'cleaning', label: t('cleaningFees'), amount: cleaning, color: 'bg-neutral-500' },
   ];
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <h3 className="font-semibold text-neutral-900 mb-4">{t('revenueBreakdown')}</h3>
       {total === 0 ? (
-        <p className="text-sm text-neutral-400 py-6 text-center">No revenue yet</p>
+        <p className="text-sm text-neutral-400 py-6 text-center">{t('noRevenueYet')}</p>
       ) : (
         <>
           {/* Stacked bar */}
           <div className="flex h-4 w-full rounded-full overflow-hidden mb-4">
-            {items.map(({ label, amount, color }) => {
+            {items.map(({ id, label, amount, color }) => {
               const pct = (amount / total) * 100;
               if (pct === 0) return null;
-              return <div key={label} className={cn(color, 'h-full')} style={{ width: `${pct}%` }} />;
+              return <div key={id} className={cn(color, 'h-full')} style={{ width: `${pct}%` }} />;
             })}
           </div>
           <div className="space-y-2.5">
-            {items.map(({ label, amount, color }) => {
+            {items.map(({ id, label, amount, color }) => {
               const pct = total > 0 ? Math.round((amount / total) * 100) : 0;
               return (
-                <div key={label} className="flex items-center justify-between text-sm">
+                <div key={id} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', color)} />
                     <span className="text-neutral-600">{label}</span>
@@ -203,7 +203,7 @@ function RevenueBreakdown({
             })}
           </div>
           <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between">
-            <span className="text-sm font-semibold text-neutral-900">Total</span>
+            <span className="text-sm font-semibold text-neutral-900">{t('totalLabel')}</span>
             <span className="text-sm font-bold text-neutral-900">{formatPrice(total, 'EGP')}</span>
           </div>
         </>
@@ -256,13 +256,13 @@ export default function HostAnalyticsPage() {
             href={`/${locale}/hosting/earnings`}
             className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
           >
-            Earnings & Payouts
+            {t('earningsPayouts')}
           </Link>
           <Link
             href={`/${locale}/hosting/reservations`}
             className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
           >
-            View Reservations
+            {t('viewReservations')}
           </Link>
         </div>
       </div>
@@ -272,19 +272,19 @@ export default function HostAnalyticsPage() {
       ) : isError ? (
         <div className="text-center py-20 text-neutral-400">
           <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50 text-red-400" />
-          <p className="text-red-500 font-medium">Failed to load analytics</p>
-          <p className="text-sm mt-1">Check your connection and try again.</p>
+          <p className="text-red-500 font-medium">{t('failedLoadAnalytics')}</p>
+          <p className="text-sm mt-1">{t('checkConnectionRetry')}</p>
           <button
             onClick={() => refetch()}
             className="mt-4 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
           >
-            Retry
+            {t('retry')}
           </button>
         </div>
       ) : !analytics ? (
         <div className="text-center py-20 text-neutral-400">
           <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p>No analytics data available yet.</p>
+          <p>{t('noAnalyticsData')}</p>
         </div>
       ) : (
         <motion.div
@@ -298,58 +298,58 @@ export default function HostAnalyticsPage() {
             {[
               {
                 icon: DollarSign,
-                label: 'Your Earnings',
+                label: t('yourEarnings'),
                 value: formatPrice(analytics.totals.revenue, 'EGP'),
-                sub: 'Your share (excl. platform fees)',
+                sub: t('yourEarningsSub'),
                 color: 'bg-emerald-50 text-emerald-600',
               },
               {
                 icon: TrendingUp,
-                label: 'This Month',
+                label: t('thisMonth'),
                 value: formatPrice(analytics.totals.thisMonthRevenue, 'EGP'),
                 sub: `${analytics.totals.thisMonthBookings} booking${analytics.totals.thisMonthBookings !== 1 ? 's' : ''}`,
                 color: 'bg-neutral-100 text-neutral-700',
               },
               {
                 icon: CalendarCheck,
-                label: 'Total Bookings',
+                label: t('totalBookings'),
                 value: analytics.totals.bookings,
                 sub: `${analytics.totals.byStatus.confirmed ?? 0} confirmed`,
                 color: 'bg-blue-50 text-blue-600',
               },
               {
                 icon: CheckCircle2,
-                label: 'Completion Rate',
+                label: t('completionRateLabel'),
                 value: `${analytics.totals.completionRate}%`,
                 sub: `${analytics.totals.byStatus.completed ?? 0} completed`,
                 color: 'bg-teal-50 text-teal-600',
               },
               {
                 icon: Banknote,
-                label: 'Avg. Booking Value',
+                label: t('avgBookingValue'),
                 value: formatPrice(analytics.totals.avgBookingValue, 'EGP'),
-                sub: 'Per confirmed / completed booking',
+                sub: t('avgBookingValueSub'),
                 color: 'bg-neutral-100 text-neutral-700',
               },
               {
                 icon: Home,
-                label: 'Total Nights Hosted',
+                label: t('totalNightsHosted'),
                 value: analytics.totals.nights,
                 sub: `Across all bookings`,
                 color: 'bg-amber-50 text-amber-600',
               },
               {
                 icon: AlertCircle,
-                label: 'Pending',
+                label: t('tabPending'),
                 value: analytics.totals.byStatus.pending ?? 0,
-                sub: 'Awaiting confirmation',
+                sub: t('awaitingConfirmation'),
                 color: 'bg-orange-50 text-orange-500',
               },
               {
                 icon: XCircle,
-                label: 'Cancelled',
+                label: t('cancelled'),
                 value: (analytics.totals.byStatus.cancelled ?? 0) + (analytics.totals.byStatus.declined ?? 0),
-                sub: 'Cancelled or declined',
+                sub: t('cancelledOrDeclined'),
                 color: 'bg-red-50 text-red-500',
               },
             ].map((kpi) => (
@@ -380,12 +380,12 @@ export default function HostAnalyticsPage() {
 
             {/* Top metrics */}
             <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <h3 className="font-semibold text-neutral-900 mb-4">Revenue Metrics</h3>
+              <h3 className="font-semibold text-neutral-900 mb-4">{t('revenueMetrics')}</h3>
               {[
-                { label: 'Total base rent earned', value: formatPrice(analytics.totals.baseRevenue, 'EGP'), icon: Banknote, color: 'bg-neutral-100 text-neutral-700' },
-                { label: 'Cleaning fees collected', value: formatPrice(analytics.totals.cleaningFees, 'EGP'), icon: Layers, color: 'bg-neutral-100 text-neutral-600' },
-                { label: 'Total nights booked', value: `${analytics.totals.nights} nights`, icon: Clock, color: 'bg-amber-50 text-amber-600' },
-                { label: 'Avg. nights per booking', value: analytics.totals.bookings > 0 ? `${(analytics.totals.nights / analytics.totals.bookings).toFixed(1)} nights` : '—', icon: Users, color: 'bg-teal-50 text-teal-600' },
+                { label: t('totalBaseRentEarned'), value: formatPrice(analytics.totals.baseRevenue, 'EGP'), icon: Banknote, color: 'bg-neutral-100 text-neutral-700' },
+                { label: t('cleaningFeesCollected'), value: formatPrice(analytics.totals.cleaningFees, 'EGP'), icon: Layers, color: 'bg-neutral-100 text-neutral-600' },
+                { label: t('totalNightsBooked'), value: `${analytics.totals.nights} nights`, icon: Clock, color: 'bg-amber-50 text-amber-600' },
+                { label: t('avgNightsPerBooking'), value: analytics.totals.bookings > 0 ? `${(analytics.totals.nights / analytics.totals.bookings).toFixed(1)} nights` : '—', icon: Users, color: 'bg-teal-50 text-teal-600' },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div key={label} className="flex items-center justify-between py-2.5 border-b border-neutral-50 last:border-0">
                   <div className="flex items-center gap-2.5">
@@ -405,7 +405,7 @@ export default function HostAnalyticsPage() {
             <motion.div variants={fadeUp}>
               <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
                 <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-neutral-900">Performance by Listing</h3>
+                  <h3 className="font-semibold text-neutral-900">{t('performanceByListing')}</h3>
                   <span className="text-xs text-neutral-400">{analytics.byProperty.length} listing{analytics.byProperty.length > 1 ? 's' : ''}</span>
                 </div>
                 <div className="divide-y divide-neutral-50">

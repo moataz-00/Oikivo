@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -42,6 +42,8 @@ export function WizardStep({
 }: WizardStepProps) {
   const t = useTranslations('hosting');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const isRTL = locale === 'ar';
 
   const progress = (currentStep / totalSteps) * 100;
 
@@ -75,7 +77,7 @@ export function WizardStep({
             <div className="mb-8 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-medium text-neutral-500 tracking-wide uppercase mb-3">
-                  Step {currentStep} of {totalSteps}
+                  {t('wizardStepOf' as any, { current: currentStep, total: totalSteps })}
                 </p>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-neutral-900 leading-tight">
                   {title}
@@ -121,7 +123,7 @@ export function WizardStep({
             {onNext && (
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button size="md" onClick={onNext} disabled={nextDisabled || isLoading} isLoading={isLoading}>
-                  {isLastStep ? (nextLabel ?? `🎉 ${t('publishListing')}`) : (nextLabel ?? tCommon('next'))} {!isLastStep && '→'}
+                  {isLastStep ? (nextLabel ?? `🎉 ${t('publishListing')}`) : (nextLabel ?? tCommon('next'))} {!isLastStep && (isRTL ? '←' : '→')}
                 </Button>
               </motion.div>
             )}

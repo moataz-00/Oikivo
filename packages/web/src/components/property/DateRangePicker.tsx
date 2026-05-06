@@ -18,6 +18,8 @@ interface DateRangePickerProps {
   maxNights?: number;
   /** How many months to show side-by-side. Default: 2 */
   numberOfMonths?: number;
+  /** Earliest selectable date. Defaults to today. Pass addDays(new Date(), 3) for request-to-book. */
+  minDate?: Date;
 }
 
 // Scoped CSS — renders the selection band via ::before on the <td> cell.
@@ -70,6 +72,7 @@ export function DateRangePicker({
   minNights = 1,
   maxNights,
   numberOfMonths = 2,
+  minDate,
 }: DateRangePickerProps) {
   const [displayMonth, setDisplayMonth] = useState<Date>(() => new Date());
 
@@ -79,13 +82,17 @@ export function DateRangePicker({
   const { data: data1, isLoading: l1 } = useQuery({
     queryKey: ['calendar', propertyId, m1.getFullYear(), m1.getMonth() + 1],
     queryFn: () => availabilityApi.getCalendar(propertyId, m1.getFullYear(), m1.getMonth() + 1),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
   });
 
   const { data: data2, isLoading: l2 } = useQuery({
     queryKey: ['calendar', propertyId, m2.getFullYear(), m2.getMonth() + 1],
     queryFn: () => availabilityApi.getCalendar(propertyId, m2.getFullYear(), m2.getMonth() + 1),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
   });
 
   const isLoading = l1 || l2;
@@ -96,7 +103,7 @@ export function DateRangePicker({
 
   const blockedSet = new Set(blockedDates.map((d) => d.toDateString()));
 
-  const disabledDays: any[] = [{ before: new Date() }, ...blockedDates];
+  const disabledDays: any[] = [{ before: minDate ?? new Date() }, ...blockedDates];
 
   if (checkIn && !checkOut && minNights > 1) {
     for (let i = 1; i < minNights; i++) disabledDays.push(addDays(checkIn, i));
@@ -115,6 +122,11 @@ export function DateRangePicker({
       const days = eachDayOfInterval({ start: from, end: to });
       if (days.some((d) => blockedSet.has(d.toDateString()))) {
         onSelect({ from: to, to: undefined });
+        return;
+      }
+      // Enforce minimum nights — catches reverse-selection (checkout clicked first, then check-in)
+      if (differenceInDays(to, from) < minNights) {
+        onSelect({ from, to: undefined });
         return;
       }
     }

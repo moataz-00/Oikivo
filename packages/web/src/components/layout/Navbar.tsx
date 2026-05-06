@@ -96,7 +96,7 @@ export function Navbar() {
               >
                 <img src="/favicon-96x96.png" alt="Oikivo" width={36} height={36} className="h-full w-full object-cover" />
               </motion.div>
-              <span className="font-brand text-3xl text-brand hidden sm:block tracking-wide">Oikivo</span>
+              <span className="font-brand text-3xl text-brand hidden sm:block">Oikivo</span>
             </Link>
 
             {/* Center: compact pill or expanded search */}
@@ -268,6 +268,7 @@ export function Navbar() {
                     { label: tHosting('earnings'), href: `/${locale}/hosting/earnings` },
                     { label: tHosting('analytics'), href: `/${locale}/hosting/analytics` },
                     { label: tHosting('reviews'), href: `/${locale}/hosting/reviews` },
+                    { label: tHosting('disputes') ?? 'Disputes', href: `/${locale}/hosting/disputes` },
                   ] : []),
                 ].map(({ label, href }) => (
                   <Link

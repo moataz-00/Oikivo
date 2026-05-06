@@ -173,7 +173,18 @@ import { BookingStatusHistoryEntity } from './entities/booking-status-history.en
         charset: 'utf8mb4',
         timezone: '+00:00',
         logging: config.get('NODE_ENV') === 'development',
-        extra: { connectionLimit: 25 },
+        extra: {
+          connectionLimit: 25,
+          // Keep connections alive so MySQL doesn't drop them after wait_timeout
+          enableKeepAlive: true,
+          keepAliveInitialDelay: 30000,
+          // Automatically reconnect on ECONNRESET / lost connection
+          connectTimeout: 30000,
+          waitForConnections: true,
+          queueLimit: 0,
+        },
+        retryAttempts: 10,
+        retryDelay: 3000,
       }),
       inject: [ConfigService],
     }),
