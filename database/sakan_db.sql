@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 05, 2026 at 09:17 PM
+-- Generation Time: May 10, 2026 at 09:32 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -290,54 +290,6 @@ CREATE TABLE `audit_logs` (
   `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `audit_logs`
---
-
-INSERT INTO `audit_logs` (`id`, `event_type`, `actor_id`, `entity_type`, `entity_id`, `metadata`, `ip_address`, `created_at`) VALUES
-(1, 'booking.created', 17, 'booking', 36, '{\"propertyId\":161,\"checkIn\":\"2026-04-08\",\"checkOut\":\"2026-04-11\",\"totalAmount\":1194.4,\"status\":\"confirmed\"}', NULL, '2026-04-06 01:03:39.990776'),
-(2, 'payment.submitted', 17, 'booking', 36, '{\"method\":\"instapay\",\"reference\":\"zxcvxxcvbcvnbvnvmn\"}', NULL, '2026-04-06 01:04:10.458728'),
-(3, 'payment.confirmed', 0, 'booking', 36, '{\"isAdmin\":true,\"totalAmount\":1194.4,\"method\":\"instapay\"}', NULL, '2026-04-06 01:05:40.161588'),
-(4, 'booking.cancelled', 17, 'booking', 36, '{\"cancelledBy\":\"guest\",\"refundAmount\":3300,\"policy\":\"flexible\"}', NULL, '2026-04-06 01:11:12.502690'),
-(5, 'payment.refunded', NULL, 'booking', 36, '{\"method\":\"instapay\",\"refundAmount\":3300}', NULL, '2026-04-06 01:12:26.390838'),
-(6, 'booking.created', 28, 'booking', 37, '{\"propertyId\":196,\"checkIn\":\"2026-04-10\",\"checkOut\":\"2026-04-11\",\"totalAmount\":61.3,\"status\":\"confirmed\"}', NULL, '2026-04-10 20:36:42.582883'),
-(7, 'booking.created', 28, 'booking', 38, '{\"propertyId\":161,\"checkIn\":\"2026-04-11\",\"checkOut\":\"2026-04-12\",\"totalAmount\":464.8,\"status\":\"confirmed\"}', NULL, '2026-04-11 15:54:58.938821'),
-(8, 'booking.created', 28, 'booking', 39, '{\"propertyId\":161,\"checkIn\":\"2026-04-16\",\"checkOut\":\"2026-04-17\",\"totalAmount\":464.8,\"status\":\"confirmed\"}', NULL, '2026-04-11 15:55:56.028956'),
-(9, 'booking.cancelled', 28, 'booking', 39, '{\"cancelledBy\":\"guest\",\"reason\":\"personal_emergency\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 15:56:17.596459'),
-(10, 'booking.created', 30, 'booking', 40, '{\"propertyId\":161,\"checkIn\":\"2026-04-18\",\"checkOut\":\"2026-04-25\",\"totalAmount\":3018.4,\"status\":\"confirmed\"}', NULL, '2026-04-11 16:21:30.071964'),
-(11, 'booking.cancelled', 30, 'booking', 40, '{\"cancelledBy\":\"guest\",\"reason\":\"personal_emergency\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 16:22:41.558489'),
-(12, 'booking.created', 33, 'booking', 41, '{\"propertyId\":165,\"checkIn\":\"2026-04-16\",\"checkOut\":\"2026-04-25\",\"totalAmount\":704,\"status\":\"confirmed\"}', NULL, '2026-04-11 22:10:41.278513'),
-(13, 'booking.cancelled', 33, 'booking', 41, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-11 22:11:30.483778'),
-(14, 'booking.created', 34, 'booking', 45, '{\"propertyId\":247,\"checkIn\":\"2026-04-25\",\"checkOut\":\"2026-04-27\",\"totalAmount\":924,\"status\":\"pending\"}', NULL, '2026-04-24 16:32:01.299767'),
-(15, 'booking.created', 34, 'booking', 46, '{\"propertyId\":247,\"checkIn\":\"2026-04-26\",\"checkOut\":\"2026-04-27\",\"totalAmount\":420,\"status\":\"pending\"}', NULL, '2026-04-25 01:16:20.844627'),
-(16, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modhy9x4\"}', NULL, '2026-04-25 01:43:20.411365'),
-(17, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modi1i82\"}', NULL, '2026-04-25 01:45:50.714165'),
-(18, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modi2amm\"}', NULL, '2026-04-25 01:46:27.932247'),
-(19, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"Authentication failed\",\"reference\":\"js-s-46-modi8i0l\"}', NULL, '2026-04-25 01:51:17.392996'),
-(20, 'payment.opay.checkout_failed', 34, 'booking', 46, '{\"code\":\"02000\",\"message\":\"error format for [Authorization]\",\"reference\":\"js-s-46-modi98u4\"}', NULL, '2026-04-25 01:51:52.030114'),
-(21, 'payment.opay.checkout_created', 34, 'booking', 46, '{\"paymentMethod\":\"opay-checkout\",\"reference\":\"js-s-46-modidllj\",\"orderNo\":\"260424148185829931449\"}', NULL, '2026-04-25 01:55:19.689088'),
-(22, 'payment.opay.checkout_created', 34, 'booking', 46, '{\"paymentMethod\":\"opay-checkout\",\"reference\":\"js-s-46-modifcb5\",\"orderNo\":\"260424148185829932907\"}', NULL, '2026-04-25 01:56:45.064387'),
-(23, 'payment.submitted', 34, 'booking', 46, '{\"method\":\"instapay\",\"reference\":\"mnjbhghgkhkj\"}', NULL, '2026-04-25 01:59:53.453672'),
-(24, 'payment.confirmed', 15, 'booking', 46, '{\"isAdmin\":true,\"totalAmount\":420,\"method\":\"instapay\"}', NULL, '2026-04-25 02:08:00.170967'),
-(25, 'booking.created', 33, 'booking', 47, '{\"propertyId\":259,\"checkIn\":\"2026-05-01\",\"checkOut\":\"2026-05-04\",\"totalAmount\":2520,\"status\":\"pending\"}', NULL, '2026-04-30 13:17:27.283274'),
-(26, 'booking.cancelled', 33, 'booking', 47, '{\"cancelledBy\":\"guest\",\"reason\":\"found_alternative\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-30 13:19:57.485870'),
-(27, 'booking.created', 33, 'booking', 48, '{\"propertyId\":259,\"checkIn\":\"2026-04-30\",\"checkOut\":\"2026-05-02\",\"totalAmount\":1680,\"status\":\"pending\"}', NULL, '2026-04-30 13:20:53.879729'),
-(28, 'booking.cancelled', 33, 'booking', 48, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-30 13:21:12.439482'),
-(29, 'booking.created', 33, 'booking', 49, '{\"propertyId\":259,\"checkIn\":\"2026-04-30\",\"checkOut\":\"2026-05-01\",\"totalAmount\":840,\"status\":\"pending\"}', NULL, '2026-04-30 13:21:46.470184'),
-(30, 'payment.opay.checkout_created', 33, 'booking', 49, '{\"paymentMethod\":\"opay-checkout\",\"reference\":\"js-s-49-molcazz1\",\"orderNo\":\"260430148185830614069\"}', NULL, '2026-04-30 13:27:29.796733'),
-(31, 'payment.submitted', 33, 'booking', 49, '{\"method\":\"instapay\",\"reference\":\"232456575788678\"}', NULL, '2026-04-30 13:31:19.821876'),
-(32, 'payment.confirmed', 15, 'booking', 49, '{\"isAdmin\":true,\"totalAmount\":840,\"method\":\"instapay\"}', NULL, '2026-04-30 13:33:14.541150'),
-(33, 'booking.created', 33, 'booking', 50, '{\"propertyId\":259,\"checkIn\":\"2026-05-01\",\"checkOut\":\"2026-05-02\",\"totalAmount\":840,\"status\":\"pending\"}', NULL, '2026-04-30 19:39:09.521697'),
-(34, 'booking.created', 34, 'booking', 51, '{\"propertyId\":259,\"checkIn\":\"2026-05-04\",\"checkOut\":\"2026-05-07\",\"totalAmount\":2520,\"status\":\"pending\"}', NULL, '2026-04-30 19:41:19.701440'),
-(35, 'booking.cancelled', 34, 'booking', 51, '{\"cancelledBy\":\"guest\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-04-30 19:41:26.153689'),
-(36, 'booking.created', 38, 'booking', 52, '{\"propertyId\":260,\"checkIn\":\"2026-05-06\",\"checkOut\":\"2026-05-09\",\"totalAmount\":1344,\"status\":\"pending\"}', NULL, '2026-05-03 07:09:19.555933'),
-(37, 'payment.submitted', 38, 'booking', 52, '{\"method\":\"instapay\",\"reference\":\"232456575788678\"}', NULL, '2026-05-03 07:14:32.125283'),
-(38, 'payment.confirmed', 15, 'booking', 52, '{\"isAdmin\":true,\"totalAmount\":1344,\"method\":\"instapay\"}', NULL, '2026-05-03 07:20:10.382962'),
-(39, 'booking.cancelled', 38, 'booking', 52, '{\"cancelledBy\":\"guest\",\"refundAmount\":1280,\"policy\":\"flexible\"}', NULL, '2026-05-03 07:20:34.338834'),
-(40, 'payment.refunded', NULL, 'booking', 52, '{\"method\":\"instapay\",\"refundAmount\":1280}', NULL, '2026-05-03 07:21:19.834199'),
-(41, 'booking.created', 38, 'booking', 53, '{\"propertyId\":260,\"checkIn\":\"2026-05-13\",\"checkOut\":\"2026-05-16\",\"totalAmount\":1344,\"status\":\"pending\"}', NULL, '2026-05-03 08:39:14.886085'),
-(42, 'booking.cancelled', 38, 'booking', 53, '{\"cancelledBy\":\"guest\",\"reason\":\"found_alternative\",\"refundAmount\":0,\"policy\":\"flexible\"}', NULL, '2026-05-03 09:14:45.276832');
-
 -- --------------------------------------------------------
 
 --
@@ -413,7 +365,8 @@ CREATE TABLE `bookings` (
   `price_per_night` decimal(10,2) NOT NULL DEFAULT 0.00,
   `discount_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
   `discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
-  `discount_type` varchar(40) DEFAULT NULL
+  `discount_type` varchar(40) DEFAULT NULL,
+  `nightly_rates` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Per-night price breakdown [{date,price}] stored at booking creation time' CHECK (json_valid(`nightly_rates`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- --------------------------------------------------------
@@ -991,44 +944,6 @@ CREATE TABLE `notifications` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `title_ar`, `body`, `body_ar`, `data_json`, `is_read`, `created_at`) VALUES
-(82, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"36\",\"propertyId\":161}', 0, '2026-04-06 01:03:39'),
-(83, 2, 'payment_submitted', 'Payment Submitted', 'تم إرسال الدفع', 'Guest submitted an InstaPay transfer for booking #36. Ref: zxcvxxcvbcvnbvnvmn', 'أرسل الضيف تحويل InstaPay للحجز #36. المرجع: zxcvxxcvbcvnbvnvmn', '{\"bookingId\":36}', 0, '2026-04-06 01:04:10'),
-(85, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled. Refund: USD 3300.00', 'تم إلغاء حجز. Refund: USD 3300.00', '{\"bookingId\":36}', 0, '2026-04-06 01:11:12'),
-(86, 15, 'instapay_refund_pending', 'InstaPay Refund Required', 'يلزم استرداد InstaPay يدوياً', 'Booking #36 was cancelled with a paid InstaPay amount of USD 3300.00. Manual refund required.', 'تم إلغاء الحجز #36 بمبلغ InstaPay مدفوع USD 3300.00. يلزم الاسترداد اليدوي.', '{\"bookingId\":36}', 0, '2026-04-06 01:11:20'),
-(88, 2, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(89, 3, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(90, 4, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(91, 5, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(92, 6, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(94, 8, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(97, 15, 'info', 'vxcvxcvvbcvxcvcxv', 'vxcvxcvvbcvxcvcxv', 'cxvcxvxcv', 'cxvcxvxcv', '{\"blast\":true,\"audience\":\"all\"}', 0, '2026-04-07 00:15:08'),
-(98, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Authentic Nubian Guesthouse on the West Bank', 'لديك طلب حجز جديد لـ Authentic Nubian Guesthouse on the West Bank', '{\"bookingId\":\"37\",\"propertyId\":196}', 0, '2026-04-10 20:36:42'),
-(99, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"38\",\"propertyId\":161}', 0, '2026-04-11 15:54:58'),
-(100, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"39\",\"propertyId\":161}', 0, '2026-04-11 15:55:56'),
-(101, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled: personal_emergency.', 'تم إلغاء حجز: personal_emergency.', '{\"bookingId\":39}', 0, '2026-04-11 15:56:17'),
-(102, 2, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Sky Penthouse with Panoramic Garden City Views', 'لديك طلب حجز جديد لـ Sky Penthouse with Panoramic Garden City Views', '{\"bookingId\":\"40\",\"propertyId\":161}', 0, '2026-04-11 16:21:30'),
-(103, 2, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled: personal_emergency.', 'تم إلغاء حجز: personal_emergency.', '{\"bookingId\":40}', 0, '2026-04-11 16:22:41'),
-(104, 3, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for Designer Apartment near Cairo Festival City', 'لديك طلب حجز جديد لـ Designer Apartment near Cairo Festival City', '{\"bookingId\":\"41\",\"propertyId\":165}', 0, '2026-04-11 22:10:41'),
-(105, 3, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled.', 'تم إلغاء حجز.', '{\"bookingId\":41}', 0, '2026-04-11 22:11:30'),
-(114, 15, 'instapay_proof_uploaded', 'InstaPay Proof Uploaded', 'تم رفع إثبات InstaPay', 'Guest has uploaded an InstaPay payment proof for booking #46. Please review and approve.', 'قام الضيف برفع إثبات الدفع عبر InstaPay للحجز #46. يرجى المراجعة والموافقة.', '{\"bookingId\":46}', 0, '2026-04-25 01:59:53'),
-(137, 15, 'instapay_proof_uploaded', 'InstaPay Proof Uploaded', 'تم رفع إثبات InstaPay', 'Guest has uploaded an InstaPay payment proof for booking #49. Please review and approve.', 'قام الضيف برفع إثبات الدفع عبر InstaPay للحجز #49. يرجى المراجعة والموافقة.', '{\"bookingId\":49}', 0, '2026-04-30 13:31:19'),
-(143, 37, 'system', 'Identity Verified ✅', 'تم التحقق من الهوية ✅', 'Your government ID has been reviewed and approved. You now have full access to all platform features.', 'تمت مراجعة هويتك الحكومية والموافقة عليها. أصبح بإمكانك الآن الوصول الكامل لجميع ميزات المنصة.', '{\"actionUrl\":\"https://oikivo.com/account/verification\"}', 1, '2026-05-03 00:58:30'),
-(145, 37, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for wsdqeerewr', 'لديك طلب حجز جديد لـ wsdqeerewr', '{\"bookingId\":\"52\",\"propertyId\":260}', 1, '2026-05-03 07:09:19'),
-(147, 15, 'instapay_proof_uploaded', 'InstaPay Proof Uploaded', 'تم رفع إثبات InstaPay', 'Guest has uploaded an InstaPay payment proof for booking #52. Please review and approve.', 'قام الضيف برفع إثبات الدفع عبر InstaPay للحجز #52. يرجى المراجعة والموافقة.', '{\"bookingId\":52}', 0, '2026-05-03 07:14:32'),
-(148, 37, 'payment_submitted', 'Payment Submitted', 'تم إرسال الدفع', 'Guest submitted an InstaPay transfer for booking #52. Ref: 232456575788678', 'أرسل الضيف تحويل InstaPay للحجز #52. المرجع: 232456575788678', '{\"bookingId\":52}', 0, '2026-05-03 07:14:32'),
-(150, 37, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled. Refund: EGP 1280.00', 'تم إلغاء حجز. Refund: EGP 1280.00', '{\"bookingId\":52}', 0, '2026-05-03 07:20:34'),
-(151, 15, 'instapay_refund_pending', 'InstaPay Refund Required', 'يلزم استرداد InstaPay يدوياً', 'Booking #52 was cancelled with a paid InstaPay amount of EGP 1280.00. Manual refund required.', 'تم إلغاء الحجز #52 بمبلغ InstaPay مدفوع EGP 1280.00. يلزم الاسترداد اليدوي.', '{\"bookingId\":52}', 0, '2026-05-03 07:20:43'),
-(153, 37, 'booking_request', 'New Booking Request', 'طلب حجز جديد', 'You have a new booking request for wsdqeerewr', 'لديك طلب حجز جديد لـ wsdqeerewr', '{\"bookingId\":\"53\",\"propertyId\":260}', 1, '2026-05-03 08:39:14'),
-(155, 37, 'booking_cancelled', 'Booking Cancelled', 'تم إلغاء الحجز', 'A booking has been cancelled: found_alternative.', 'تم إلغاء حجز: found_alternative.', '{\"bookingId\":53}', 0, '2026-05-03 09:14:45'),
-(156, 37, 'response_rate_warning', 'Your response rate is low', 'معدل استجابتك منخفض', 'Your response rate is 50.00%. Responding within 24h helps you get more bookings.', 'معدل استجابتك 50.00%. الرد خلال 24 ساعة يساعدك في الحصول على المزيد من الحجوزات.', '{\"responseRate\":\"50.00\"}', 0, '2026-05-04 08:36:48'),
-(157, 37, 'response_rate_warning', 'Your response rate is low', 'معدل استجابتك منخفض', 'Your response rate is 50.00%. Responding within 24h helps you get more bookings.', 'معدل استجابتك 50.00%. الرد خلال 24 ساعة يساعدك في الحصول على المزيد من الحجوزات.', '{\"responseRate\":\"50.00\"}', 0, '2026-05-05 10:45:16'),
-(158, 40, 'system', 'Identity Verified ✅', 'تم التحقق من الهوية ✅', 'Your government ID has been reviewed and approved. You now have full access to all platform features.', 'تمت مراجعة هويتك الحكومية والموافقة عليها. أصبح بإمكانك الآن الوصول الكامل لجميع ميزات المنصة.', '{\"actionUrl\":\"https://oikivo.com/account/verification\"}', 1, '2026-05-05 19:22:18');
-
 -- --------------------------------------------------------
 
 --
@@ -1219,16 +1134,6 @@ CREATE TABLE `properties` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 --
--- Dumping data for table `properties`
---
-
-INSERT INTO `properties` (`id`, `host_id`, `category_id`, `title`, `description`, `space_type`, `property_kind`, `price_per_night`, `weekend_price`, `weekly_discount_percent`, `monthly_discount_percent`, `new_listing_promotion_enabled`, `last_minute_discount_percent`, `booking_mode`, `approved_bookings_count`, `currency`, `cleaning_fee`, `security_deposit`, `service_fee_percent`, `host_commission_percent`, `min_nights`, `max_nights`, `turnover_days`, `max_guests`, `bedrooms`, `bathrooms`, `beds`, `address`, `city`, `timezone`, `state`, `country`, `country_code`, `postal_code`, `latitude`, `longitude`, `check_in_after`, `check_out_before`, `check_in_instructions`, `allows_pets`, `allows_smoking`, `allows_parties`, `allows_children`, `instant_book`, `cancellation_policy`, `is_active`, `status`, `is_featured`, `avg_rating`, `review_count`, `view_count`, `impression_count`, `created_at`, `updated_at`, `archived_at`, `deleted_at`, `uuid`, `geo_point`, `require_verified_guest`, `min_guest_rating`, `wifi_name`, `wifi_password`, `door_code`, `wizard_last_step`) VALUES
-(260, 37, 4, 'wsdqeerewr', 'Our place offers a stunning view that guests love. A cozy and well-furnished space perfect for families. Just a short walk to the beach.\n\nWhat makes this place unique:\nSmart home features\nPrivate parking\nLuxury furnishings\nWaterfront / beach access\nRooftop terrace\nPrivate pool', 'entire_place', 'apartment', 500.00, 600.00, 0.00, 0.00, 1, 0.00, 'approve_first_three', 0, 'EGP', 0.00, 500.00, 5.00, 0.00, 2, 365, 1, 3, 4, 2.0, 1, '23 Ismail Al Kabbani', 'Nasr City', NULL, NULL, 'Egypt', NULL, NULL, 30.0589445, 31.3299714, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 0.00, 0, 49, 23, '2026-05-03 01:08:09', '2026-05-05 21:52:14', NULL, NULL, 'fc242111-71de-4f49-96db-32f7a1eba3b9', 0x000000000101000000879d730179543f4071c79bfc160f3e40, 0, NULL, NULL, NULL, NULL, 16),
-(261, 40, 11, 'erwterttyrty', 'Enjoy a peaceful and quiet neighborhood. Just a short walk to the beach. Freshly cleaned linens and towels are provided.\n\nWhat makes this place unique:\nPanoramic views\nRooftop terrace\nPrivate pool\nGarden & outdoor space\nWaterfront / beach access\nLuxury furnishings\nPrivate parking\nSmart home features\nGame room\nEV charger\nPet-friendly\nHome cinema / projector\nFireplace\nHot tub / jacuzzi', 'hotel_room', 'hotel', 500.00, 600.00, 15.00, 15.00, 1, 10.00, 'approve_first_three', 0, 'EGP', 0.00, 250.00, 5.00, 0.00, 5, 365, 1, 4, 4, 2.0, 2, '90 Axis_mahmoud Talaet', 'قسم أول القاهرة الجديدة', NULL, NULL, 'Egypt', NULL, NULL, 30.0158481, 31.4418411, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'published', 0, 0.00, 0, 37, 4, '2026-05-05 19:24:10', '2026-05-05 22:10:38', NULL, NULL, 'b7940dee-ad38-4eec-b5d4-1e89bad85856', 0x0000000001010000005787927f1c713f402834ff9e0e043e40, 0, NULL, NULL, NULL, NULL, 16),
-(262, 40, NULL, 'Untitled listing', '', 'entire_place', 'apartment', 500.00, 600.00, 0.00, 0.00, 1, 0.00, 'approve_first_three', 0, 'EGP', 0.00, 0.00, 5.00, 0.00, 1, 365, 1, 2, 1, 1.0, 1, '', '', NULL, NULL, '', NULL, NULL, 0.0000000, 0.0000000, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 1, 'draft', 0, 0.00, 0, 1, 0, '2026-05-05 21:22:01', '2026-05-05 21:52:10', NULL, NULL, '38a72446-bd80-4ca7-b7f5-d0df7f0a120c', 0x00000000010100000000000000000000000000000000000000, 0, NULL, NULL, NULL, NULL, 1),
-(263, 40, 5, 'sdsdffgddhgfhfh', 'Just a short walk to the beach. Freshly cleaned linens and towels are provided. Located in a prime area, close to restaurants and shops. Enjoy a peaceful and quiet neighborhood. Our place offers a stunning view that guests love.\n\nWhat makes this place unique:\nSelf check-in', 'entire_place', 'apartment', 500.00, 600.00, 0.00, 0.00, 1, 0.00, 'approve_first_three', 0, 'EGP', 0.00, 0.00, 5.00, 0.00, 1, 365, 1, 2, 1, 1.0, 1, '23 Ismail Al Kabbani', 'Nasr City', NULL, NULL, 'Egypt', NULL, NULL, 30.0589242, 31.3299685, '15:00:00', '11:00:00', NULL, 0, 0, 0, 1, 0, 'flexible', 0, 'archived', 0, 0.00, 0, 0, 0, '2026-05-05 21:52:26', '2026-05-05 21:55:37', '2026-05-05 15:55:20', '2026-05-05 18:55:37', '6e9ac0af-b11b-44ad-be15-a44dfde91249', 0x000000000101000000ce35ccd078543f4066f107a8150f3e40, 0, NULL, NULL, NULL, NULL, 15);
-
---
 -- Triggers `properties`
 --
 DELIMITER $$
@@ -1251,44 +1156,6 @@ CREATE TABLE `property_amenities` (
   `amenity_id` int(10) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `property_amenities`
---
-
-INSERT INTO `property_amenities` (`property_id`, `amenity_id`) VALUES
-(260, 1),
-(260, 2),
-(260, 7),
-(260, 12),
-(260, 17),
-(260, 18),
-(261, 1),
-(261, 2),
-(261, 3),
-(261, 5),
-(261, 7),
-(261, 8),
-(261, 9),
-(261, 10),
-(261, 11),
-(261, 12),
-(261, 13),
-(261, 14),
-(261, 15),
-(261, 16),
-(261, 17),
-(261, 18),
-(261, 19),
-(261, 20),
-(261, 21),
-(261, 22),
-(261, 23),
-(261, 24),
-(261, 25),
-(261, 26),
-(263, 2),
-(263, 24);
-
 -- --------------------------------------------------------
 
 --
@@ -1305,48 +1172,6 @@ CREATE TABLE `property_availability` (
   `ical_source_id` bigint(20) UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `property_availability`
---
-
-INSERT INTO `property_availability` (`id`, `property_id`, `date`, `is_blocked`, `price_override`, `source`, `ical_source_id`) VALUES
-(515, 260, '2026-05-28', 0, NULL, 'host', NULL),
-(516, 260, '2026-05-29', 0, NULL, 'host', NULL),
-(518, 260, '2026-05-06', 0, NULL, 'host', NULL),
-(519, 260, '2026-05-07', 0, NULL, 'host', NULL),
-(520, 260, '2026-05-08', 0, NULL, 'host', NULL),
-(524, 260, '2026-05-13', 0, NULL, 'booking', NULL),
-(525, 260, '2026-05-14', 0, NULL, 'booking', NULL),
-(526, 260, '2026-05-15', 0, NULL, 'booking', NULL),
-(530, 260, '2026-05-05', 0, NULL, 'host', NULL),
-(531, 260, '2026-05-12', 0, NULL, 'host', NULL),
-(532, 260, '2026-05-11', 0, NULL, 'host', NULL),
-(533, 260, '2026-05-04', 0, NULL, 'host', NULL),
-(534, 260, '2026-05-10', 0, NULL, 'host', NULL),
-(535, 260, '2026-05-17', 0, NULL, 'host', NULL),
-(536, 260, '2026-05-18', 0, NULL, 'host', NULL),
-(537, 260, '2026-05-19', 0, NULL, 'host', NULL),
-(538, 260, '2026-05-20', 0, NULL, 'host', NULL),
-(539, 260, '2026-05-22', 0, NULL, 'host', NULL),
-(540, 260, '2026-05-23', 0, NULL, 'host', NULL),
-(541, 260, '2026-05-21', 0, NULL, 'host', NULL),
-(542, 260, '2026-05-30', 0, NULL, 'host', NULL),
-(543, 260, '2026-05-27', 0, NULL, 'host', NULL),
-(544, 260, '2026-05-26', 0, NULL, 'host', NULL),
-(545, 260, '2026-05-25', 0, NULL, 'host', NULL),
-(546, 260, '2026-05-24', 0, NULL, 'host', NULL),
-(547, 260, '2026-05-31', 0, NULL, 'host', NULL),
-(548, 260, '2026-05-16', 0, NULL, 'host', NULL),
-(549, 260, '2026-05-09', 0, NULL, 'host', NULL),
-(550, 260, '2026-05-03', 0, NULL, 'host', NULL),
-(582, 261, '2026-05-07', 0, NULL, 'host', NULL),
-(583, 261, '2026-05-08', 0, 100000.00, 'host', NULL),
-(584, 261, '2026-05-09', 0, 100000.00, 'host', NULL),
-(585, 261, '2026-05-10', 0, 100000.00, 'host', NULL),
-(586, 261, '2026-05-11', 0, 100000.00, 'host', NULL),
-(587, 261, '2026-05-12', 0, 1.00, 'host', NULL),
-(588, 261, '2026-05-13', 0, NULL, 'host', NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -1359,19 +1184,6 @@ CREATE TABLE `property_house_rules` (
   `rule` varchar(500) NOT NULL,
   `rule_ar` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `property_house_rules`
---
-
-INSERT INTO `property_house_rules` (`id`, `property_id`, `rule`, `rule_ar`) VALUES
-(355, 260, 'No pets', NULL),
-(356, 260, 'Quiet hours (10 PM – 8 AM)', NULL),
-(357, 260, 'No unregistered guests', NULL),
-(358, 260, 'Government ID required at check-in', NULL),
-(377, 261, 'No pets', NULL),
-(378, 261, 'Quiet hours (10 PM – 8 AM)', NULL),
-(379, 261, 'No shoes inside', NULL);
 
 -- --------------------------------------------------------
 
@@ -1406,27 +1218,6 @@ CREATE TABLE `property_photos` (
   `is_cover` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `property_photos`
---
-
-INSERT INTO `property_photos` (`id`, `property_id`, `url`, `caption`, `display_order`, `is_cover`, `created_at`) VALUES
-(333, 260, '/uploads/properties/260/photo-1777759764971-802e1725-84ba-412e-919f-593317e77d94.jpg', NULL, 0, 1, '2026-05-03 01:09:25'),
-(334, 260, '/uploads/properties/260/photo-1777759764977-5b9e3b73-031b-48bd-80b0-21cac490ef09.png', NULL, 1, 0, '2026-05-03 01:09:25'),
-(335, 260, '/uploads/properties/260/photo-1777759764987-cbf74395-3473-4428-b127-dde92b48c91f.png', NULL, 2, 0, '2026-05-03 01:09:25'),
-(336, 260, '/uploads/properties/260/photo-1777759765005-67537721-ecdb-4b0f-88e8-fc8cd908610b.png', NULL, 3, 0, '2026-05-03 01:09:25'),
-(337, 260, '/uploads/properties/260/photo-1777759765014-04474995-f9a3-41b8-a3f2-8f6686c6a957.png', NULL, 4, 0, '2026-05-03 01:09:25'),
-(338, 261, '/uploads/properties/261/photo-1777998407391-17ac6600-3ac1-4b8e-9086-fe85a907556d.png', NULL, 0, 1, '2026-05-05 19:26:47'),
-(339, 261, '/uploads/properties/261/photo-1777998407399-97d0e87c-81cc-4a5a-ba4b-0fd58faf7ab0.png', NULL, 1, 0, '2026-05-05 19:26:47'),
-(340, 261, '/uploads/properties/261/photo-1777998407421-3714441f-d99a-409d-bc13-c6e7ce4c1016.jpg', NULL, 2, 0, '2026-05-05 19:26:47'),
-(341, 261, '/uploads/properties/261/photo-1777998407422-e32b64d9-0260-4649-8ec3-21ca2151e8f2.png', NULL, 3, 0, '2026-05-05 19:26:47'),
-(342, 261, '/uploads/properties/261/photo-1777998407439-96e91a09-0f32-45e5-8bf1-e402e47fb43b.png', NULL, 4, 0, '2026-05-05 19:26:47'),
-(343, 263, '/uploads/properties/263/photo-1778007240143-144c52c9-eda2-4344-adf5-e2ce145b3cfe.png', NULL, 0, 1, '2026-05-05 21:54:00'),
-(344, 263, '/uploads/properties/263/photo-1778007240159-e360a73b-1f3c-4b57-b69f-3bf57c398fa7.png', NULL, 1, 0, '2026-05-05 21:54:00'),
-(345, 263, '/uploads/properties/263/photo-1778007240182-57e8360a-f478-46a3-946e-828eeb2e210e.png', NULL, 2, 0, '2026-05-05 21:54:00'),
-(346, 263, '/uploads/properties/263/photo-1778007240182-43357221-d24f-4943-bb3b-819788899b50.png', NULL, 3, 0, '2026-05-05 21:54:00'),
-(347, 263, '/uploads/properties/263/photo-1778007240215-2f8906fd-fcd2-4851-a242-e29ab549019e.png', NULL, 4, 0, '2026-05-05 21:54:00');
 
 -- --------------------------------------------------------
 
@@ -1541,6 +1332,7 @@ CREATE TABLE `users` (
   `refresh_token` text DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` datetime DEFAULT NULL COMMENT 'Non-null = account soft-deleted; PII anonymized, login blocked',
   `totp_secret` varchar(255) DEFAULT NULL COMMENT '2FA TOTP secret (null when 2FA not set up)',
   `is_totp_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Whether 2FA is active for this account',
   `last_login_at` datetime(6) DEFAULT NULL,
@@ -1569,16 +1361,10 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `profile_uuid`, `email`, `password_hash`, `first_name`, `last_name`, `avatar_url`, `phone`, `bio`, `date_of_birth`, `is_host`, `is_superhost`, `is_consultant`, `is_email_verified`, `is_phone_verified`, `is_id_verified`, `id_document_url`, `id_document_back_url`, `id_document_type`, `id_verification_status`, `is_admin`, `is_active`, `preferred_language`, `google_id`, `refresh_token`, `created_at`, `updated_at`, `totp_secret`, `is_totp_enabled`, `last_login_at`, `failed_login_attempts`, `locked_until`, `last_booking_at`, `last_profile_edit_at`, `host_cancelled_bookings_count`, `last_host_cancellation_at`, `auto_payout_enabled`, `auto_payout_frequency`, `auto_payout_day`, `auto_payout_min_balance`, `auto_payout_method`, `auto_payout_account_details`, `notification_preferences`, `auto_reply_enabled`, `auto_reply_message`, `fcm_token`, `average_response_minutes`, `response_rate`, `id_rejection_reason`) VALUES
-(2, 'c2f153d2-26ed-11f1-8811-84a938fc7bd1', 'ahmed.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Ahmed', 'Hassan', NULL, NULL, 'Passionate host based in Cairo. Love showing guests the best of Egypt!', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'ar', NULL, '$2b$10$D2vf3mg40qEImUx1CLQsFuE6Q7gz6LlGuR6d1joP6xAyJyD/G3HMa', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(3, 'c2f17149-26ed-11f1-8811-84a938fc7bd1', 'sara.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Sara', 'Mohamed', NULL, NULL, 'Superhost with 5 years of experience. I love meeting travelers!', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(4, 'c2f1725e-26ed-11f1-8811-84a938fc7bd1', 'omar.host@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Omar', 'Khalil', NULL, NULL, 'Professional property manager in Hurghada and Sharm El Sheikh.', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'ar', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(5, 'c2f172c5-26ed-11f1-8811-84a938fc7bd1', 'guest1@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'Layla', 'Ibrahim', NULL, NULL, 'Love exploring new places!', NULL, 0, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'ar', NULL, '$2b$10$sXrVtm5rCaJ0epXA3xZp3.rUBZOvjq39Q2XYexOh7PzqxZvYT2b3a', '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(6, 'c2f17abb-26ed-11f1-8811-84a938fc7bd1', 'guest2@example.com', '$2b$10$ZDtx2LN7XL3OsjIJE8ato.qk8fBi5TJhOGtgoDPTQU45zKqXMiBd.', 'James', 'Wilson', NULL, NULL, 'Digital nomad always looking for cozy workspaces.', NULL, 0, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'en', NULL, NULL, '2026-03-16 23:46:37', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(8, 'c2f17c50-26ed-11f1-8811-84a938fc7bd1', 'new20892@test.com', '$2b$12$b.65UQmEBB8E8HAl5Ve.5OuCIXT9MiBi9lcJdSWGhjpLKYavq0bV2', 'New', 'User', NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'en', NULL, '$2b$10$D.7jHC3Nke.W7YrqE.1sm.w0ns3z4N83Sr.TlmGmBnu40/uP5lVNi', '2026-03-17 01:23:54', '2026-03-23 21:22:17', NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(15, 'c2f17e01-26ed-11f1-8811-84a938fc7bd1', 'admin@sakan.app', '$2b$10$qhup6zWen75uuBiJICCb4.RUKGGU8pE91LjfZI/apirVgF.5I0Lm6', 'Admin', 'Sakan', NULL, NULL, 'Platform administrator', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 1, 1, 'en', NULL, '$2b$10$iyqE36qVRzB3G9nYvrVtT.zJ9e95ypddu63nPJUhnjFh1CTgTcZt6', '2026-03-23 11:21:24', '2026-05-05 19:21:45', NULL, 0, '2026-05-05 16:21:45.550000', 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
-(37, 'bfd7268b-6a6e-45cf-b41e-77e764da7d65', 'oikivo.support@gmail.com', '$2b$12$OGAAYaqmoLxk3ZhIQDTseuf0KngOFZhbO3yW/K14vXallzox.A/Xu', 'Oikivo', '', 'https://lh3.googleusercontent.com/a/ACg8ocIEtHaerdKPumc8Zt6qqMm1erYhs0zUaOLbwcLYa-UUbntn0b0=s400-c', '+201153450921', '', NULL, 1, 0, 0, 1, 0, 1, '/uploads/id-documents/id-1777754117405-548991430.jpg', '/uploads/id-documents/id-back-1777754117453-723683007.png', 'national_id', 'approved', 0, 1, 'en', '106051725765162573852', '$2b$10$w1MkxPAsJ0gKSCBlzH8WLuJUczkvhrZ/CvrM6391h5qkv.6FciTYC', '2026-05-02 23:30:42', '2026-05-03 08:48:19', 'MYACGNC3EUOUCBAJ', 1, '2026-05-03 05:14:27.741000', 0, NULL, NULL, '2026-05-03 04:27:54.257000', 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 9.0, 50.00, NULL),
-(40, '507e6ba7-bc3c-4e74-9f95-9aef28f4aeea', 'tahamoataz5@gmail.com', NULL, 'taha', 'moataz', 'https://lh3.googleusercontent.com/a/ACg8ocIhokSZ7I-yDtXC4sLNCE8-xCGOriQx5JjDqruvwAn73AvoaWOg=s400-c', '+201153450920', '', NULL, 1, 0, 0, 1, 1, 1, '/uploads/id-documents/id-1777998030113-892420816.pdf', '/uploads/id-documents/id-back-1777998030170-749547500.png', 'national_id', 'approved', 0, 1, 'en', '111444434132856504879', '$2b$10$BT.Y833/i/DD2PL4d4lJWuXL59y26z3qzfDK5bshM1aHLrQO8EZUm', '2026-05-03 16:50:53', '2026-05-05 21:51:49', NULL, 0, NULL, 0, NULL, NULL, '2026-05-05 16:20:53.619000', 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL);
+INSERT INTO `users` (`id`, `profile_uuid`, `email`, `password_hash`, `first_name`, `last_name`, `avatar_url`, `phone`, `bio`, `date_of_birth`, `is_host`, `is_superhost`, `is_consultant`, `is_email_verified`, `is_phone_verified`, `is_id_verified`, `id_document_url`, `id_document_back_url`, `id_document_type`, `id_verification_status`, `is_admin`, `is_active`, `preferred_language`, `google_id`, `refresh_token`, `created_at`, `updated_at`, `deleted_at`, `totp_secret`, `is_totp_enabled`, `last_login_at`, `failed_login_attempts`, `locked_until`, `last_booking_at`, `last_profile_edit_at`, `host_cancelled_bookings_count`, `last_host_cancellation_at`, `auto_payout_enabled`, `auto_payout_frequency`, `auto_payout_day`, `auto_payout_min_balance`, `auto_payout_method`, `auto_payout_account_details`, `notification_preferences`, `auto_reply_enabled`, `auto_reply_message`, `fcm_token`, `average_response_minutes`, `response_rate`, `id_rejection_reason`) VALUES
+(15, 'c2f17e01-26ed-11f1-8811-84a938fc7bd1', 'admin@sakan.app', '$2b$10$qhup6zWen75uuBiJICCb4.RUKGGU8pE91LjfZI/apirVgF.5I0Lm6', 'Admin', 'Sakan', NULL, NULL, 'Platform administrator', NULL, 1, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 1, 1, 'en', NULL, '$2b$10$MbGTjZBfbLSIAZ0/MHYqi.kwfHdZlKxwU9BwsqnerBIeHVmjndNCG', '2026-03-23 11:21:24', '2026-05-06 01:24:45', NULL, NULL, 0, '2026-05-05 20:46:23.569000', 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL),
+(37, 'bfd7268b-6a6e-45cf-b41e-77e764da7d65', 'oikivo.support@gmail.com', '$2b$12$OGAAYaqmoLxk3ZhIQDTseuf0KngOFZhbO3yW/K14vXallzox.A/Xu', 'Oikivo', '', 'https://lh3.googleusercontent.com/a/ACg8ocIEtHaerdKPumc8Zt6qqMm1erYhs0zUaOLbwcLYa-UUbntn0b0=s400-c', '+201153450921', '', NULL, 1, 0, 0, 1, 0, 1, '/uploads/id-documents/id-1777754117405-548991430.jpg', '/uploads/id-documents/id-back-1777754117453-723683007.png', 'national_id', 'approved', 0, 1, 'en', '106051725765162573852', '$2b$10$TQXLPdWhjbaN5taXN4a8LukMpQ/r.fe.4nRIJg0O0opVNz1uEe1JK', '2026-05-02 23:30:42', '2026-05-06 03:16:40', NULL, 'MYACGNC3EUOUCBAJ', 1, '2026-05-03 05:14:27.741000', 0, NULL, NULL, '2026-05-03 04:27:54.257000', 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 9.0, 50.00, NULL),
+(43, '5c8ac8f2-c0f8-4bd9-a296-fc5dc57802cc', 'tahamoataz5@gmail.com', NULL, 'taha', 'moataz', 'https://lh3.googleusercontent.com/a/ACg8ocIhokSZ7I-yDtXC4sLNCE8-xCGOriQx5JjDqruvwAn73AvoaWOg=s400-c', NULL, NULL, NULL, 0, 0, 0, 1, 0, 0, NULL, NULL, 'national_id', 'none', 0, 1, 'en', '111444434132856504879', '$2b$10$Emd4cdxVvYfHiPYDjhCYY.wKSw8.bWews01GyuV2ZSfcNa264/kXS', '2026-05-10 10:28:20', '2026-05-10 10:28:20', NULL, NULL, 0, NULL, 0, NULL, NULL, NULL, 0, NULL, 0, 'weekly', NULL, 100.00, 'instapay', NULL, NULL, 0, NULL, NULL, 0.0, 100.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -1617,36 +1403,6 @@ CREATE TABLE `user_sessions` (
   `last_active_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `user_sessions`
---
-
-INSERT INTO `user_sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `os_name`, `device_name`, `expires_at`, `created_at`, `last_active_at`) VALUES
-(2, 15, '::1', NULL, NULL, NULL, '2026-05-05 19:43:54', '2026-04-05 22:43:54', '2026-04-05 22:43:54'),
-(3, 15, '::1', NULL, NULL, NULL, '2026-05-06 17:54:44', '2026-04-06 20:54:44', '2026-04-06 20:54:44'),
-(4, 15, '::1', NULL, NULL, NULL, '2026-05-06 19:06:04', '2026-04-06 22:06:04', '2026-04-06 22:06:04'),
-(6, 15, '::1', NULL, NULL, NULL, '2026-05-10 15:22:15', '2026-04-10 18:22:15', '2026-04-10 18:22:15'),
-(7, 15, '::1', NULL, NULL, NULL, '2026-05-19 15:00:15', '2026-04-19 18:00:15', '2026-04-19 18:00:15'),
-(8, 15, '::1', NULL, NULL, NULL, '2026-05-23 04:56:47', '2026-04-23 07:56:47', '2026-04-23 07:56:47'),
-(9, 15, '::1', NULL, NULL, NULL, '2026-05-23 05:49:33', '2026-04-23 08:49:33', '2026-04-23 08:49:33'),
-(10, 15, '::1', NULL, NULL, NULL, '2026-05-23 06:13:09', '2026-04-23 09:13:09', '2026-04-23 09:13:09'),
-(11, 15, '::1', NULL, NULL, NULL, '2026-05-23 07:37:07', '2026-04-23 10:37:07', '2026-04-23 10:37:07'),
-(12, 15, '::1', NULL, NULL, NULL, '2026-05-23 09:56:44', '2026-04-23 12:56:44', '2026-04-23 12:56:44'),
-(13, 15, '::1', NULL, NULL, NULL, '2026-05-23 11:06:39', '2026-04-23 14:06:39', '2026-04-23 14:06:39'),
-(14, 15, '::1', NULL, NULL, NULL, '2026-05-23 12:39:06', '2026-04-23 15:39:06', '2026-04-23 15:39:06'),
-(16, 15, '::1', NULL, NULL, NULL, '2026-05-24 10:29:05', '2026-04-24 13:29:05', '2026-04-24 13:29:05'),
-(22, 15, '::1', NULL, NULL, NULL, '2026-05-24 20:06:37', '2026-04-24 23:06:37', '2026-04-24 23:06:37'),
-(23, 15, '::1', NULL, NULL, NULL, '2026-05-25 08:11:07', '2026-04-25 11:11:07', '2026-04-25 11:11:07'),
-(34, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 08:49:43', '2026-04-28 11:49:43', '2026-04-28 11:49:43'),
-(35, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 09:30:11', '2026-04-28 12:30:11', '2026-04-28 12:30:11'),
-(36, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 11:01:09', '2026-04-28 14:01:09', '2026-04-28 14:01:09'),
-(38, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-28 14:21:27', '2026-04-28 17:21:27', '2026-04-28 17:21:27'),
-(39, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-05-30 07:10:04', '2026-04-30 10:10:04', '2026-04-30 10:10:04'),
-(42, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-01 18:58:19', '2026-05-02 21:58:19', '2026-05-02 21:58:19'),
-(44, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-02 01:07:10', '2026-05-03 04:07:10', '2026-05-03 04:07:10'),
-(45, 37, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-02 02:14:27', '2026-05-03 05:14:27', '2026-05-03 05:14:27'),
-(46, 15, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', 'Windows 10/11', 'Chrome on Desktop', '2026-06-04 13:21:45', '2026-05-05 16:21:45', '2026-05-05 16:21:45');
-
 -- --------------------------------------------------------
 
 --
@@ -1662,14 +1418,6 @@ CREATE TABLE `verification_tokens` (
   `used_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `verification_tokens`
---
-
-INSERT INTO `verification_tokens` (`id`, `user_id`, `type`, `token`, `expires_at`, `used_at`, `created_at`) VALUES
-(47, 37, 'phone', '580098', '2026-05-02 22:07:20', '2026-05-02 21:57:44', '2026-05-03 00:57:20'),
-(54, 40, 'phone', '462737', '2026-05-05 16:30:57', '2026-05-05 16:21:07', '2026-05-05 19:20:57');
 
 -- --------------------------------------------------------
 
@@ -1687,13 +1435,6 @@ CREATE TABLE `wishlists` (
   `cover_photo` varchar(500) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `wishlists`
---
-
-INSERT INTO `wishlists` (`id`, `uuid`, `user_id`, `name`, `visibility`, `share_token`, `cover_photo`, `created_at`) VALUES
-(1, 'c26cd612-40a9-11f1-86ee-84a938fc7bd1', 5, 'Egypt Favorites', 'private', '4d3d5b2d-304e-11f1-b636-84a938fc7bd1', NULL, '2026-03-17 01:21:28');
 
 -- --------------------------------------------------------
 
@@ -2212,7 +1953,7 @@ ALTER TABLE `amenities`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `blocked_users`
@@ -2224,13 +1965,13 @@ ALTER TABLE `blocked_users`
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=626;
 
 --
 -- AUTO_INCREMENT for table `booking_status_history`
 --
 ALTER TABLE `booking_status_history`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=715;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -2242,7 +1983,7 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `cohosts`
 --
 ALTER TABLE `cohosts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=301;
 
 --
 -- AUTO_INCREMENT for table `consultants`
@@ -2296,19 +2037,19 @@ ALTER TABLE `consultation_reviews`
 -- AUTO_INCREMENT for table `conversations`
 --
 ALTER TABLE `conversations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
 --
 -- AUTO_INCREMENT for table `disputes`
 --
 ALTER TABLE `disputes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
 --
 -- AUTO_INCREMENT for table `earnings`
 --
 ALTER TABLE `earnings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=303;
 
 --
 -- AUTO_INCREMENT for table `expenses`
@@ -2368,13 +2109,13 @@ ALTER TABLE `experience_schedule`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=710;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=159;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=817;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -2386,19 +2127,19 @@ ALTER TABLE `password_resets`
 -- AUTO_INCREMENT for table `payment_transactions`
 --
 ALTER TABLE `payment_transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=908;
 
 --
 -- AUTO_INCREMENT for table `payouts`
 --
 ALTER TABLE `payouts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
 --
 -- AUTO_INCREMENT for table `payout_items`
 --
 ALTER TABLE `payout_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=303;
 
 --
 -- AUTO_INCREMENT for table `platform_settings`
@@ -2410,43 +2151,43 @@ ALTER TABLE `platform_settings`
 -- AUTO_INCREMENT for table `price_alerts`
 --
 ALTER TABLE `price_alerts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
 --
 -- AUTO_INCREMENT for table `properties`
 --
 ALTER TABLE `properties`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=264;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=301;
 
 --
 -- AUTO_INCREMENT for table `property_availability`
 --
 ALTER TABLE `property_availability`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=590;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=809;
 
 --
 -- AUTO_INCREMENT for table `property_house_rules`
 --
 ALTER TABLE `property_house_rules`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=380;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=705;
 
 --
 -- AUTO_INCREMENT for table `property_ical_sources`
 --
 ALTER TABLE `property_ical_sources`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=301;
 
 --
 -- AUTO_INCREMENT for table `property_photos`
 --
 ALTER TABLE `property_photos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=348;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=605;
 
 --
 -- AUTO_INCREMENT for table `property_price_history`
 --
 ALTER TABLE `property_price_history`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=303;
 
 --
 -- AUTO_INCREMENT for table `reviews`
@@ -2458,13 +2199,13 @@ ALTER TABLE `reviews`
 -- AUTO_INCREMENT for table `saved_searches`
 --
 ALTER TABLE `saved_searches`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=303;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT for table `user_reports`
@@ -2476,7 +2217,7 @@ ALTER TABLE `user_reports`
 -- AUTO_INCREMENT for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `verification_tokens`
@@ -2488,13 +2229,13 @@ ALTER TABLE `verification_tokens`
 -- AUTO_INCREMENT for table `wishlists`
 --
 ALTER TABLE `wishlists`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
 --
 -- AUTO_INCREMENT for table `wishlist_items`
 --
 ALTER TABLE `wishlist_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=303;
 
 --
 -- Constraints for dumped tables

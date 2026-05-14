@@ -40,7 +40,7 @@ function StatusTimeline({ status, locale }: { status: string; locale: string }) 
           <li key={step.key} className="flex-1 flex flex-col items-center relative">
             {idx < STATUS_STEPS.length - 1 && (
               <span
-                className={`absolute top-3.5 left-1/2 w-full h-0.5 -translate-y-1/2 ${done ? 'bg-emerald-400' : 'bg-gray-200'}`}
+                className={`absolute top-3.5 start-1/2 w-full h-0.5 -translate-y-1/2 ${done ? 'bg-emerald-400' : 'bg-gray-200'}`}
               />
             )}
             <span

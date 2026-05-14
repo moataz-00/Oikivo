@@ -342,6 +342,7 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
+    this.usersRepo.update(user.id, { lastLoginAt: new Date() } as any).catch(() => {});
     return { user: this.sanitizeUser(user), ...tokens };
   }
 

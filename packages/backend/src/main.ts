@@ -172,8 +172,12 @@ async function bootstrap() {
         return res.status(401).json({ statusCode: 401, message: 'Unauthorized - use authenticated endpoint' });
       }
       try {
-        jwt.verify(token, jwtSecret);
-        // Authentication passed but deny direct access - must use controller endpoints
+        const payload: any = jwt.verify(token, jwtSecret);
+        // Admins may view protected uploads directly (e.g. <img> tags in admin panel)
+        if (payload?.isAdmin === true && (dir === '/uploads/id-documents' || dir === '/uploads/disputes' || dir === '/uploads/consultant-docs' || dir === '/uploads/messages')) {
+          return next();
+        }
+        // All other cases: deny direct access — must use controller endpoints
         return res.status(403).json({ 
           statusCode: 403, 
           message: 'Direct access forbidden - use authenticated API endpoints',

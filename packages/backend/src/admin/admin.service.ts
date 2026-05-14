@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { join, extname } from 'path';
+import { existsSync, createReadStream } from 'fs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Between } from 'typeorm';
 import { UserEntity } from '../entities/user.entity';
@@ -896,7 +898,7 @@ export class AdminService {
       relations: ['properties', 'bookings', 'reviews'],
     });
     if (!user) throw new NotFoundException('User not found');
-    const [bookingCount, propertyCount, reviewCount, totalSpent] = await Promise.all([
+    const [bookingCount, propertyCount, reviewCount, totalSpent, latestBooking] = await Promise.all([
       this.bookingsRepo.count({ where: { guestId: userId } }),
       this.propertiesRepo.count({ where: { hostId: userId } }),
       this.reviewsRepo.count({ where: { reviewerId: userId } }),
@@ -905,9 +907,16 @@ export class AdminService {
         .where('b.guestId = :uid', { uid: userId })
         .andWhere('b.paymentStatus = :ps', { ps: 'paid' })
         .getRawOne(),
+      // Derive lastBookingAt from actual bookings table (covers existing/dummy users)
+      this.bookingsRepo.findOne({
+        where: { guestId: userId },
+        order: { createdAt: 'DESC' },
+        select: ['createdAt'],
+      }),
     ]);
     return {
       ...user,
+      lastBookingAt: user.lastBookingAt ?? latestBooking?.createdAt ?? null,
       stats: {
         bookingCount,
         propertyCount,
@@ -915,6 +924,12 @@ export class AdminService {
         totalSpent: parseFloat(totalSpent?.v ?? '0'),
       },
     };
+  }
+
+  async getUserDetailByUuid(uuid: string) {
+    const user = await this.usersRepo.findOne({ where: { profileUuid: uuid } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.getUserDetail(user.id);
   }
 
   async updateUser(userId: number, data: Partial<{
@@ -927,10 +942,23 @@ export class AdminService {
     return this.usersRepo.save(user);
   }
 
-  async deleteUser(userId: number) {
+  async deleteUser(userId: number, reason?: string) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
     if (user.isAdmin) throw new BadRequestException('Cannot delete an admin user');
+    // Send farewell email before deleting so we still have the address
+    if (reason) {
+      const supportUrl = (process.env.FRONTEND_URL?.split(',')?.[0]?.trim() ?? 'https://oikivo.com') + '/support';
+      try {
+        await this.mail.send(
+          user.email,
+          'Your Oikivo account has been deleted',
+          MailTpl.tplAccountDeleted(user.firstName, reason, supportUrl),
+        );
+      } catch (e) {
+        console.error('[AdminService] Failed to send account-deletion email:', e);
+      }
+    }
     await this.usersRepo.remove(user);
     return { message: 'User deleted' };
   }
@@ -991,21 +1019,48 @@ export class AdminService {
   async getPropertyDetail(propertyId: number) {
     const property = await this.propertiesRepo.findOne({
       where: { id: propertyId },
-      relations: ['host', 'photos', 'amenities', 'category', 'houseRules', 'reviews', 'bookings'],
+      relations: [
+        'host', 'photos', 'amenities', 'category', 'houseRules',
+        'reviews', 'reviews.reviewer',
+      ],
     });
     if (!property) throw new NotFoundException('Property not found');
-    const [bookingCount, revenueRaw] = await Promise.all([
+
+    const [bookingCount, revenueRaw, paidCount, pendingCount, cancelledCount, recentBookings] = await Promise.all([
       this.bookingsRepo.count({ where: { propertyId } }),
       this.bookingsRepo.createQueryBuilder('b')
         .select('COALESCE(SUM(b.totalAmount),0)', 'v')
         .where('b.propertyId = :pid', { pid: propertyId })
         .andWhere('b.paymentStatus = :ps', { ps: 'paid' })
         .getRawOne(),
+      this.bookingsRepo.count({ where: { propertyId, paymentStatus: 'paid' } }),
+      this.bookingsRepo.count({ where: { propertyId, status: 'pending' as any } }),
+      this.bookingsRepo.count({ where: { propertyId, status: 'cancelled' as any } }),
+      this.bookingsRepo.find({
+        where: { propertyId },
+        relations: ['guest'],
+        order: { createdAt: 'DESC' },
+        take: 10,
+      }),
     ]);
+
     return {
       ...property,
-      stats: { bookingCount, totalRevenue: parseFloat(revenueRaw?.v ?? '0') },
+      recentBookings,
+      stats: {
+        bookingCount,
+        totalRevenue: parseFloat(revenueRaw?.v ?? '0'),
+        paidCount,
+        pendingCount,
+        cancelledCount,
+      },
     };
+  }
+
+  async getPropertyDetailByUuid(uuid: string) {
+    const property = await this.propertiesRepo.findOne({ where: { uuid } });
+    if (!property) throw new NotFoundException('Property not found');
+    return this.getPropertyDetail(property.id);
   }
 
   async updateProperty(propertyId: number, data: Partial<{
@@ -1013,7 +1068,10 @@ export class AdminService {
     cleaningFee: number; status: string; maxGuests: number;
     bedrooms: number; bathrooms: number; beds: number;
     minNights: number; maxNights: number; city: string; country: string;
-    cancellationPolicy: string; isActive: boolean;
+    cancellationPolicy: string; isActive: boolean; adminNote: string;
+    checkInAfter: string; checkOutBefore: string;
+    allowsPets: boolean; allowsSmoking: boolean; allowsParties: boolean;
+    weekendPrice: number; securityDeposit: number;
   }>) {
     const property = await this.propertiesRepo.findOne({ where: { id: propertyId } });
     if (!property) throw new NotFoundException('Property not found');
@@ -1021,6 +1079,36 @@ export class AdminService {
     if (data.status === 'published') property.isActive = true;
     if (data.status === 'archived') property.isActive = false;
     return this.propertiesRepo.save(property);
+  }
+
+  async updatePropertyByUuid(uuid: string, data: Parameters<typeof this.updateProperty>[1]) {
+    const property = await this.propertiesRepo.findOne({ where: { uuid } });
+    if (!property) throw new NotFoundException('Property not found');
+    return this.updateProperty(property.id, data);
+  }
+
+  async deletePropertyByUuid(uuid: string) {
+    const property = await this.propertiesRepo.findOne({ where: { uuid } });
+    if (!property) throw new NotFoundException('Property not found');
+    return this.deleteProperty(property.id);
+  }
+
+  async togglePropertyStatusByUuid(uuid: string, status: 'draft' | 'pending_review' | 'published' | 'archived') {
+    const property = await this.propertiesRepo.findOne({ where: { uuid } });
+    if (!property) throw new NotFoundException('Property not found');
+    return this.togglePropertyStatus(property.id, status);
+  }
+
+  async toggleFeaturedByUuid(uuid: string) {
+    const property = await this.propertiesRepo.findOne({ where: { uuid } });
+    if (!property) throw new NotFoundException('Property not found');
+    return this.toggleFeatured(property.id);
+  }
+
+  async updateCommissionByUuid(uuid: string, serviceFeePercent: number) {
+    const property = await this.propertiesRepo.findOne({ where: { uuid } });
+    if (!property) throw new NotFoundException('Property not found');
+    return this.updateCommission(property.id, serviceFeePercent);
   }
 
   async deleteProperty(propertyId: number) {
@@ -1079,10 +1167,110 @@ export class AdminService {
   async getBookingDetail(bookingId: number) {
     const booking = await this.bookingsRepo.findOne({
       where: { id: bookingId },
-      relations: ['property', 'guest', 'host', 'review'],
+      relations: ['property', 'property.photos', 'guest', 'host', 'review', 'review.reviewer'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
-    return booking;
+
+    // Status history
+    const statusHistory = await this.dataSource.query(
+      `SELECT bsh.id, bsh.from_status AS fromStatus, bsh.to_status AS toStatus,
+              bsh.created_at AS changedAt, bsh.changed_by_role AS changedBy, bsh.reason,
+              u.first_name AS actorFirstName, u.last_name AS actorLastName
+       FROM booking_status_history bsh
+       LEFT JOIN users u ON u.id = bsh.changed_by_id
+       WHERE bsh.booking_id = ?
+       ORDER BY bsh.created_at ASC`,
+      [bookingId],
+    );
+
+    // Related payout
+    const payout = await this.dataSource.query(
+      `SELECT p.id, p.amount, p.status,
+              p.method, p.account_details AS accountDetails, p.processed_at AS processedAt
+       FROM payout_items pi
+       JOIN payouts p ON p.id = pi.payout_id
+       WHERE pi.booking_id = ?
+       LIMIT 1`,
+      [bookingId],
+    );
+
+    return {
+      ...booking,
+      statusHistory,
+      payout: payout[0] ?? null,
+    };
+  }
+
+  async getBookingDetailByUuid(uuid: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.getBookingDetail(booking.id);
+  }
+
+  async updateBookingByUuid(uuid: string, data: Parameters<typeof this.updateBooking>[1]) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.updateBooking(booking.id, data);
+  }
+
+  async adminCancelBookingByUuid(uuid: string, reason: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.adminCancelBooking(booking.id, reason);
+  }
+
+  async adminRefundByUuid(uuid: string, amount: number, reason: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.adminRefund(booking.id, amount, reason);
+  }
+
+  async approveDepositClaimByUuid(uuid: string, adminNote?: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.approveDepositClaim(booking.id, adminNote);
+  }
+
+  async rejectDepositClaimByUuid(uuid: string, reason?: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.rejectDepositClaim(booking.id, reason);
+  }
+
+  async adjustBookingAmountsByUuid(uuid: string, data: Parameters<typeof this.adjustBookingAmounts>[1]) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.adjustBookingAmounts(booking.id, data);
+  }
+
+  async getBookingProfitByUuid(uuid: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.getBookingProfit(booking.id);
+  }
+
+  async markProofViewedByUuid(uuid: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.markProofViewed(booking.id);
+  }
+
+  async confirmPaymentByUuid(uuid: string, adminId?: number) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.confirmPayment(booking.id, adminId);
+  }
+
+  async declinePaymentByUuid(uuid: string, reason?: string, adminId?: number) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.declinePayment(booking.id, reason, adminId);
+  }
+
+  async markInstapayRefundedByUuid(uuid: string, reason?: string) {
+    const booking = await this.bookingsRepo.findOne({ where: { bookingUuid: uuid } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.markInstapayRefunded(booking.id, reason);
   }
 
   async updateBooking(bookingId: number, data: Partial<{
@@ -1614,31 +1802,171 @@ export class AdminService {
 
     if (search) {
       qb.where(
-        'host.firstName LIKE :s OR host.lastName LIKE :s OR guest.firstName LIKE :s OR guest.lastName LIKE :s OR host.email LIKE :s OR guest.email LIKE :s',
+        'host.firstName LIKE :s OR host.lastName LIKE :s OR guest.firstName LIKE :s OR guest.lastName LIKE :s OR host.email LIKE :s OR guest.email LIKE :s OR property.title LIKE :s',
         { s: `%${search}%` },
       );
     }
 
     const [items, total] = await qb.getManyAndCount();
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+
+    // Attach last message preview for each conversation
+    const convIds: number[] = items.map((c) => c.id);
+    let lastMessages: Record<number, any> = {};
+    let unreadCounts: Record<number, number> = {};
+    if (convIds.length > 0) {
+      const lm: any[] = await this.dataSource.query(
+        `SELECT m.conversation_id, m.body, m.message_type, m.image_url, m.created_at, m.is_read,
+                u.first_name, u.last_name, u.avatar_url
+         FROM messages m
+         JOIN users u ON u.id = m.sender_id
+         WHERE m.id IN (
+           SELECT MAX(id) FROM messages WHERE conversation_id IN (${convIds.join(',')}) GROUP BY conversation_id
+         )`,
+      );
+      for (const row of lm) {
+        lastMessages[row.conversation_id] = {
+          body: row.body,
+          messageType: row.message_type,
+          imageUrl: row.image_url,
+          createdAt: row.created_at,
+          isRead: !!row.is_read,
+          senderName: `${row.first_name} ${row.last_name}`,
+          senderAvatar: row.avatar_url,
+        };
+      }
+      const uc: any[] = await this.dataSource.query(
+        `SELECT conversation_id, COUNT(*) as cnt FROM messages WHERE conversation_id IN (${convIds.join(',')}) AND is_read = 0 GROUP BY conversation_id`,
+      );
+      for (const row of uc) {
+        unreadCounts[row.conversation_id] = Number(row.cnt);
+      }
+    }
+
+    // Fetch booking UUIDs for conversations that have a booking_id
+    const bookingIds: number[] = items
+      .map((c) => c.bookingId)
+      .filter((id) => !!id);
+    let bookingUuids: Record<number, string> = {};
+    if (bookingIds.length > 0) {
+      const bRows: any[] = await this.dataSource.query(
+        `SELECT id, booking_uuid FROM bookings WHERE id IN (${bookingIds.join(',')})`,
+      );
+      for (const row of bRows) {
+        bookingUuids[row.id] = row.booking_uuid;
+      }
+    }
+
+    const enriched = items.map((c) => ({
+      ...c,
+      bookingUuid: c.bookingId ? (bookingUuids[c.bookingId] ?? null) : null,
+      lastMessage: lastMessages[c.id] ?? null,
+      unreadCount: unreadCounts[c.id] ?? 0,
+    }));
+
+    return { items: enriched, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async getConversationMessages(conversationId: number, page = 1, limit = 50) {
-    const conversation = await this.conversationsRepo.findOne({
-      where: { id: conversationId },
-      relations: ['host', 'guest', 'property'],
-    });
-    if (!conversation) throw new NotFoundException('Conversation not found');
+    // Use raw SQL to avoid TypeORM bigint relation-loading issues
+    const convRows: any[] = await this.dataSource.query(
+      `SELECT c.id, c.booking_id, c.property_id, c.host_id, c.guest_id, c.created_at, c.updated_at,
+              h.first_name AS host_first_name, h.last_name AS host_last_name,
+              h.avatar_url AS host_avatar_url, h.profile_uuid AS host_profile_uuid, h.email AS host_email,
+              g.first_name AS guest_first_name, g.last_name AS guest_last_name,
+              g.avatar_url AS guest_avatar_url, g.profile_uuid AS guest_profile_uuid, g.email AS guest_email,
+              p.title AS property_title,
+              b.booking_uuid AS booking_uuid
+       FROM conversations c
+       LEFT JOIN users h ON h.id = c.host_id
+       LEFT JOIN users g ON g.id = c.guest_id
+       LEFT JOIN properties p ON p.id = c.property_id
+       LEFT JOIN bookings b ON b.id = c.booking_id
+       WHERE c.id = ?`,
+      [conversationId],
+    );
+    if (!convRows.length) throw new NotFoundException('Conversation not found');
 
-    const [messages, total] = await this.messagesRepo.findAndCount({
-      where: { conversationId },
-      relations: ['sender'],
-      order: { createdAt: 'ASC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const cr = convRows[0];
+    const conversation = {
+      id: cr.id,
+      bookingId: cr.booking_id,
+      bookingUuid: cr.booking_uuid ?? null,
+      propertyId: cr.property_id,
+      hostId: cr.host_id,
+      guestId: cr.guest_id,
+      createdAt: cr.created_at,
+      updatedAt: cr.updated_at,
+      host: {
+        id: cr.host_id,
+        firstName: cr.host_first_name,
+        lastName: cr.host_last_name,
+        avatarUrl: cr.host_avatar_url,
+        profileUuid: cr.host_profile_uuid,
+        email: cr.host_email,
+      },
+      guest: {
+        id: cr.guest_id,
+        firstName: cr.guest_first_name,
+        lastName: cr.guest_last_name,
+        avatarUrl: cr.guest_avatar_url,
+        profileUuid: cr.guest_profile_uuid,
+        email: cr.guest_email,
+      },
+      property: cr.property_id ? { id: cr.property_id, title: cr.property_title } : null,
+    };
+
+    const countRow: any[] = await this.dataSource.query(
+      `SELECT COUNT(*) AS cnt FROM messages WHERE conversation_id = ?`,
+      [conversationId],
+    );
+    const total = Number(countRow[0]?.cnt ?? 0);
+
+    const msgRows: any[] = await this.dataSource.query(
+      `SELECT m.id, m.conversation_id, m.sender_id, m.body, m.message_type,
+              m.image_url, m.is_read, m.read_at, m.created_at,
+              u.first_name, u.last_name, u.avatar_url, u.profile_uuid
+       FROM messages m
+       JOIN users u ON u.id = m.sender_id
+       WHERE m.conversation_id = ?
+       ORDER BY m.created_at ASC
+       LIMIT ? OFFSET ?`,
+      [conversationId, limit, (page - 1) * limit],
+    );
+
+    const messages = msgRows.map((m: any) => ({
+      id: m.id,
+      conversationId: m.conversation_id,
+      senderId: m.sender_id,
+      body: m.body,
+      messageType: m.message_type,
+      imageUrl: m.image_url,
+      isRead: !!m.is_read,
+      readAt: m.read_at,
+      createdAt: m.created_at,
+      sender: {
+        id: m.sender_id,
+        firstName: m.first_name,
+        lastName: m.last_name,
+        avatarUrl: m.avatar_url,
+        profileUuid: m.profile_uuid,
+      },
+    }));
 
     return { conversation, messages, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async deleteConversation(id: number) {
+    const conv = await this.conversationsRepo.findOne({ where: { id } });
+    if (!conv) throw new NotFoundException('Conversation not found');
+    await this.conversationsRepo.remove(conv);
+    return { success: true };
+  }
+
+  async deleteMessage(id: number) {
+    const msg = await this.messagesRepo.findOne({ where: { id } });
+    if (!msg) throw new NotFoundException('Message not found');
+    await this.messagesRepo.remove(msg);
+    return { success: true };
   }
 
   // ─── Data Export ───────────────────────────────────────────────────────────
@@ -2208,8 +2536,8 @@ export class AdminService {
   async getHostOnboardingFunnel() {
     // Stage 1: Registered as host but no property
     const stage1: any[] = await this.dataSource.query(`
-      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
-             u.id_document_status
+      SELECT u.id, u.profile_uuid, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_verification_status
       FROM users u
       WHERE u.is_host = 1 AND u.is_active = 1
         AND u.id NOT IN (SELECT DISTINCT host_id FROM properties)
@@ -2218,8 +2546,8 @@ export class AdminService {
 
     // Stage 2: Has property but none published
     const stage2: any[] = await this.dataSource.query(`
-      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
-             u.id_document_status,
+      SELECT u.id, u.profile_uuid, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_verification_status,
              COUNT(p.id) AS property_count
       FROM users u
       JOIN properties p ON p.host_id = u.id
@@ -2231,26 +2559,26 @@ export class AdminService {
 
     // Stage 3: Published property but no ID verification
     const stage3: any[] = await this.dataSource.query(`
-      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
-             u.id_document_status,
+      SELECT u.id, u.profile_uuid, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_verification_status,
              COUNT(DISTINCT p.id) AS published_properties
       FROM users u
       JOIN properties p ON p.host_id = u.id AND p.status = 'published'
       WHERE u.is_host = 1 AND u.is_active = 1
-        AND (u.id_document_status IS NULL OR u.id_document_status != 'approved')
+        AND (u.id_verification_status IS NULL OR u.id_verification_status != 'approved')
       GROUP BY u.id
       ORDER BY u.created_at DESC
     `);
 
     // Stage 4: Verified but no bookings yet
     const stage4: any[] = await this.dataSource.query(`
-      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
-             u.id_document_status,
+      SELECT u.id, u.profile_uuid, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.id_verification_status,
              COUNT(DISTINCT p.id) AS published_properties
       FROM users u
       JOIN properties p ON p.host_id = u.id AND p.status = 'published'
       WHERE u.is_host = 1 AND u.is_active = 1
-        AND u.id_document_status = 'approved'
+        AND u.id_verification_status = 'approved'
         AND u.id NOT IN (SELECT DISTINCT host_id FROM bookings WHERE status NOT IN ('cancelled'))
       GROUP BY u.id
       ORDER BY u.created_at DESC
@@ -2273,5 +2601,32 @@ export class AdminService {
         { stage: 5, label: 'Fully Onboarded', count: parseInt(stage5Count[0]?.count ?? '0'), users: [] },
       ],
     };
+  }
+
+  serveSecureFile(filePath: string, res: any) {
+    const ALLOWED = [
+      '/uploads/id-documents/',
+      '/uploads/disputes/',
+      '/uploads/consultant-docs/',
+      '/uploads/messages/',
+    ];
+    if (!filePath || filePath.includes('..') || !ALLOWED.some((d) => filePath.startsWith(d))) {
+      throw new ForbiddenException('Invalid path');
+    }
+    const relPath = filePath.replace(/^\/uploads\//, '');
+    const fullPath = join(__dirname, '..', '..', 'uploads', relPath);
+    if (!existsSync(fullPath)) throw new NotFoundException('File not found');
+    const ext = extname(fullPath).slice(1).toLowerCase();
+    const mime: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      pdf: 'application/pdf',
+    };
+    res.setHeader('Content-Type', mime[ext] ?? 'application/octet-stream');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    createReadStream(fullPath).pipe(res);
   }
 }

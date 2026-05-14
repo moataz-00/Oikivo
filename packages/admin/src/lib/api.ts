@@ -109,11 +109,14 @@ export const adminApi = {
   getUserDetail: (id: number) =>
     apiClient.get(`/admin/users/${id}`).then((r) => r.data),
 
+  getUserByUuid: (uuid: string) =>
+    apiClient.get(`/admin/users/by-uuid/${uuid}`).then((r) => r.data),
+
   updateUser: (id: number, data: Record<string, unknown>) =>
     apiClient.patch(`/admin/users/${id}`, data).then((r) => r.data),
 
-  deleteUser: (id: number) =>
-    apiClient.delete(`/admin/users/${id}`).then((r) => r.data),
+  deleteUser: (id: number, reason?: string) =>
+    apiClient.delete(`/admin/users/${id}`, { data: { reason } }).then((r) => r.data),
 
   banUser: (id: number, reason: string) =>
     apiClient.patch(`/admin/users/${id}/ban`, { reason }).then((r) => r.data),
@@ -127,7 +130,7 @@ export const adminApi = {
   toggleUserAdmin: (id: number) =>
     apiClient.patch(`/admin/users/${id}/toggle-admin`).then((r) => r.data),
 
-  // Properties
+  // Properties (by ID — legacy)
   getProperties: (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
     apiClient.get('/admin/properties', { params }).then((r) => r.data),
 
@@ -143,13 +146,79 @@ export const adminApi = {
   updatePropertyStatus: (id: number, status: 'draft' | 'published' | 'archived') =>
     apiClient.patch(`/admin/properties/${id}/status`, { status }).then((r) => r.data),
 
-  // Bookings
+  // Properties (by UUID — secure)
+  getPropertyByUuid: (uuid: string) =>
+    apiClient.get(`/admin/properties/by-uuid/${uuid}`).then((r) => r.data),
+
+  updatePropertyByUuid: (uuid: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/admin/properties/by-uuid/${uuid}`, data).then((r) => r.data),
+
+  deletePropertyByUuid: (uuid: string) =>
+    apiClient.delete(`/admin/properties/by-uuid/${uuid}`).then((r) => r.data),
+
+  updatePropertyStatusByUuid: (uuid: string, status: 'draft' | 'published' | 'archived' | 'pending_review') =>
+    apiClient.patch(`/admin/properties/by-uuid/${uuid}/status`, { status }).then((r) => r.data),
+
+  toggleFeaturedByUuid: (uuid: string) =>
+    apiClient.patch(`/admin/properties/by-uuid/${uuid}/featured`).then((r) => r.data),
+
+  updateCommissionByUuid: (uuid: string, serviceFeePercent: number) =>
+    apiClient.patch(`/admin/properties/by-uuid/${uuid}/commission`, { serviceFeePercent }).then((r) => r.data),
+
+  // Bookings (list + legacy numeric-ID actions still used by list page inline actions)
   getBookings: (params?: { page?: number; limit?: number; status?: string; search?: string; from?: string; to?: string }): Promise<PaginatedResponse<any>> =>
     apiClient.get<PaginatedResponse<any>>('/admin/bookings', { params }).then((r) => r.data),
 
   getBookingDetail: (id: number) =>
     apiClient.get(`/admin/bookings/${id}`).then((r) => r.data),
 
+  confirmPayment: (id: number) =>
+    apiClient.post(`/admin/bookings/${id}/confirm-payment`).then((r) => r.data),
+
+  declinePayment: (id: number, reason?: string) =>
+    apiClient.post(`/admin/bookings/${id}/decline-payment`, { reason }).then((r) => r.data),
+
+  getDepositClaims: (status?: string) =>
+    apiClient.get('/admin/deposit-claims', { params: status ? { status } : undefined }).then((r) => r.data),
+
+  // Bookings — UUID-based (detail page)
+  getBookingDetailByUuid: (uuid: string) =>
+    apiClient.get(`/admin/bookings/by-uuid/${uuid}`).then((r) => r.data),
+
+  updateBookingByUuid: (uuid: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/admin/bookings/by-uuid/${uuid}`, data).then((r) => r.data),
+
+  adminCancelBookingByUuid: (uuid: string, reason: string) =>
+    apiClient.post(`/admin/bookings/by-uuid/${uuid}/admin-cancel`, { reason }).then((r) => r.data),
+
+  adminRefundByUuid: (uuid: string, amount: number, reason: string) =>
+    apiClient.post(`/admin/bookings/by-uuid/${uuid}/admin-refund`, { amount, reason }).then((r) => r.data),
+
+  approveDepositClaimByUuid: (uuid: string, adminNote?: string) =>
+    apiClient.post(`/admin/bookings/by-uuid/${uuid}/deposit/approve`, { adminNote }).then((r) => r.data),
+
+  rejectDepositClaimByUuid: (uuid: string, reason?: string) =>
+    apiClient.post(`/admin/bookings/by-uuid/${uuid}/deposit/reject`, { reason }).then((r) => r.data),
+
+  adjustBookingAmountsByUuid: (uuid: string, data: { baseAmount?: number; cleaningFee?: number; serviceFee?: number; totalAmount?: number; reason: string }) =>
+    apiClient.patch(`/admin/bookings/by-uuid/${uuid}/adjust-amounts`, data).then((r) => r.data),
+
+  getBookingProfitByUuid: (uuid: string) =>
+    apiClient.get(`/admin/bookings/by-uuid/${uuid}/profit`).then((r) => r.data),
+
+  markProofViewedByUuid: (uuid: string) =>
+    apiClient.patch(`/admin/bookings/by-uuid/${uuid}/mark-proof-viewed`).then((r) => r.data),
+
+  confirmPaymentByUuid: (uuid: string) =>
+    apiClient.post(`/admin/bookings/by-uuid/${uuid}/confirm-payment`).then((r) => r.data),
+
+  declinePaymentByUuid: (uuid: string, reason?: string) =>
+    apiClient.post(`/admin/bookings/by-uuid/${uuid}/decline-payment`, { reason }).then((r) => r.data),
+
+  markInstapayRefundedByUuid: (uuid: string, reason?: string) =>
+    apiClient.post(`/admin/bookings/by-uuid/${uuid}/mark-instapay-refunded`, { reason }).then((r) => r.data),
+
+  // Legacy numeric-ID versions (kept for backward compat)
   updateBooking: (id: number, data: Record<string, unknown>) =>
     apiClient.patch(`/admin/bookings/${id}`, data).then((r) => r.data),
 
@@ -165,17 +234,8 @@ export const adminApi = {
   rejectDepositClaim: (id: number, reason?: string) =>
     apiClient.post(`/admin/bookings/${id}/deposit/reject`, { reason }).then((r) => r.data),
 
-  getDepositClaims: (status?: string) =>
-    apiClient.get('/admin/deposit-claims', { params: status ? { status } : undefined }).then((r) => r.data),
-
   markProofViewed: (id: number) =>
     apiClient.patch(`/admin/bookings/${id}/mark-proof-viewed`).then((r) => r.data),
-
-  confirmPayment: (id: number) =>
-    apiClient.post(`/admin/bookings/${id}/confirm-payment`).then((r) => r.data),
-
-  declinePayment: (id: number, reason?: string) =>
-    apiClient.post(`/admin/bookings/${id}/decline-payment`, { reason }).then((r) => r.data),
 
   // Reviews
   getReviews: (params?: { page?: number; limit?: number; search?: string; rating?: number }) =>
@@ -361,6 +421,12 @@ export const adminApi = {
   getConversationMessages: (id: number, params?: { page?: number; limit?: number }) =>
     apiClient.get(`/admin/messages/${id}`, { params }).then((r) => r.data),
 
+  deleteConversation: (id: number) =>
+    apiClient.delete(`/admin/messages/${id}`).then((r) => r.data),
+
+  deleteMessage: (id: number) =>
+    apiClient.delete(`/admin/messages/message/${id}`).then((r) => r.data),
+
   // Data export (full dataset)
   getExportData: (type: string) =>
     apiClient.get(`/admin/export/${type}`).then((r) => r.data),
@@ -403,6 +469,9 @@ export const adminApi = {
   // FIX AD1: Payment Transactions
   getPaymentTransactions: (params?: { page?: number; limit?: number; method?: string; status?: string; from?: string; to?: string; search?: string }) =>
     apiClient.get('/admin/payments/transactions', { params }).then((r) => r.data),
+
+  getDisputeDetail: (id: number) =>
+    apiClient.get(`/admin/disputes/${id}`).then((r) => r.data),
 
   // FIX AD2: Dispute assignment & workflow
   assignDispute: (id: number, assignedToId: number | null) =>

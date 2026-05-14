@@ -180,7 +180,7 @@ function SearchPageContent() {
               onCategoryChange={setActiveCategory}
             />
           </div>
-          <div className="flex items-center gap-2 pl-4 border-l border-neutral-100 ml-2 shrink-0">
+          <div className="flex items-center gap-2 ps-4 border-s border-neutral-100 ms-2 shrink-0">
             <button
               onClick={() => setFilterModalOpen(true)}
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-all ${

@@ -11,7 +11,9 @@ import {
   UseInterceptors,
   ParseIntPipe,
   Req,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { AdminActivityLogService } from './admin-activity-log.service';
@@ -46,6 +48,12 @@ export class AdminController {
     @Query('to') to?: string,
   ) {
     return this.adminService.getDashboardStats(from, to);
+  }
+
+  @Get('secure-file')
+  @ApiOperation({ summary: 'Serve a protected upload file (admin only)' })
+  serveSecureFile(@Query('path') filePath: string, @Res() res: Response) {
+    return this.adminService.serveSecureFile(filePath, res);
   }
 
   @Get('users')
@@ -477,6 +485,12 @@ export class AdminController {
 
   // ─── User Detail + CRUD ─────────────────────────────────────────────────────
 
+  @Get('users/by-uuid/:uuid')
+  @ApiOperation({ summary: 'Get full user detail by profileUuid (admin only)' })
+  getUserDetailByUuid(@Param('uuid') uuid: string) {
+    return this.adminService.getUserDetailByUuid(uuid);
+  }
+
   @Get('users/:id')
   @ApiOperation({ summary: 'Get full user detail with stats (admin only)' })
   getUserDetail(@Param('id', ParseIntPipe) id: number) {
@@ -496,9 +510,12 @@ export class AdminController {
   }
 
   @Delete('users/:id')
-  @ApiOperation({ summary: 'Delete a user (admin only)' })
-  deleteUser(@Param('id', ParseIntPipe) id: number) {
-    return this.adminService.deleteUser(id);
+  @ApiOperation({ summary: 'Delete a user permanently (admin only)' })
+  deleteUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.adminService.deleteUser(id, body?.reason);
   }
 
   @Patch('users/:id/ban')
@@ -521,6 +538,42 @@ export class AdminController {
 
   // ─── Property Detail + CRUD ─────────────────────────────────────────────────
 
+  @Get('properties/by-uuid/:uuid')
+  @ApiOperation({ summary: 'Get full property detail by UUID (admin only)' })
+  getPropertyDetailByUuid(@Param('uuid') uuid: string) {
+    return this.adminService.getPropertyDetailByUuid(uuid);
+  }
+
+  @Patch('properties/by-uuid/:uuid')
+  @ApiOperation({ summary: 'Edit property fields by UUID (admin only)' })
+  updatePropertyByUuid(@Param('uuid') uuid: string, @Body() body: Record<string, any>) {
+    return this.adminService.updatePropertyByUuid(uuid, body);
+  }
+
+  @Delete('properties/by-uuid/:uuid')
+  @ApiOperation({ summary: 'Delete a property by UUID (admin only)' })
+  deletePropertyByUuid(@Param('uuid') uuid: string) {
+    return this.adminService.deletePropertyByUuid(uuid);
+  }
+
+  @Patch('properties/by-uuid/:uuid/status')
+  @ApiOperation({ summary: 'Update property status by UUID (admin only)' })
+  togglePropertyStatusByUuid(@Param('uuid') uuid: string, @Body() body: { status: 'draft' | 'pending_review' | 'published' | 'archived' }) {
+    return this.adminService.togglePropertyStatusByUuid(uuid, body.status);
+  }
+
+  @Patch('properties/by-uuid/:uuid/featured')
+  @ApiOperation({ summary: 'Toggle featured flag by UUID (admin only)' })
+  toggleFeaturedByUuid(@Param('uuid') uuid: string) {
+    return this.adminService.toggleFeaturedByUuid(uuid);
+  }
+
+  @Patch('properties/by-uuid/:uuid/commission')
+  @ApiOperation({ summary: 'Update commission by UUID (admin only)' })
+  updateCommissionByUuid(@Param('uuid') uuid: string, @Body() body: { serviceFeePercent: number }) {
+    return this.adminService.updateCommissionByUuid(uuid, body.serviceFeePercent);
+  }
+
   @Get('properties/:id')
   @ApiOperation({ summary: 'Get full property detail with stats (admin only)' })
   getPropertyDetail(@Param('id', ParseIntPipe) id: number) {
@@ -531,13 +584,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Edit property fields (admin only)' })
   updateProperty(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: Partial<{
-      title: string; description: string; pricePerNight: number;
-      cleaningFee: number; status: string; maxGuests: number;
-      bedrooms: number; bathrooms: number; beds: number;
-      minNights: number; maxNights: number; city: string; country: string;
-      cancellationPolicy: string; isActive: boolean;
-    }>,
+    @Body() body: Record<string, any>,
   ) {
     return this.adminService.updateProperty(id, body);
   }
@@ -549,6 +596,111 @@ export class AdminController {
   }
 
   // ─── Booking Detail + Admin Actions ─────────────────────────────────────────
+
+  // UUID routes MUST appear before :id to avoid NestJS matching 'by-uuid' as an ID
+
+  @Get('bookings/by-uuid/:uuid')
+  @ApiOperation({ summary: 'Get full booking detail by UUID (admin only)' })
+  getBookingDetailByUuid(@Param('uuid') uuid: string) {
+    return this.adminService.getBookingDetailByUuid(uuid);
+  }
+
+  @Patch('bookings/by-uuid/:uuid')
+  @ApiOperation({ summary: 'Edit booking fields by UUID (admin only)' })
+  updateBookingByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body: Partial<{
+      status: string; paymentStatus: string; paymentNote: string;
+      guestNote: string; specialRequests: string;
+    }>,
+  ) {
+    return this.adminService.updateBookingByUuid(uuid, body);
+  }
+
+  @Post('bookings/by-uuid/:uuid/admin-cancel')
+  @ApiOperation({ summary: 'Admin force-cancel a booking by UUID (admin only)' })
+  adminCancelBookingByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body: { reason: string },
+  ) {
+    return this.adminService.adminCancelBookingByUuid(uuid, body.reason);
+  }
+
+  @Post('bookings/by-uuid/:uuid/admin-refund')
+  @ApiOperation({ summary: 'Admin issue manual refund by UUID (admin only)' })
+  adminRefundByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body: { amount: number; reason: string },
+  ) {
+    return this.adminService.adminRefundByUuid(uuid, body.amount, body.reason);
+  }
+
+  @Post('bookings/by-uuid/:uuid/deposit/approve')
+  @ApiOperation({ summary: 'Admin approves a host deposit claim by UUID' })
+  approveDepositClaimByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body: { adminNote?: string },
+  ) {
+    return this.adminService.approveDepositClaimByUuid(uuid, body?.adminNote);
+  }
+
+  @Post('bookings/by-uuid/:uuid/deposit/reject')
+  @ApiOperation({ summary: 'Admin rejects a host deposit claim by UUID' })
+  rejectDepositClaimByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.adminService.rejectDepositClaimByUuid(uuid, body?.reason);
+  }
+
+  @Patch('bookings/by-uuid/:uuid/adjust-amounts')
+  @ApiOperation({ summary: 'Adjust pricing on a booking by UUID (admin only)' })
+  adjustBookingAmountsByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body: { baseAmount?: number; cleaningFee?: number; serviceFee?: number; totalAmount?: number; reason: string },
+  ) {
+    return this.adminService.adjustBookingAmountsByUuid(uuid, body);
+  }
+
+  @Get('bookings/by-uuid/:uuid/profit')
+  @ApiOperation({ summary: 'Get booking profit breakdown by UUID (admin only)' })
+  getBookingProfitByUuid(@Param('uuid') uuid: string) {
+    return this.adminService.getBookingProfitByUuid(uuid);
+  }
+
+  @Patch('bookings/by-uuid/:uuid/mark-proof-viewed')
+  @ApiOperation({ summary: 'Mark payment proof viewed by UUID (admin only)' })
+  markProofViewedByUuid(@Param('uuid') uuid: string) {
+    return this.adminService.markProofViewedByUuid(uuid);
+  }
+
+  @Post('bookings/by-uuid/:uuid/confirm-payment')
+  @ApiOperation({ summary: 'Mark booking payment as paid by UUID (admin only)' })
+  confirmPaymentByUuid(
+    @Param('uuid') uuid: string,
+    @CurrentUser() admin: UserEntity,
+  ) {
+    return this.adminService.confirmPaymentByUuid(uuid, admin.id);
+  }
+
+  @Post('bookings/by-uuid/:uuid/decline-payment')
+  @ApiOperation({ summary: 'Decline InstaPay payment by UUID (admin only)' })
+  declinePaymentByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body: { reason?: string },
+    @CurrentUser() admin: UserEntity,
+  ) {
+    return this.adminService.declinePaymentByUuid(uuid, body?.reason, admin.id);
+  }
+
+  @Post('bookings/by-uuid/:uuid/mark-instapay-refunded')
+  @ApiOperation({ summary: 'Mark cancelled InstaPay booking refund as completed by UUID (admin only)' })
+  markInstapayRefundedByUuid(
+    @Param('uuid') uuid: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.adminService.markInstapayRefundedByUuid(uuid, body?.reason);
+  }
 
   @Get('bookings/:id')
   @ApiOperation({ summary: 'Get full booking detail (admin only)' })
@@ -772,6 +924,18 @@ export class AdminController {
     @Query('limit') limit = '50',
   ) {
     return this.adminService.getConversationMessages(id, parseInt(page) || 1, parseInt(limit) || 50);
+  }
+
+  @Delete('messages/:id')
+  @ApiOperation({ summary: 'Delete a conversation (admin only)' })
+  deleteConversation(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteConversation(id);
+  }
+
+  @Delete('messages/message/:id')
+  @ApiOperation({ summary: 'Delete a single message (admin only)' })
+  deleteMessage(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteMessage(id);
   }
 
   // ─── Data Export ───────────────────────────────────────────────────────────

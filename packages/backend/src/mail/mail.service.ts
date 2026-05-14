@@ -1606,6 +1606,37 @@ export function tplAccountBanned(
   `);
 }
 
+// ─── Admin: Account Deleted ───────────────────────────────────────────────────
+export function tplAccountDeleted(
+  firstName: string,
+  reason: string,
+  supportUrl: string,
+): string {
+  const fn = htmlEscape(firstName);
+  const re = htmlEscape(reason);
+  const url = safeUrl(supportUrl);
+  return layout(`
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:48px;">👋</span>
+    </div>
+    ${heading('Your Oikivo account has been deleted')}
+    ${subHeading("We\u2019re sorry to see you go")}
+    ${paragraph(`Hi <strong>${fn}</strong>, we want to let you know that your Oikivo account has been permanently deleted by our moderation team. All your data, listings, and bookings have been removed from our platform.`)}
+    ${infoTable(
+      infoRow('Status', badge('Account Deleted', DANGER)) +
+      infoRow('Reason', re),
+    )}
+    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:16px 18px;margin:20px 0;">
+      <p style="margin:0;font-size:14px;color:#9f1239;line-height:1.6;">If you believe this was done in error or have any questions, please reach out to our support team. We take every case seriously and are happy to review your situation.</p>
+    </div>
+    ${btn('Contact Support', url, DANGER)}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:${MUTED};text-align:center;">
+      This action was taken in accordance with Oikivo's <a href="#" style="color:${PRIMARY};">Terms of Service</a>.
+    </p>
+  `);
+}
+
 // ─── Admin: ID Verification Approved ─────────────────────────────────────────
 export function tplIdVerificationApproved(firstName: string, dashboardUrl: string): string {
   const fn = htmlEscape(firstName);

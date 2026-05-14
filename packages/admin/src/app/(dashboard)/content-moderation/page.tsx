@@ -1,44 +1,85 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, getUploadUrl } from '@/lib/api';
 import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  XCircle,
-  Eye,
-  MapPin,
-  User,
-  Home,
-  AlertTriangle,
-  ImageOff,
-  X,
-  Star,
-  ShieldCheck,
-  BedDouble,
-  Bath,
-  Users,
-  Tag,
-  FileText,
-  DollarSign,
-  CalendarClock,
-  ChevronRight as ChevronRightIcon,
+  Search, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Eye, MapPin,
+  User, Home, ImageOff, X, Star, ShieldCheck, BedDouble,
+  Bath, Users, ZoomIn, Clock, BarChart3, Mail, Phone,
+  Banknote, BookOpen, Wifi, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
+// ─── Constants ─────────────────────────────────────────────────────────────────
 const QUEUE_TABS = [
-  { value: 'pending_review', label: 'Pending Review', color: 'text-amber-400' },
-  { value: 'published', label: 'Published', color: 'text-emerald-400' },
-  { value: 'archived', label: 'Archived', color: 'text-gray-500 dark:text-gray-400' },
-];
+  { value: 'pending_review', label: 'Pending Review' },
+  { value: 'published',      label: 'Published' },
+  { value: 'archived',       label: 'Archived' },
+] as const;
 
-// ─── Full-detail property modal ───────────────────────────────────────────────
+const STATUS_STYLES: Record<string, string> = {
+  pending_review: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+  published:      'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+  archived:       'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600',
+  draft:          'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700',
+};
+
+const fmtEGP = (n: number | string | undefined) =>
+  `EGP ${Number(n ?? 0).toLocaleString()}`;
+
+const fmtDate = (s?: string) =>
+  s ? new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+function Lightbox({ photos, index, onClose }: { photos: string[]; index: number; onClose: () => void }) {
+  const [cur, setCur] = useState(index);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setCur((i) => Math.min(i + 1, photos.length - 1));
+      if (e.key === 'ArrowLeft') setCur((i) => Math.max(i - 1, 0));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, photos.length]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95" onClick={onClose}>
+      <button onClick={onClose} className="absolute top-4 right-4 rounded-full p-2 bg-white/10 hover:bg-white/20">
+        <X className="h-5 w-5 text-white" />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); setCur((i) => Math.max(i - 1, 0)); }}
+        disabled={cur === 0}
+        className="absolute left-4 rounded-full p-2 bg-white/10 hover:bg-white/20 disabled:opacity-30"
+      >
+        <ChevronLeft className="h-6 w-6 text-white" />
+      </button>
+      <img
+        src={photos[cur]}
+        alt=""
+        className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <button
+        onClick={(e) => { e.stopPropagation(); setCur((i) => Math.min(i + 1, photos.length - 1)); }}
+        disabled={cur === photos.length - 1}
+        className="absolute right-4 rounded-full p-2 bg-white/10 hover:bg-white/20 disabled:opacity-30"
+      >
+        <ChevronRight className="h-6 w-6 text-white" />
+      </button>
+      <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-sm text-white">
+        {cur + 1} / {photos.length}
+      </span>
+    </div>
+  );
+}
+
+// ─── Property Detail Modal ─────────────────────────────────────────────────────
 function PropertyDetailModal({
-  property,
+  propertyId,
   tab,
   onClose,
   onApprove,
@@ -47,7 +88,7 @@ function PropertyDetailModal({
   onRestore,
   isPending,
 }: {
-  property: any;
+  propertyId: number;
   tab: string;
   onClose: () => void;
   onApprove: (id: number) => void;
@@ -56,544 +97,646 @@ function PropertyDetailModal({
   onRestore: (id: number) => void;
   isPending: boolean;
 }) {
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const photos: any[] = property.photos ?? [];
-  const amenities: any[] = property.amenities ?? [];
-  const houseRules: any[] = property.houseRules ?? [];
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const coverPhoto = photos[photoIndex] ?? null;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && lightboxIndex === null) onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, lightboxIndex]);
 
-  const infoItem = (label: string, value: React.ReactNode) => (
+  const { data: p, isLoading, isError } = useQuery({
+    queryKey: ['admin-property-detail', propertyId],
+    queryFn: () => adminApi.getPropertyDetail(propertyId),
+    staleTime: 30_000,
+  });
+
+  const photos: string[] = (p?.photos ?? []).map((ph: any) =>
+    getUploadUrl(typeof ph === 'string' ? ph : (ph.url ?? ''))
+  ).filter(Boolean);
+  const amenities: any[] = p?.amenities ?? [];
+  const houseRules: any[] = p?.houseRules ?? [];
+  const reviews: any[]    = p?.reviews ?? [];
+  const recentBookings: any[] = p?.recentBookings ?? [];
+  const stats = p?.stats ?? {};
+
+  const hostName = p ? `${p.host?.firstName ?? ''} ${p.host?.lastName ?? ''}`.trim() : '';
+  const hostAvatar = p?.host?.avatarUrl ? getUploadUrl(p.host.avatarUrl) : null;
+
+  const InfoItem = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</span>
+      <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</span>
       <span className="text-sm font-medium text-gray-900 dark:text-white">{value ?? '—'}</span>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 p-4 overflow-y-auto">
-      <div className="relative w-full max-w-3xl rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl my-8">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 rounded-full p-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-        </button>
-
-        {/* Photo gallery */}
-        <div className="relative h-64 sm:h-80 bg-gray-100 dark:bg-gray-800 rounded-t-2xl overflow-hidden">
-          {coverPhoto ? (
-            <img
-              src={getUploadUrl(typeof coverPhoto === 'string' ? coverPhoto : (coverPhoto.url ?? null))}
-              alt={property.title}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <ImageOff className="h-12 w-12 text-gray-500" />
-            </div>
-          )}
-
-          {/* Status badge */}
-          <span className={cn(
-            'absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-semibold border',
-            property.status === 'published' && 'bg-emerald-900/80 border-emerald-700 text-emerald-300',
-            (property.status === 'draft' || property.status === 'pending_review') && 'bg-amber-900/80 border-amber-700 text-amber-300',
-            property.status === 'archived' && 'bg-gray-700/80 border-gray-600 text-gray-300',
-          )}>
-            {property.status === 'pending_review' ? 'Pending Review' : property.status}
-          </span>
-
-          {/* Photo navigation */}
-          {photos.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setPhotoIndex((i) => Math.max(0, i - 1))}
-                disabled={photoIndex === 0}
-                className="rounded-full bg-black/60 p-1 disabled:opacity-30 hover:bg-black/80 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4 text-white" />
-              </button>
-              <span className="rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white">
-                {photoIndex + 1} / {photos.length}
-              </span>
-              <button
-                onClick={() => setPhotoIndex((i) => Math.min(photos.length - 1, i + 1))}
-                disabled={photoIndex === photos.length - 1}
-                className="rounded-full bg-black/60 p-1 disabled:opacity-30 hover:bg-black/80 transition-colors"
-              >
-                <ChevronRightIcon className="h-4 w-4 text-white" />
-              </button>
-            </div>
-          )}
-
-          {/* Thumbnail strip */}
-          {photos.length > 1 && (
-            <div className="absolute bottom-0 left-0 right-0 flex gap-1 overflow-x-auto px-3 pb-10">
-              {photos.map((img: any, i: number) => (
-                <button
-                  key={i}
-                  onClick={() => setPhotoIndex(i)}
-                  className={cn(
-                    'shrink-0 h-10 w-14 rounded overflow-hidden border-2 transition-colors',
-                    i === photoIndex ? 'border-indigo-400' : 'border-transparent',
-                  )}
-                >
-                  <img
-                    src={getUploadUrl(typeof img === 'string' ? img : (img.url ?? null))}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Title & category */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{property.title}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              {property.category?.name && (
-                <span className="rounded-full bg-indigo-900/40 border border-indigo-700/50 px-2 py-0.5 text-xs text-indigo-300">
-                  {property.category.name}
-                </span>
-              )}
-              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                <MapPin className="h-3 w-3" />
-                {[property.address, property.city, property.state, property.country].filter(Boolean).join(', ') || '—'}
-              </div>
-            </div>
-          </div>
-
-          {/* Key stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-indigo-400 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500">Price/night</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  EGP {Number(property.pricePerNight ?? 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-indigo-400 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500">Guests</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">{property.maxGuests ?? '—'}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <BedDouble className="h-4 w-4 text-indigo-400 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500">Beds / Bedrooms</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {property.beds ?? '—'} / {property.bedrooms ?? '—'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Bath className="h-4 w-4 text-indigo-400 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500">Bathrooms</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">{property.bathrooms ?? '—'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Details grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {infoItem('Space type', property.spaceType?.replace(/_/g, ' '))}
-            {infoItem('Property kind', property.propertyKind)}
-            {infoItem('Cancellation', property.cancellationPolicy)}
-            {infoItem('Min nights', property.minNights)}
-            {infoItem('Max nights', property.maxNights)}
-            {infoItem('Cleaning fee', property.cleaningFee ? `EGP ${Number(property.cleaningFee).toLocaleString()}` : 'None')}
-            {infoItem('Security deposit', property.securityDeposit ? `EGP ${Number(property.securityDeposit).toLocaleString()}` : 'None')}
-            {infoItem('Booking mode', property.bookingMode?.replace(/_/g, ' '))}
-            {infoItem('Check-in after', property.checkInAfter)}
-            {infoItem('Check-out before', property.checkOutBefore)}
-            {infoItem('Allows pets', property.allowsPets ? 'Yes' : 'No')}
-            {infoItem('Allows smoking', property.allowsSmoking ? 'Yes' : 'No')}
-            {infoItem('Allows parties', property.allowsParties ? 'Yes' : 'No')}
-            {infoItem('Allows children', property.allowsChildren ? 'Yes' : 'No')}
-            {infoItem('Wizard step', property.wizardLastStep)}
-            {property.latitude && infoItem('Coordinates', `${property.latitude}, ${property.longitude}`)}
-          </div>
-
-          {/* Description */}
-          {property.description && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Description</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                {property.description}
-              </p>
-            </div>
-          )}
-
-          {/* Amenities */}
-          {amenities.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                Amenities ({amenities.length})
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {amenities.map((a: any, ai: number) => (
-                  <span key={a.id ?? ai} className="rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2.5 py-1 text-xs text-gray-700 dark:text-gray-300">
-                    {typeof a === 'string' ? a : (a.name ?? '')}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* House rules */}
-          {houseRules.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                House Rules ({houseRules.length})
-              </p>
-              <ul className="space-y-1">
-                {houseRules.map((r: any, ri: number) => (
-                  <li key={r.id ?? ri} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-                    {typeof r === 'string' ? r : (r.rule ?? '')}
-                    {r.ruleAr ? <span className="text-gray-500 text-xs">({r.ruleAr})</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Host info */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Host</p>
-            <div className="flex items-center gap-3">
-              {property.host?.avatarUrl ? (
-                <img
-                  src={getUploadUrl(property.host.avatarUrl)}
-                  alt=""
-                  className="h-10 w-10 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-indigo-900/40 border border-indigo-700/50 flex items-center justify-center shrink-0">
-                  <User className="h-5 w-5 text-indigo-400" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {property.host?.firstName} {property.host?.lastName}
-                </p>
-                <p className="text-xs text-gray-500 truncate">{property.host?.email}</p>
-                {property.host?.phone && (
-                  <p className="text-xs text-gray-500">{property.host.phone}</p>
-                )}
-              </div>
-              <div className="ml-auto flex flex-col items-end gap-1">
-                {property.host?.isIdVerified && (
-                  <span className="flex items-center gap-1 rounded-full bg-emerald-900/50 border border-emerald-700/50 px-2 py-0.5 text-xs text-emerald-400">
-                    <ShieldCheck className="h-3 w-3" /> ID verified
-                  </span>
-                )}
-                {property.host?.isSuperhost && (
-                  <span className="flex items-center gap-1 rounded-full bg-amber-900/50 border border-amber-700/50 px-2 py-0.5 text-xs text-amber-400">
-                    <Star className="h-3 w-3" /> Superhost
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
-            {tab === 'pending_review' && (
-              <>
-                <button
-                  onClick={() => onApprove(property.id)}
-                  disabled={isPending}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Approve & Publish
-                </button>
-                <button
-                  onClick={() => onReject(property.id)}
-                  disabled={isPending}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-800 hover:bg-red-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                >
-                  <XCircle className="h-4 w-4" />
-                  Reject
-                </button>
-              </>
-            )}
-            {tab === 'published' && (
-              <button
-                onClick={() => onArchive(property.id)}
-                disabled={isPending}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 transition-colors disabled:opacity-50"
-              >
-                <XCircle className="h-4 w-4" />
-                Archive
-              </button>
-            )}
-            {tab === 'archived' && (
-              <button
-                onClick={() => onRestore(property.id)}
-                disabled={isPending}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-indigo-700 hover:bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Restore & Publish
-              </button>
-            )}
+    <>
+      <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 p-4 overflow-y-auto">
+        <div className="relative w-full max-w-3xl rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl my-8">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate pr-4">
+              {isLoading ? 'Loading…' : (p?.title ?? 'Property Detail')}
+            </h2>
             <button
               onClick={onClose}
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="shrink-0 rounded-full p-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
-              Close
+              <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
+
+          {/* Body */}
+          {isLoading && (
+            <div className="flex h-64 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
+            </div>
+          )}
+          {isError && (
+            <div className="flex h-32 items-center justify-center text-red-500 gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Failed to load property details
+            </div>
+          )}
+
+          {p && (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+
+              {/* Photos grid */}
+              <div className="p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold', STATUS_STYLES[p.status ?? 'draft'])}>
+                    {p.status === 'pending_review' ? 'Pending Review' : (p.status ?? 'draft')}
+                  </span>
+                  {p.category?.name && (
+                    <span className="rounded-full bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-300 dark:border-indigo-700 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                      {p.category.name}
+                    </span>
+                  )}
+                  {p.isFeatured && (
+                    <span className="rounded-full bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-400 dark:border-yellow-700 px-2.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                      ★ Featured
+                    </span>
+                  )}
+                </div>
+                {photos.length === 0 ? (
+                  <div className="flex h-40 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
+                    <ImageOff className="h-10 w-10 text-gray-400" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {photos.map((url, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setLightboxIndex(i)}
+                        className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
+                      >
+                        <img src={url} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                          <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{photos.length} photo{photos.length !== 1 ? 's' : ''} — click to enlarge</p>
+              </div>
+
+              {/* Booking stats */}
+              {(stats.bookingCount != null) && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 divide-x divide-gray-200 dark:divide-gray-700">
+                  {[
+                    { icon: <BookOpen className="h-4 w-4" />, label: 'Total Bookings', value: stats.bookingCount ?? 0 },
+                    { icon: <Banknote className="h-4 w-4" />, label: 'Revenue', value: fmtEGP(stats.totalRevenue) },
+                    { icon: <CheckCircle2 className="h-4 w-4" />, label: 'Paid', value: stats.paidCount ?? 0 },
+                    { icon: <Clock className="h-4 w-4" />, label: 'Pending', value: stats.pendingCount ?? 0 },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="flex flex-col items-center justify-center gap-1 py-4 px-2">
+                      <span className="text-gray-400">{icon}</span>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">{value}</span>
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Host card */}
+              <div className="p-5">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Host</h3>
+                <div className="flex items-start gap-4">
+                  {hostAvatar ? (
+                    <img src={hostAvatar} alt={hostName} className="h-14 w-14 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700 shrink-0" />
+                  ) : (
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
+                      {hostName.charAt(0) || <User className="h-6 w-6" />}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-gray-900 dark:text-white">{hostName || '—'}</span>
+                      {p.host?.isSuperhost && (
+                        <span className="flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-400 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" /> Superhost
+                        </span>
+                      )}
+                      {p.host?.isIdVerified && (
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-400 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                          <ShieldCheck className="h-3 w-3" /> ID Verified
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex flex-col gap-0.5">
+                      {p.host?.email && (
+                        <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                          <Mail className="h-3 w-3 shrink-0" /> {p.host.email}
+                        </span>
+                      )}
+                      {p.host?.phone && (
+                        <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                          <Phone className="h-3 w-3 shrink-0" /> {p.host.phone}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location + Key stats */}
+              <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <InfoItem label="Location" value={
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                    {[p.address, p.city, p.state, p.country].filter(Boolean).join(', ') || '—'}
+                  </span>
+                } />
+                <InfoItem label="Price / Night" value={fmtEGP(p.pricePerNight)} />
+                <InfoItem label="Max Guests" value={<span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-gray-400" />{p.maxGuests}</span>} />
+                <InfoItem label="Bedrooms / Beds" value={<span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5 text-gray-400" />{p.bedrooms} / {p.beds}</span>} />
+                <InfoItem label="Bathrooms" value={<span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5 text-gray-400" />{p.bathrooms}</span>} />
+                <InfoItem label="Cleaning Fee" value={fmtEGP(p.cleaningFee)} />
+              </div>
+
+              {/* Full details */}
+              <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <InfoItem label="Space Type" value={p.spaceType} />
+                <InfoItem label="Property Kind" value={p.propertyKind} />
+                <InfoItem label="Category" value={p.category?.name} />
+                <InfoItem label="Booking Mode" value={p.bookingMode} />
+                <InfoItem label="Cancellation" value={p.cancellationPolicy} />
+                <InfoItem label="Min / Max Nights" value={`${p.minNights ?? '—'} / ${p.maxNights ?? '—'}`} />
+                <InfoItem label="Check-in After" value={p.checkInAfter} />
+                <InfoItem label="Check-out Before" value={p.checkOutBefore} />
+                <InfoItem label="Security Deposit" value={fmtEGP(p.securityDeposit)} />
+                <InfoItem label="Pets" value={p.allowsPets ? '✓ Allowed' : '✗ Not Allowed'} />
+                <InfoItem label="Smoking" value={p.allowsSmoking ? '✓ Allowed' : '✗ Not Allowed'} />
+                <InfoItem label="Parties" value={p.allowsParties ? '✓ Allowed' : '✗ Not Allowed'} />
+                <InfoItem label="Children" value={p.allowsChildren ? '✓ Allowed' : '✗ Not Allowed'} />
+                <InfoItem label="Created" value={fmtDate(p.createdAt)} />
+                {p.latitude && <InfoItem label="Coordinates" value={`${Number(p.latitude).toFixed(4)}, ${Number(p.longitude).toFixed(4)}`} />}
+              </div>
+
+              {/* Description */}
+              {p.description && (
+                <div className="p-5">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Description</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{p.description}</p>
+                </div>
+              )}
+
+              {/* Amenities */}
+              {amenities.length > 0 && (
+                <div className="p-5">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Amenities ({amenities.length})</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {amenities.map((a: any, i: number) => (
+                      <span key={i} className="flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs text-gray-700 dark:text-gray-300">
+                        <Wifi className="h-3 w-3 text-gray-400" />
+                        {typeof a === 'string' ? a : (a.name ?? a.nameEn ?? '')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* House Rules */}
+              {houseRules.length > 0 && (
+                <div className="p-5">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">House Rules ({houseRules.length})</h3>
+                  <ul className="space-y-1">
+                    {houseRules.map((r: any, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold">{i + 1}</span>
+                        {typeof r === 'string' ? r : (r.rule ?? r.ruleEn ?? '')}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Reviews */}
+              {reviews.length > 0 && (
+                <div className="p-5">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Reviews ({reviews.length})</h3>
+                  <div className="space-y-3">
+                    {reviews.slice(0, 6).map((rev: any) => {
+                      const reviewer = rev.reviewer ?? rev.guest;
+                      const reviewerAvatar = reviewer?.avatarUrl ? getUploadUrl(reviewer.avatarUrl) : null;
+                      return (
+                        <div key={rev.id} className="rounded-xl border border-gray-200 dark:border-gray-700 p-3 flex gap-3">
+                          {reviewerAvatar ? (
+                            <img src={reviewerAvatar} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                              {reviewer?.firstName?.charAt(0) ?? '?'}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{reviewer?.firstName} {reviewer?.lastName}</span>
+                              <span className="flex items-center gap-0.5 text-xs text-amber-500">
+                                {'★'.repeat(Math.min(5, rev.rating ?? 0))}{'☆'.repeat(Math.max(0, 5 - (rev.rating ?? 0)))}
+                              </span>
+                            </div>
+                            {rev.comment && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{rev.comment}</p>}
+                            <p className="mt-0.5 text-[10px] text-gray-400">{fmtDate(rev.createdAt)}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Bookings */}
+              {recentBookings.length > 0 && (
+                <div className="p-5">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Recent Bookings</h3>
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                          {['Guest', 'Dates', 'Amount', 'Status'].map((h) => (
+                            <th key={h} className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-[10px]">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {recentBookings.slice(0, 5).map((b: any) => {
+                          const guestAvatar = b.guest?.avatarUrl ? getUploadUrl(b.guest.avatarUrl) : null;
+                          return (
+                            <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  {guestAvatar ? (
+                                    <img src={guestAvatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                                  ) : (
+                                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-white text-[10px] font-bold">
+                                      {b.guest?.firstName?.charAt(0) ?? '?'}
+                                    </div>
+                                  )}
+                                  <span className="text-gray-900 dark:text-white">{b.guest?.firstName} {b.guest?.lastName}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
+                                {fmtDate(b.checkIn)} → {fmtDate(b.checkOut)}
+                              </td>
+                              <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{fmtEGP(b.totalAmount)}</td>
+                              <td className="px-3 py-2">
+                                <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                                  b.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700' :
+                                  b.status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-300 dark:border-red-700' :
+                                  'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600'
+                                )}>
+                                  {b.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="p-5 flex flex-wrap gap-3">
+                {(tab === 'pending_review' || p.status === 'pending_review' || p.status === 'draft') && (
+                  <button
+                    onClick={() => onApprove(p.id)}
+                    disabled={isPending}
+                    className="flex items-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> Approve & Publish
+                  </button>
+                )}
+                {(tab === 'pending_review' || p.status === 'pending_review') && (
+                  <button
+                    onClick={() => onReject(p.id)}
+                    disabled={isPending}
+                    className="flex items-center gap-2 rounded-xl bg-red-800 hover:bg-red-700 px-5 py-2.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                  >
+                    <XCircle className="h-4 w-4" /> Reject
+                  </button>
+                )}
+                {(tab === 'published' || p.status === 'published') && (
+                  <button
+                    onClick={() => onArchive(p.id)}
+                    disabled={isPending}
+                    className="flex items-center gap-2 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    <XCircle className="h-4 w-4" /> Archive
+                  </button>
+                )}
+                {(tab === 'archived' || p.status === 'archived') && (
+                  <button
+                    onClick={() => onRestore(p.id)}
+                    disabled={isPending}
+                    className="flex items-center gap-2 rounded-xl bg-indigo-700 hover:bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> Restore
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+
+      {lightboxIndex !== null && (
+        <Lightbox photos={photos} index={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
+    </>
   );
 }
 
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ContentModerationPage() {
-  const qc = useQueryClient();
-  const [tab, setTab] = useState<'pending_review' | 'published' | 'archived'>('pending_review');
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const queryClient = useQueryClient();
+  const [tab, setTab]             = useState<'pending_review' | 'published' | 'archived'>('pending_review');
+  const [search, setSearch]       = useState('');
+  const [page, setPage]           = useState(1);
   const [modalPropertyId, setModalPropertyId] = useState<number | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ id: number; status: 'published' | 'archived'; label: string } | null>(null);
+  const [confirmAction, setConfirmAction]      = useState<{ id: number; status: 'archived' | 'published'; label: string } | null>(null);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['admin-moderation', tab, page, search],
-    queryFn: () =>
-      adminApi.getProperties({ page, limit: 15, status: tab, search: search || undefined }),
-    placeholderData: (prev) => prev,
+  // Reset page when tab / search changes
+  useEffect(() => { setPage(1); }, [tab, search]);
+
+  // Count queries for stats cards
+  const { data: dPending }  = useQuery({ queryKey: ['cm-count', 'pending_review'],  queryFn: () => adminApi.getProperties({ status: 'pending_review', limit: 1 }), staleTime: 30_000 });
+  const { data: dPublished }= useQuery({ queryKey: ['cm-count', 'published'],        queryFn: () => adminApi.getProperties({ status: 'published',      limit: 1 }), staleTime: 30_000 });
+  const { data: dArchived } = useQuery({ queryKey: ['cm-count', 'archived'],         queryFn: () => adminApi.getProperties({ status: 'archived',       limit: 1 }), staleTime: 30_000 });
+
+  const pendingCount   = dPending?.total   ?? 0;
+  const publishedCount = dPublished?.total ?? 0;
+  const archivedCount  = dArchived?.total  ?? 0;
+  const totalCount     = pendingCount + publishedCount + archivedCount;
+
+  // Main list query
+  const { data: d, isLoading } = useQuery({
+    queryKey: ['cm-properties', tab, search, page],
+    queryFn: () => adminApi.getProperties({ status: tab, search: search || undefined, page, limit: 20 }),
+    staleTime: 30_000,
   });
+  const items: any[] = d?.items ?? [];
 
+  // Status update mutation
   const updateStatus = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: 'draft' | 'published' | 'archived' }) =>
-      adminApi.updatePropertyStatus(id, status),
-    onSuccess: (_, { status }) => {
-      toast.success(
-        status === 'published' ? 'Listing approved and published' :
-        status === 'archived' ? 'Listing rejected and archived' :
-        'Listing moved to draft',
-      );
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      adminApi.updatePropertyStatus(id, status as any),
+    onSuccess: (_data, vars) => {
+      toast.success(`Property ${vars.status === 'published' ? 'published' : vars.status === 'archived' ? 'archived' : 'updated'} successfully`);
+      queryClient.invalidateQueries({ queryKey: ['cm-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['cm-count'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-property-detail', vars.id] });
       setModalPropertyId(null);
       setConfirmAction(null);
-      qc.invalidateQueries({ queryKey: ['admin-moderation'] });
-      qc.invalidateQueries({ queryKey: ['admin-properties'] });
-      qc.invalidateQueries({ queryKey: ['admin-badge-counts'] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Action failed'),
+    onError: () => toast.error('Failed to update property status'),
   });
 
-  const d = data as any;
-  const items: any[] = d?.items ?? [];
-  const modalProperty = items.find((p: any) => p.id === modalPropertyId);
-
-  if (isError) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-24 text-center">
-        <AlertTriangle className="h-10 w-10 text-red-500" />
-        <p className="text-lg font-semibold text-gray-900 dark:text-white">Failed to load moderation queue</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">The backend may be unavailable. Try refreshing.</p>
-      </div>
-    );
-  }
+  const stats = [
+    { label: 'Pending Review', value: pendingCount, tab: 'pending_review' as const, color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20',  border: 'border-amber-200 dark:border-amber-800', icon: <Clock className="h-5 w-5" /> },
+    { label: 'Published',      value: publishedCount, tab: 'published'      as const, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800', icon: <CheckCircle2 className="h-5 w-5" /> },
+    { label: 'Archived',       value: archivedCount,  tab: 'archived'       as const, color: 'text-gray-500',   bg: 'bg-gray-50 dark:bg-gray-800',           border: 'border-gray-200 dark:border-gray-700', icon: <XCircle className="h-5 w-5" /> },
+    { label: 'Total',          value: totalCount,     tab: null,                        color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20',    border: 'border-indigo-200 dark:border-indigo-800', icon: <BarChart3 className="h-5 w-5" /> },
+  ];
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
+    <div className="space-y-6 p-6">
+      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content Moderation</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Review property listings before they go public</p>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Review, approve, or reject property listings before they go live.</p>
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map(({ label, value, tab: statTab, color, bg, border, icon }) => (
+          <button
+            key={label}
+            onClick={() => statTab && setTab(statTab)}
+            className={cn(
+              'flex items-center gap-3 rounded-xl border p-4 text-left transition-all',
+              bg, border,
+              statTab && 'cursor-pointer hover:shadow-md',
+              !statTab && 'cursor-default',
+              tab === statTab && 'ring-2 ring-offset-1 ring-indigo-400',
+            )}
+          >
+            <span className={cn('shrink-0', color)}>{icon}</span>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+            </div>
+          </button>
+        ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-800">
-        {QUEUE_TABS.map((t) => (
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+        {QUEUE_TABS.map(({ value, label }) => (
           <button
-            key={t.value}
-            onClick={() => { setTab(t.value as any); setPage(1); }}
+            key={value}
+            onClick={() => setTab(value)}
             className={cn(
-              'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
-              tab === t.value
-                ? `border-indigo-500 ${t.color}`
-                : 'border-transparent text-gray-500 hover:text-gray-300',
+              'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors relative',
+              tab === value
+                ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 -mb-px bg-transparent'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
             )}
           >
-            {t.label}
+            {label}
+            {value === 'pending_review' && pendingCount > 0 && (
+              <span className="ml-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">{pendingCount}</span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Search */}
-      <form
-        onSubmit={(e) => { e.preventDefault(); setSearch(searchInput); setPage(1); }}
-        className="flex gap-2"
-      >
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search title, city, host…"
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 pl-9 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <button
-          type="submit"
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
-        >
-          Search
-        </button>
-      </form>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search listings…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
 
-      {/* Grid */}
-      {isLoading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden animate-pulse">
-              <div className="h-40 bg-gray-100 dark:bg-gray-800" />
-              <div className="p-4 space-y-2">
-                <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-1/2" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-20 text-center">
-          <CheckCircle2 className="h-10 w-10 text-gray-700" />
-          <p className="text-gray-500 dark:text-gray-400 font-medium">No listings in this queue</p>
-          <p className="text-gray-600 text-sm">
-            {tab === 'pending_review' ? 'No pending listings awaiting review.' : 'None found.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((p: any) => {
-            const coverImage = p.photos?.[0] ?? null;
-            return (
-              <div
-                key={p.id}
-                className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden flex flex-col"
-              >
-                {/* Cover image */}
-                <div className="relative h-40 bg-gray-100 dark:bg-gray-800">
-                  {coverImage ? (
-                    <img
-                      src={getUploadUrl(typeof coverImage === 'string' ? coverImage : (coverImage.url ?? null))}
-                      alt={p.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <ImageOff className="h-8 w-8 text-gray-600" />
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              {['Property', 'Host', 'Type', 'Price/Night', 'Status', 'Photos', 'Created', 'Actions'].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {isLoading && Array.from({ length: 8 }).map((_, i) => (
+              <tr key={i}>
+                {Array.from({ length: 8 }).map((__, j) => (
+                  <td key={j} className="px-4 py-3">
+                    <div className="h-4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" style={{ width: `${40 + (j * 7 + i * 3) % 40}%` }} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {!isLoading && items.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-4 py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <Home className="h-10 w-10" />
+                    <p className="font-medium">No listings found</p>
+                    {search && <p className="text-xs">Try a different search term</p>}
+                  </div>
+                </td>
+              </tr>
+            )}
+            {items.map((p: any) => {
+              const coverPhoto = p.photos?.[0];
+              const coverUrl = coverPhoto ? getUploadUrl(typeof coverPhoto === 'string' ? coverPhoto : (coverPhoto.url ?? '')) : null;
+              const hostAvatar = p.host?.avatarUrl ? getUploadUrl(p.host.avatarUrl) : null;
+              const hostName = `${p.host?.firstName ?? ''} ${p.host?.lastName ?? ''}`.trim();
+              return (
+                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  {/* Property */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-[200px]">
+                      <div className="h-12 w-16 shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                        {coverUrl ? (
+                          <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <ImageOff className="h-4 w-4 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 dark:text-white line-clamp-1 max-w-[180px]">{p.title}</p>
+                        <p className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate max-w-[160px]">{p.city}{p.country ? `, ${p.country}` : ''}</span>
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  <span
-                    className={cn(
-                      'absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-medium border',
-                      p.status === 'published' && 'bg-emerald-900/70 border-emerald-800/50 text-emerald-400',
-                      p.status === 'draft' && 'bg-amber-900/70 border-amber-800/50 text-amber-400',
-                      p.status === 'archived' && 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400',
-                    )}
-                  >
-                    {p.status}
-                  </span>
-                  {(p.photos?.length ?? 0) > 1 && (
-                    <span className="absolute top-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-gray-300">
-                      +{p.photos.length - 1} photos
+                  </td>
+                  {/* Host */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2 min-w-[160px]">
+                      {hostAvatar ? (
+                        <img src={hostAvatar} alt={hostName} className="h-8 w-8 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                          {hostName.charAt(0) || <User className="h-3 w-3" />}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[120px]">{hostName || '—'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{p.host?.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  {/* Type */}
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    {p.propertyKind ?? p.spaceType ?? '—'}
+                  </td>
+                  {/* Price */}
+                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                    {fmtEGP(p.pricePerNight)}
+                  </td>
+                  {/* Status */}
+                  <td className="px-4 py-3">
+                    <span className={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap', STATUS_STYLES[p.status ?? 'draft'])}>
+                      {p.status === 'pending_review' ? 'Pending' : (p.status ?? '—')}
                     </span>
-                  )}
-                </div>
-
-                {/* Body */}
-                <div className="flex-1 p-4 space-y-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1">{p.title}</h3>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                    <MapPin className="h-3 w-3" />
-                    {p.city}{p.country ? `, ${p.country}` : ''}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                    <User className="h-3 w-3" />
-                    {p.host?.firstName} {p.host?.lastName}
-                    <span className="text-gray-600">·</span>
-                    <span>{p.host?.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><Home className="h-3 w-3" />{p.propertyKind ?? p.spaceType ?? '—'}</span>
-                    <span>{p.maxGuests ?? '—'} guests</span>
-                    <span>EGP {Number(p.pricePerNight ?? 0).toLocaleString()}/night</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="border-t border-gray-200 dark:border-gray-800 p-3 flex gap-2">
-                  <button
-                    onClick={() => setModalPropertyId(p.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    Full Details
-                  </button>
-                  {tab === 'pending_review' && (
-                    <>
+                  </td>
+                  {/* Photos */}
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {p.photos?.length ?? 0}
+                  </td>
+                  {/* Created */}
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {fmtDate(p.createdAt)}
+                  </td>
+                  {/* Actions */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => updateStatus.mutate({ id: p.id, status: 'published' })}
-                        disabled={updateStatus.isPending}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
+                        onClick={() => setModalPropertyId(p.id)}
+                        className="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors whitespace-nowrap"
                       >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Approve
+                        <Eye className="h-3.5 w-3.5" /> View
                       </button>
-                      <button
-                        onClick={() => setConfirmAction({ id: p.id, status: 'archived', label: 'Reject' })}
-                        disabled={updateStatus.isPending}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-red-800 hover:bg-red-700 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  {tab === 'published' && (
-                    <button
-                      onClick={() => setConfirmAction({ id: p.id, status: 'archived', label: 'Archive' })}
-                      disabled={updateStatus.isPending}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-50"
-                    >
-                      <XCircle className="h-3.5 w-3.5" />
-                      Archive
-                    </button>
-                  )}
-                  {tab === 'archived' && (
-                    <button
-                      onClick={() => updateStatus.mutate({ id: p.id, status: 'published' })}
-                      disabled={updateStatus.isPending}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Restore
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                      {p.status === 'pending_review' && (
+                        <button
+                          onClick={() => updateStatus.mutate({ id: p.id, status: 'published' })}
+                          disabled={updateStatus.isPending}
+                          className="flex items-center gap-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                        </button>
+                      )}
+                      {p.status === 'pending_review' && (
+                        <button
+                          onClick={() => setConfirmAction({ id: p.id, status: 'archived', label: 'Reject' })}
+                          disabled={updateStatus.isPending}
+                          className="flex items-center gap-1 rounded-lg bg-red-800 hover:bg-red-700 px-2.5 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Reject
+                        </button>
+                      )}
+                      {p.status === 'published' && (
+                        <button
+                          onClick={() => setConfirmAction({ id: p.id, status: 'archived', label: 'Archive' })}
+                          disabled={updateStatus.isPending}
+                          className="flex items-center gap-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Archive
+                        </button>
+                      )}
+                      {p.status === 'archived' && (
+                        <button
+                          onClick={() => updateStatus.mutate({ id: p.id, status: 'published' })}
+                          disabled={updateStatus.isPending}
+                          className="flex items-center gap-1 rounded-lg bg-indigo-700 hover:bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Restore
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
@@ -620,9 +763,9 @@ export default function ContentModerationPage() {
       </div>
 
       {/* Full-detail modal */}
-      {modalProperty && (
+      {modalPropertyId !== null && (
         <PropertyDetailModal
-          property={modalProperty}
+          propertyId={modalPropertyId}
           tab={tab}
           onClose={() => setModalPropertyId(null)}
           onApprove={(id) => updateStatus.mutate({ id, status: 'published' })}
@@ -633,13 +776,16 @@ export default function ContentModerationPage() {
         />
       )}
 
-      {/* Confirmation modal for reject/archive */}
+      {/* Confirmation modal */}
       {confirmAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-2xl">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{confirmAction.label} Listing?</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-              This will {confirmAction.label === 'Reject' ? 'archive the listing and remove it from public view' : 'move the listing to the archive'}. Are you sure?
+              {confirmAction.label === 'Reject'
+                ? 'This will archive the listing and remove it from public view.'
+                : 'This will move the listing to the archive.'}
+              {' '}Are you sure?
             </p>
             <div className="flex gap-3">
               <button

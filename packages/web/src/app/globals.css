@@ -84,6 +84,46 @@
   }
 }
 
+@layer utilities {
+  /* ── Delete-account modal animations ────────────────── */
+
+  /* Entrance bounce for the sad emoji */
+  @keyframes emoji-enter {
+    0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+    60%  { transform: scale(1.25) rotate(8deg);  opacity: 1; }
+    80%  { transform: scale(0.92) rotate(-4deg); }
+    100% { transform: scale(1) rotate(0deg);    opacity: 1; }
+  }
+
+  /* Idle sway loop after entrance */
+  @keyframes sway {
+    0%   { transform: rotate(0deg)  scale(1); }
+    20%  { transform: rotate(-8deg) scale(1.06); }
+    45%  { transform: rotate(6deg)  scale(1); }
+    65%  { transform: rotate(-5deg) scale(1.04); }
+    82%  { transform: rotate(4deg)  scale(1); }
+    100% { transform: rotate(0deg)  scale(1); }
+  }
+
+  .emoji-bounce {
+    display: inline-block;
+    animation: emoji-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               sway       3.2s ease-in-out 0.6s infinite;
+    transform-origin: center bottom;
+  }
+
+  /* Tear-drop drip decoration */
+  @keyframes drip {
+    0%   { transform: translateY(-4px) scale(0.6); opacity: 0; }
+    40%  { opacity: 1; }
+    100% { transform: translateY(8px)  scale(1);   opacity: 0; }
+  }
+  .tear-drop {
+    display: inline-block;
+    animation: drip 2s ease-in 1s infinite;
+  }
+}
+
 @layer components {
   .container-page {
     @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;

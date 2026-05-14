@@ -1,10 +1,169 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, X, Shield, Sparkles, Zap, AlertTriangle } from 'lucide-react';
+import {
+  type LucideIcon,
+  Plus, Pencil, Trash2, X, Shield, Sparkles, Zap, AlertTriangle, Search, ChevronDown,
+  Wifi, Tv, Monitor, Radio,
+  AirVent, Thermometer, Flame, Wind, Snowflake, Sun,
+  CookingPot, UtensilsCrossed, Coffee, Wine, Microwave, Refrigerator,
+  Waves, Dumbbell, Bike, Mountain, Anchor, Sailboat, Trees, Umbrella,
+  SquareParking, Car, Bus, Plane,
+  WashingMachine,
+  Briefcase, Keyboard, BookOpen,
+  ShowerHead, Bath, Droplets,
+  BellRing, FireExtinguisher, Camera, Lock, ShieldCheck, BriefcaseMedical,
+  Music, Headphones, Gamepad2,
+  Key, Home, Bed, Star, Heart, Globe, Package,
+} from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+
+// ─── Lucide Icon Registry ─────────────────────────────────────────────────
+const ICON_MAP: Record<string, LucideIcon> = {
+  'wifi': Wifi, 'tv': Tv, 'monitor': Monitor, 'radio': Radio,
+  'air-vent': AirVent, 'thermometer': Thermometer, 'flame': Flame,
+  'wind': Wind, 'snowflake': Snowflake, 'sun': Sun,
+  'cooking-pot': CookingPot, 'utensils-crossed': UtensilsCrossed,
+  'coffee': Coffee, 'wine': Wine, 'microwave': Microwave, 'refrigerator': Refrigerator,
+  'waves': Waves, 'dumbbell': Dumbbell, 'bike': Bike, 'mountain': Mountain,
+  'anchor': Anchor, 'sailboat': Sailboat, 'trees': Trees, 'umbrella': Umbrella,
+  'square-parking': SquareParking, 'car': Car, 'bus': Bus, 'plane': Plane,
+  'washing-machine': WashingMachine,
+  'briefcase': Briefcase, 'keyboard': Keyboard, 'book-open': BookOpen,
+  'shower-head': ShowerHead, 'bath': Bath, 'droplets': Droplets,
+  'bell-ring': BellRing, 'alert-triangle': AlertTriangle,
+  'fire-extinguisher': FireExtinguisher, 'camera': Camera, 'lock': Lock,
+  'shield-check': ShieldCheck, 'briefcase-medical': BriefcaseMedical,
+  'music': Music, 'headphones': Headphones, 'gamepad-2': Gamepad2,
+  'zap': Zap, 'key': Key, 'home': Home, 'bed': Bed,
+  'star': Star, 'heart': Heart, 'globe': Globe, 'package': Package,
+};
+
+const ICON_GROUPS: { label: string; icons: string[] }[] = [
+  { label: 'Connectivity', icons: ['wifi', 'tv', 'monitor', 'radio'] },
+  { label: 'Climate',      icons: ['air-vent', 'thermometer', 'flame', 'wind', 'snowflake', 'sun'] },
+  { label: 'Kitchen',      icons: ['cooking-pot', 'utensils-crossed', 'coffee', 'wine', 'microwave', 'refrigerator'] },
+  { label: 'Outdoor',      icons: ['waves', 'dumbbell', 'bike', 'mountain', 'anchor', 'sailboat', 'trees', 'umbrella'] },
+  { label: 'Transport',    icons: ['square-parking', 'car', 'bus', 'plane'] },
+  { label: 'Laundry',      icons: ['washing-machine', 'wind', 'zap'] },
+  { label: 'Workspace',    icons: ['briefcase', 'keyboard', 'book-open'] },
+  { label: 'Bathroom',     icons: ['shower-head', 'bath', 'droplets'] },
+  { label: 'Safety',       icons: ['bell-ring', 'alert-triangle', 'fire-extinguisher', 'camera', 'lock', 'shield-check', 'briefcase-medical'] },
+  { label: 'Leisure',      icons: ['music', 'headphones', 'gamepad-2'] },
+  { label: 'Other',        icons: ['key', 'home', 'bed', 'star', 'heart', 'globe', 'package'] },
+];
+
+function AmenityIcon({ name, className }: { name: string; className?: string }) {
+  const Icon = ICON_MAP[name];
+  if (!Icon) return <span className="text-xs text-gray-400 font-mono">{name || '—'}</span>;
+  return <Icon className={cn('h-5 w-5', className)} />;
+}
+
+function IconPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState(0);
+  const [q, setQ] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const filtered = q
+    ? Object.keys(ICON_MAP).filter((k) => k.includes(q.toLowerCase()))
+    : ICON_GROUPS[tab]?.icons ?? [];
+
+  const SelectedIcon = value ? ICON_MAP[value] : null;
+
+  return (
+    <div className="relative" ref={ref}>
+      <label className="text-xs text-gray-500 block mb-1">Icon</label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-gray-900 dark:text-white"
+      >
+        {SelectedIcon ? (
+          <span className="flex items-center gap-2">
+            <SelectedIcon className="h-5 w-5" />
+            <span className="text-xs text-gray-400 font-mono">{value}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">Select icon…</span>
+        )}
+        <ChevronDown className="h-3 w-3 text-gray-500 shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl w-80">
+          <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search icon name…"
+                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+              />
+            </div>
+          </div>
+          {!q && (
+            <div className="flex overflow-x-auto gap-1 px-2 py-1.5 border-b border-gray-200 dark:border-gray-700">
+              {ICON_GROUPS.map((g, i) => (
+                <button
+                  key={g.label}
+                  type="button"
+                  onClick={() => setTab(i)}
+                  className={cn(
+                    'shrink-0 px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap',
+                    tab === i ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-6 gap-0.5 p-2 max-h-52 overflow-y-auto">
+            {filtered.map((name) => {
+              const Icon = ICON_MAP[name];
+              if (!Icon) return null;
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  title={name}
+                  onClick={() => { onChange(name); setOpen(false); setQ(''); }}
+                  className={cn(
+                    'flex flex-col items-center justify-center h-12 w-full rounded p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800',
+                    value === name && 'bg-indigo-600/20 ring-1 ring-inset ring-indigo-500'
+                  )}
+                >
+                  <Icon className="h-5 w-5 mb-0.5" />
+                  <span className="text-[9px] text-gray-400 truncate w-full text-center leading-none">{name}</span>
+                </button>
+              );
+            })}
+          </div>
+          {value && (
+            <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+              <span className="text-xs text-gray-500">Selected: <span className="font-mono">{value}</span></span>
+              <button type="button" onClick={() => { onChange(''); setOpen(false); }} className="text-xs text-red-400 hover:text-red-300">Clear</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Amenity {
   id: number;
@@ -127,7 +286,7 @@ export default function AmenitiesPage() {
                     <tbody>
                       {items.map(a => (
                         <tr key={a.id} className="border-b border-gray-200/50 dark:border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                          <td className="p-3 text-xl">{a.icon || '✨'}</td>
+                          <td className="p-3"><AmenityIcon name={a.icon} className="text-gray-700 dark:text-gray-300" /></td>
                           <td className="p-3 text-gray-900 dark:text-white font-medium">{a.name}</td>
                           <td className="p-3 text-gray-600 dark:text-gray-300" dir="rtl">{a.nameAr || '—'}</td>
                           <td className="p-3 text-gray-500 dark:text-gray-400">{a.sortOrder}</td>
@@ -194,12 +353,8 @@ export default function AmenitiesPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <label className="text-xs text-gray-500">Icon</label>
-                  <input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🛁" className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-gray-900 dark:text-white mt-1 text-center text-xl" />                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {['\uD83D\uDEC1','\uD83D\uDEBF','\uD83D\uDEBE','\u2744\uFE0F','\uD83D\uDD25','\uD83D\uDCFA','\uD83D\uDCF6','\uD83D\uDE97','\uD83D\uDC36','\uD83C\uDFCA','\uD83C\uDFCB\uFE0F','\uD83C\uDFB8','\u2615','\uD83D\uDD11','\uD83D\uDEB0','\uD83E\uDDF9','\uD83D\uDCA1','\uD83E\uDD37','\uD83C\uDF33','\uD83D\uDCBB'].map((e) => (
-                      <button key={e} type="button" onClick={() => setForm(f => ({ ...f, icon: e }))} className="text-base leading-none hover:bg-gray-200 dark:hover:bg-gray-700 rounded p-0.5 transition-colors" title={e}>{e}</button>
-                    ))}
-                  </div>                </div>
+                  <IconPicker value={form.icon} onChange={(v) => setForm((f) => ({ ...f, icon: v }))} />
+                </div>
                 <div className="col-span-3">
                   <label className="text-xs text-gray-500">Name (EN)</label>
                   <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Amenity name" className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-gray-900 dark:text-white text-sm mt-1" />

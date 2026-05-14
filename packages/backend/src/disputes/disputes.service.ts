@@ -184,7 +184,7 @@ export class DisputesService {
       where: { id },
       relations: [
         'booking', 'booking.property', 'booking.property.photos',
-        'booking.guest', 'raisedBy', 'assignedTo',
+        'booking.guest', 'booking.host', 'raisedBy', 'assignedTo',
       ],
     });
     if (!dispute) throw new NotFoundException('Dispute not found');

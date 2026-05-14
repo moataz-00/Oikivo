@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api';
-import { Search, ChevronLeft, ChevronRight, Star, Trash2, Flag } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Star, Trash2, Flag, Eye, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -34,6 +34,7 @@ export default function ReviewsPage() {
   const [search, setSearch] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [ratingFilter, setRatingFilter] = useState(0);
+  const [viewReview, setViewReview] = useState<any | null>(null);
   const qc = useQueryClient();
 
   const ratingParam = ratingFilter === 0 ? undefined : ratingFilter === 2 ? undefined : ratingFilter;
@@ -72,6 +73,102 @@ export default function ReviewsPage() {
 
   return (
     <div className="space-y-5">
+      {/* View Review Modal */}
+      {viewReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setViewReview(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Review Details</h2>
+              <button onClick={() => setViewReview(null)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="px-6 py-5 space-y-5">
+              {/* Reviewer + Property */}
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Reviewer</p>
+                  <button
+                    onClick={() => { if (viewReview.guest?.profileUuid) { setViewReview(null); router.push(`/users/${viewReview.guest.profileUuid}`); } }}
+                    disabled={!viewReview.guest?.profileUuid}
+                    className="text-left hover:underline disabled:cursor-default"
+                  >
+                    <p className="font-semibold text-gray-900 dark:text-white">{viewReview.guest?.firstName} {viewReview.guest?.lastName}</p>
+                    <p className="text-sm text-gray-500">{viewReview.guest?.email}</p>
+                  </button>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Property</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{viewReview.property?.title ?? '—'}</p>
+                  <p className="text-sm text-gray-500">{viewReview.property?.city}</p>
+                </div>
+              </div>
+
+              {/* Overall rating */}
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Overall Rating</p>
+                <StarRating score={viewReview.overallRating ?? 0} />
+              </div>
+
+              {/* Sub-ratings */}
+              {(viewReview.cleanlinessRating != null || viewReview.accuracyRating != null ||
+                viewReview.communicationRating != null || viewReview.locationRating != null ||
+                viewReview.checkInRating != null || viewReview.valueRating != null) && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Sub-ratings</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {[
+                      { label: 'Cleanliness', value: viewReview.cleanlinessRating },
+                      { label: 'Accuracy', value: viewReview.accuracyRating },
+                      { label: 'Communication', value: viewReview.communicationRating },
+                      { label: 'Location', value: viewReview.locationRating },
+                      { label: 'Check-in', value: viewReview.checkInRating },
+                      { label: 'Value', value: viewReview.valueRating },
+                    ].filter(s => s.value != null).map(s => (
+                      <div key={s.label} className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-500">{s.label}</p>
+                        <StarRating score={s.value} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Comment */}
+              {viewReview.comment && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Comment</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap rounded-lg bg-gray-50 dark:bg-gray-800 p-3">{viewReview.comment}</p>
+                </div>
+              )}
+
+              {/* Host reply */}
+              {viewReview.hostReply && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Host Reply</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border-l-4 border-indigo-500">{viewReview.hostReply}</p>
+                </div>
+              )}
+
+              {/* Photos */}
+              {viewReview.photos?.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Photos</p>
+                  <div className="flex flex-wrap gap-2">
+                    {viewReview.photos.map((url: string, i: number) => (
+                      <img key={i} src={url} alt={`Review photo ${i + 1}`} className="h-24 w-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Meta */}
+              <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-800">
+                <span>Date: {viewReview.createdAt ? new Date(viewReview.createdAt).toLocaleString() : '—'}</span>
+                {viewReview.isFlagged && <span className="text-amber-400 font-medium">Flagged</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reviews</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">All guest reviews</p>
@@ -128,13 +225,13 @@ export default function ReviewsPage() {
                 : (items ?? []).map((r: any) => (
                     <tr key={r.id} className="hover:bg-gray-800/50 transition-colors">
                       <td className="px-4 py-3">
-                        <button onClick={() => r.guest?.id && router.push(`/users/${r.guest.id}`)} className="text-left hover:underline disabled:cursor-default" disabled={!r.guest?.id}>
+                        <button onClick={() => r.guest?.profileUuid && router.push(`/users/${r.guest.profileUuid}`)} className="text-left hover:underline disabled:cursor-default" disabled={!r.guest?.profileUuid}>
                           <p className="font-medium text-gray-900 dark:text-white">{r.guest?.firstName} {r.guest?.lastName}</p>
                           <p className="text-xs text-gray-500">{r.guest?.email}</p>
                         </button>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => r.property?.id && router.push(`/properties/${r.property.id}`)} className="text-left hover:underline disabled:cursor-default" disabled={!r.property?.id}>
+                        <button onClick={() => (r.property?.uuid || r.property?.id) && router.push(`/properties/${r.property.uuid ?? r.property.id}`)} className="text-left hover:underline disabled:cursor-default" disabled={!r.property?.uuid && !r.property?.id}>
                           <p className="text-gray-900 dark:text-white line-clamp-1">{r.property?.title ?? '—'}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{r.property?.city}</p>
                         </button>
@@ -159,6 +256,13 @@ export default function ReviewsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => setViewReview(r)}
+                            title="View review"
+                            className="rounded-lg p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/30 transition-colors"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => flagReview.mutate({ id: r.id, flagged: !r.isFlagged })}
                             disabled={flagReview.isPending}

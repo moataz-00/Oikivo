@@ -214,6 +214,9 @@ export class UserEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
+  @Column({ name: 'deleted_at', type: 'datetime', nullable: true, default: null })
+  deletedAt: Date | null;
+
   @OneToMany(() => PropertyEntity, (p) => p.host)
   properties: PropertyEntity[];
 

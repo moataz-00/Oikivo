@@ -202,7 +202,7 @@ export default function BookingsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1.5">                            <button
-                              onClick={() => router.push(`/bookings/${b.id}`)}
+                              onClick={() => router.push(`/bookings/${b.bookingUuid}`)}
                               title="View detail"
                               className="rounded-lg p-1.5 text-indigo-400 hover:bg-indigo-900/30 transition-colors"
                             >

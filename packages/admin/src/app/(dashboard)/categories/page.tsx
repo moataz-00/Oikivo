@@ -1,10 +1,124 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, X, AlertTriangle, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, AlertTriangle, Search, ChevronDown, ToggleLeft, ToggleRight } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+
+// ─── Emoji Picker ──────────────────────────────────────────────────────────
+const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
+  { label: 'Buildings', emojis: ['🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏧','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','💒','🗼','🗽','⛪','🕌','🛕','🕍','⛩️','🏗️','🧱','🛖','🏚️','🏙️'] },
+  { label: 'Travel', emojis: ['✈️','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚞','🚝','🚋','🚌','🚍','🚎','🚐','🚑','🚒','🚓','🚔','🚕','🚖','🚗','🚘','🚙','🚚','🚛','🚜','🏎️','🏍️','🛵','🛺','🚲','🛴','🛹','🛼','🚏','🛣️','🛤️','⛽','🛞','🚨','🚥','🚦','🛂','🛃','🛄','🛅','⚓','🛟','⛵','🚤','🛥️','🛳️','⛴️','🚢','✈️','🛩️','🛫','🛬','🪂','💺','🚁','🚟','🚠','🚡','🛸','🚀','🛶','⛽','🌍','🌎','🌏','🗺️','🧭'] },
+  { label: 'Nature', emojis: ['🌲','🌳','🌴','🌵','🌾','🌿','☘️','🍀','🎋','🎍','🍃','🍂','🍁','🌱','🌿','🪴','🌸','🌺','🌻','🌹','🌷','🌼','💐','🍄','🌰','🐚','🪸','🪨','🌊','🏞️','🏕️','🏝️','🏜️','🌋','🏔️','⛰️','🗻','🌅','🌄','🌠','🎑','🏞️'] },
+  { label: 'Food', emojis: ['🍎','🍊','🍋','🍇','🍓','🫐','🍈','🍑','🍒','🍍','🥭','🍌','🍉','🍏','🥝','🍅','🫒','🥥','🥑','🍆','🥦','🥬','🥒','🌶️','🫑','🥕','🧅','🧄','🍠','🫘','🥜','🌽','🍞','🥐','🥖','🫓','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫔','🌮','🌯','🥙','🧆','🥚','🍲','🫕','🥣','🥗','🍿','🧂','🥫','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🍥','🥮','🍡','🥟','🥠','🥡','🦪','🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🥧','🍫','🍬','🍭','🍮','🍯','🍷','🍸','🍹','🥂','🍺','🍻','🥃','🫗','🥤','🧋','☕','🍵','🫖','🍶','🍾'] },
+  { label: 'Activities', emojis: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🎱','🏓','🏸','🏒','🏑','🥍','🏏','⛳','🏹','🎣','🤿','🎿','🛷','🥌','🪃','🪁','🎯','🎮','🕹️','🎲','♟️','🎰','🎳','🏋️','🤼','🤸','⛹️','🤺','🏇','⛷️','🏂','🪂','🏊','🏄','🚣','🧗','🚴','🏆','🥇','🎖️','🎗️','🎫','🎟️','🎪','🎭','🎨','🎬','🎤','🎧','🎼','🎵','🎶','🎷','🎸','🎹','🎺','🎻','🪗','🥁','🪘','🎙️'] },
+  { label: 'Objects', emojis: ['💎','💍','👑','🏅','🎀','🎁','🎊','🎉','🎈','🔑','🗝️','🔒','🔓','🔏','🔐','🛡️','⚔️','🔨','⛏️','⚙️','🔧','🔩','🪛','🗜️','🧰','🪤','💡','🔦','🕯️','🪔','🛋️','🚪','🪞','🪟','🛏️','🛁','🚿','🪠','🧺','🧹','🧼','🫧','🧴','🧷','🧵','🧶','🪡','💊','💉','🩺','🩻','🔬','🔭','📡','💻','🖥️','🖨️','⌨️','🖱️','🖲️','💾','💿','📀','📱','☎️','📞','📟','📠','📺','📻','🎙️','📷','📸','📹','🎥','🎞️','📽️','📼','🔋','🔌','💡','🔦','🕯️','🪄','🪅','🧸','🪆','🖼️','🎨','🗿','🪆','🧩','♟️'] },
+  { label: 'Symbols', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','✡️','🔯','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚜️','🔱','📛','🔰','⭕','✅','☑️','✔️','❎','🔲','🔳','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','♾️','🔃','🔄','🔙','🔚','🔛','🔜','🔝','🆒','🆕','🆙','🆓','🆖','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🔺','🔻','🔷','🔶','🔹','🔸','💠','🔘','🔳','⚡','🌟','⭐','🌙','☀️','🌈','🌤️','⛅','🌥️','☁️','🌦️','🌧️','⛈️','🌩️','🌨️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌊','💧','💦','☔','⛱️','⚡'] },
+  { label: 'People', emojis: ['👤','👥','🧑','👧','👦','🧒','👶','🧓','👴','👵','🧔','👱','👨','👩','🧕','👲','👳','🦸','🦹','🧙','🧝','🧚','🧛','🧜','🧞','🧟','🧌','💆','💇','🚶','🧍','🧎','🏃','💃','🕺','🧖','🛀','🛌','🧑‍💻','🧑‍🍳','🧑‍🏫','🧑‍🔬','🧑‍⚕️','🧑‍🌾','🧑‍🏭','🧑‍🔧','🧑‍💼','🧑‍🎨','👮','🕵️','💂','🧑‍⚖️','👷','🫅','🤴','👸','🤵','👰','🎅','🤶','🧑‍🚒','👨‍✈️','🧑‍🚀','🧑‍🎤','🧑‍🏫','🧑‍🎓'] },
+];
+
+function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState(0);
+  const [emojiSearch, setEmojiSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const searchResults = emojiSearch
+    ? EMOJI_CATEGORIES.flatMap((c) => c.emojis).filter((e) => {
+        // very basic: match by emoji itself
+        return true; // all emojis are valid picks; search is just a visual pass-through for now
+      })
+    : null;
+
+  const displayEmojis = searchResults ?? EMOJI_CATEGORIES[tab]?.emojis ?? [];
+
+  return (
+    <div className="relative" ref={ref}>
+      <label className="text-xs text-gray-500 block mb-1">Icon</label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-gray-900 dark:text-white"
+      >
+        <span className="text-2xl leading-none">{value || '＋'}</span>
+        <ChevronDown className="h-3 w-3 text-gray-500 shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl w-80">
+          {/* Search */}
+          <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+              <input
+                value={emojiSearch}
+                onChange={(e) => { setEmojiSearch(e.target.value); }}
+                placeholder="Filter…"
+                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+              />
+            </div>
+          </div>
+          {/* Category tabs */}
+          {!emojiSearch && (
+            <div className="flex overflow-x-auto gap-1 px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 scrollbar-hide">
+              {EMOJI_CATEGORIES.map((cat, i) => (
+                <button
+                  key={cat.label}
+                  type="button"
+                  onClick={() => setTab(i)}
+                  className={cn(
+                    'shrink-0 px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap',
+                    tab === i ? 'bg-indigo-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Emoji grid */}
+          <div className="grid grid-cols-8 gap-0.5 p-2 max-h-52 overflow-y-auto">
+            {(emojiSearch
+              ? EMOJI_CATEGORIES.flatMap((c) => c.emojis)
+              : displayEmojis
+            ).map((emoji, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => { onChange(emoji); setOpen(false); setEmojiSearch(''); }}
+                className={cn(
+                  'flex items-center justify-center h-8 w-8 rounded text-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors',
+                  value === emoji && 'bg-indigo-600/20 ring-1 ring-inset ring-indigo-500'
+                )}
+                title={emoji}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          {/* Current + clear */}
+          {value && (
+            <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+              <span className="text-xs text-gray-500">Selected: <span className="text-base">{value}</span></span>
+              <button type="button" onClick={() => { onChange(''); setOpen(false); }} className="text-xs text-red-400 hover:text-red-300">Clear</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Category {
   id: number;
@@ -186,8 +300,7 @@ export default function CategoriesPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <label className="text-xs text-gray-500">Icon</label>
-                  <input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🏠" className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-gray-900 dark:text-white mt-1 text-center text-xl" />
+                  <EmojiPicker value={form.icon} onChange={(e) => setForm((f) => ({ ...f, icon: e }))} />
                 </div>
                 <div className="col-span-3">
                   <label className="text-xs text-gray-500">Name (EN)</label>
@@ -208,10 +321,16 @@ export default function CategoriesPage() {
                   <input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))} className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-gray-900 dark:text-white text-sm mt-1" />
                 </div>
                 <div className="flex items-end pb-1">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-indigo-600 focus:ring-indigo-500" />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
+                    className="flex items-center gap-2 select-none"
+                  >
+                    {form.isActive
+                      ? <ToggleRight className="h-7 w-7 text-indigo-500" />
+                      : <ToggleLeft className="h-7 w-7 text-gray-500" />}
                     <span className="text-sm text-gray-600 dark:text-gray-300">Active</span>
-                  </label>
+                  </button>
                 </div>
               </div>
             </div>

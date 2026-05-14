@@ -58,29 +58,48 @@ function getIcon(type: string) {
   return TYPE_ICON[type] ?? DEFAULT_ICON;
 }
 
-function timeAgo(dateStr: string, t: (key: string, values?: Record<string, number>) => string, locale: string): string {
+/**
+ * Format a relative time label for a notification timestamp.
+ * Uses the visitor's browser IANA timezone (e.g. 'Africa/Cairo') so DST
+ * (e.g. Egypt +2 in winter → +3 in summer) is applied automatically.
+ * Future timestamps (scheduled notifications) are shown as a formatted date
+ * rather than the misleading "Just now".
+ */
+function timeAgo(
+  dateStr: string,
+  t: (key: string, values?: Record<string, number>) => string,
+  locale: string,
+  tz: string,
+): string {
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  const fmtOpts: Intl.DateTimeFormatOptions = { timeZone: tz, day: 'numeric', month: 'short', year: 'numeric' };
+  const fmtLocale = locale === 'ar' ? 'ar-EG' : 'en-GB';
+  // Future timestamps — show the actual date instead of "Just now"
+  if (diff < 0) return new Date(dateStr).toLocaleDateString(fmtLocale, fmtOpts);
   if (diff < 60) return t('justNow');
   if (diff < 3600) return t('minutesAgo', { count: Math.floor(diff / 60) });
   if (diff < 86400) return t('hoursAgo', { count: Math.floor(diff / 3600) });
   if (diff < 604800) return t('daysAgo', { count: Math.floor(diff / 86400) });
-  return new Date(dateStr).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString(fmtLocale, fmtOpts);
 }
 
-function groupByDate(notifications: Notification[]) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+/**
+ * Group notifications by calendar date in the user's local timezone.
+ * Using 'en-CA' locale gives ISO YYYY-MM-DD strings for reliable comparison.
+ * All DST transitions are handled automatically by the Intl API.
+ */
+function groupByDate(notifications: Notification[], tz: string) {
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+  const yesterdayStr = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA', { timeZone: tz });
 
   const groups: Record<string, Notification[]> = {};
   for (const n of notifications) {
     const d = new Date(n.createdAt);
-    d.setHours(0, 0, 0, 0);
+    const dStr = d.toLocaleDateString('en-CA', { timeZone: tz });
     let key: string;
-    if (d.getTime() === today.getTime()) key = 'today';
-    else if (d.getTime() === yesterday.getTime()) key = 'yesterday';
-    else key = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (dStr === todayStr) key = 'today';
+    else if (dStr === yesterdayStr) key = 'yesterday';
+    else key = d.toLocaleDateString('en-GB', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' });
     if (!groups[key]) groups[key] = [];
     groups[key].push(n);
   }
@@ -119,6 +138,13 @@ export default function NotificationsPage() {
   const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  // Detect user's IANA timezone (e.g. 'Africa/Cairo') after mount so that
+  // date grouping and relative timestamps reflect the visitor's local clock,
+  // including DST transitions (e.g. Egypt UTC+2 winter → UTC+3 summer).
+  const [userTz, setUserTz] = useState('UTC');
+  useEffect(() => {
+    setUserTz(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
 
   // Redirect unauthenticated users — must be in useEffect to avoid SSR issues
   // and to ensure all hooks above are always called unconditionally
@@ -159,7 +185,7 @@ export default function NotificationsPage() {
   const notifications: Notification[] = (data as any)?.items ?? [];
   const totalPages: number = (data as any)?.totalPages ?? 1;
   const hasUnread = notifications.some((n) => !n.isRead);
-  const grouped = groupByDate(notifications);
+  const grouped = groupByDate(notifications, userTz);
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -246,7 +272,7 @@ export default function NotificationsPage() {
                                 {locale === 'ar' && n.titleAr ? n.titleAr : n.title}
                               </p>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-xs text-neutral-400 whitespace-nowrap">{timeAgo(n.createdAt, t, locale)}</span>
+                                <span className="text-xs text-neutral-400 whitespace-nowrap">{timeAgo(n.createdAt, t, locale, userTz)}</span>
                                 {!n.isRead && (
                                   <span className="h-2 w-2 rounded-full bg-indigo-500 shrink-0" />
                                 )}

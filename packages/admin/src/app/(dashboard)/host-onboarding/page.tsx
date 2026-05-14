@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api';
-import { UserCheck, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { UserCheck, ChevronDown, ChevronRight, Users, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STAGE_COLORS = [
@@ -28,12 +29,15 @@ interface FunnelStage {
   count: number;
   users: Array<{
     id: number;
+    profile_uuid: string;
     first_name: string;
     last_name: string;
     email: string;
     phone: string;
     created_at: string;
-    id_document_status: string;
+    id_verification_status: string;
+    property_count?: number;
+    published_properties?: number;
   }>;
 }
 
@@ -148,17 +152,26 @@ export default function HostOnboardingPage() {
                           {stage.users.map((u) => (
                             <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                               <td className="px-5 py-2 font-mono text-gray-500">#{u.id}</td>
-                              <td className="px-5 py-2 text-gray-900 dark:text-white font-medium">{u.first_name} {u.last_name}</td>
+                              <td className="px-5 py-2">
+                                {u.profile_uuid ? (
+                                  <Link href={`/users/${u.profile_uuid}`} className="font-medium text-indigo-400 hover:underline flex items-center gap-1">
+                                    {u.first_name} {u.last_name}
+                                    <ExternalLink className="h-3 w-3 opacity-50" />
+                                  </Link>
+                                ) : (
+                                  <span className="font-medium text-gray-900 dark:text-white">{u.first_name} {u.last_name}</span>
+                                )}
+                              </td>
                               <td className="px-5 py-2 text-gray-500">{u.email}</td>
                               <td className="px-5 py-2 text-gray-500">{u.phone ?? '—'}</td>
                               <td className="px-5 py-2">
                                 <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium',
-                                  u.id_document_status === 'approved' ? 'bg-emerald-900/50 text-emerald-400'
-                                  : u.id_document_status === 'pending' ? 'bg-amber-900/50 text-amber-400'
-                                  : u.id_document_status === 'rejected' ? 'bg-red-900/50 text-red-400'
+                                  u.id_verification_status === 'approved' ? 'bg-emerald-900/50 text-emerald-400'
+                                  : u.id_verification_status === 'pending' ? 'bg-amber-900/50 text-amber-400'
+                                  : u.id_verification_status === 'rejected' ? 'bg-red-900/50 text-red-400'
                                   : 'bg-gray-200 dark:bg-gray-800 text-gray-500'
                                 )}>
-                                  {u.id_document_status ?? 'none'}
+                                  {u.id_verification_status ?? 'none'}
                                 </span>
                               </td>
                               <td className="px-5 py-2 text-gray-500">{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>

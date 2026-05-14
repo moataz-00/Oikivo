@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { User, Shield, Bell, Globe, Camera, Eye, EyeOff, X, Trash2, AlertTriangle, ChevronDown, Search, Home, GraduationCap, ArrowRight, Smartphone, MonitorSmartphone, LogOut, Download, Unlink, QrCode, Check, ShieldCheck, Phone, CreditCard, Mail } from 'lucide-react';
+import { User, Shield, Bell, Globe, Camera, Eye, EyeOff, X, Trash2, AlertTriangle, ChevronDown, Search, Home, GraduationCap, ArrowRight, ArrowLeft, Smartphone, MonitorSmartphone, LogOut, Download, Unlink, QrCode, Check, ShieldCheck, Phone, CreditCard, Mail, Bookmark } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
 import { authApi, usersApi, bookingsApi } from '@/lib/api';
@@ -500,9 +501,11 @@ function ChangePasswordModal({ open, onClose, hasPassword }: { open: boolean; on
 function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const [step, setStep] = useState<'farewell' | 'confirm'>('farewell');
   const [confirmText, setConfirmText] = useState('');
   const [blockingError, setBlockingError] = useState<string | null>(null);
   const locale = useLocale();
+  const isRtl = locale === 'ar';
   const router = useRouter();
   const { logout } = useAuth();
 
@@ -533,89 +536,284 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
   const handleClose = () => {
     setConfirmText('');
     setBlockingError(null);
+    setStep('farewell');
     onClose();
   };
 
+  const deleteItems = [
+    { icon: '👤', label: t('deleteItem1') },
+    { icon: '🖼️', label: t('deleteItem2') },
+    { icon: '🏠', label: t('deleteItem3') },
+    { icon: '📅', label: t('deleteItem4') },
+    { icon: '⭐', label: t('deleteItem5') },
+  ];
+
+  /* slide direction flips for RTL */
+  const slideOut = isRtl ? 80 : -80;
+  const slideIn  = isRtl ? -80 : 80;
+
+  const stepVariants = {
+    enter:  (dir: number) => ({ opacity: 0, x: dir }),
+    center: { opacity: 1, x: 0 },
+    exit:   (dir: number) => ({ opacity: 0, x: -dir }),
+  };
+
+  const listItem = {
+    hidden: { opacity: 0, x: isRtl ? 16 : -16 },
+    show:   { opacity: 1, x: 0 },
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-          <div className="flex items-start gap-3 mb-5">
-            <div className="rounded-xl bg-red-100 p-2 shrink-0">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <Dialog.Title className="text-base font-semibold text-neutral-900">{t('deleteAccountTitle')}</Dialog.Title>
-              <Dialog.Description className="text-sm text-neutral-500 mt-1">
-                {t('deleteAccountDesc')}
-              </Dialog.Description>
-            </div>
-            <button onClick={handleClose} className="ms-auto rounded-full p-1.5 hover:bg-neutral-100 shrink-0">
-              <X className="h-4 w-4 text-neutral-500" />
-            </button>
-          </div>
+    <AnimatePresence>
+      {open && (
+        <Dialog.Root open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+          <Dialog.Portal forceMount>
+            {/* ── Backdrop ── */}
+            <Dialog.Overlay asChild>
+              <motion.div
+                key="overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              />
+            </Dialog.Overlay>
 
-          {/* G10: Active bookings warning */}
-          {activeBookings.length > 0 && (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 mb-4 text-sm text-amber-800">
-              <p className="font-medium">⚠ {t('activeBookingsWarningTitle', { count: activeBookings.length, plural: activeBookings.length > 1 ? 's' : '' })}</p>
-              <p className="text-amber-700 mt-1">{t('activeBookingsWarningDesc')}</p>
-            </div>
-          )}
-
-          {/* Backend blocker error */}
-          {blockingError && (
-            <div className="rounded-xl bg-red-50 border border-red-300 px-4 py-3 mb-4 text-sm text-red-800 flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
-              <p>{blockingError}</p>
-            </div>
-          )}
-
-          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 mb-5 text-sm space-y-1 text-red-800">
-            <p className="font-medium">{t('deleteWillBeDeleted')}</p>
-            <ul className="list-disc list-inside space-y-0.5 text-red-700">
-              <li>{t('deleteItem1')}</li>
-              <li>{t('deleteItem2')}</li>
-              <li>{t('deleteItem3')}</li>
-              <li>{t('deleteItem4')}</li>
-              <li>{t('deleteItem5')}</li>
-            </ul>
-          </div>
-
-          <div className="space-y-2 mb-5">
-            <label className="text-sm font-medium text-neutral-700">
-              {t('typeDeleteToConfirm')}
-            </label>
-            <input
-              type="text"
-              value={confirmText}
-              onChange={(e) => { setConfirmText(e.target.value); setBlockingError(null); }}
-              className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-              placeholder="DELETE"
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" size="md" className="flex-1" onClick={handleClose} disabled={mutation.isPending}>
-              {tCommon('cancel')}
-            </Button>
-            <Button
-              type="button"
-              size="md"
-              className="flex-1 !bg-red-600 hover:!bg-red-700"
-              disabled={confirmText !== 'DELETE' || mutation.isPending || activeBookings.length > 0}
-              isLoading={mutation.isPending}
-              onClick={() => mutation.mutate()}
+            {/* ── Panel ── */}
+            <Dialog.Content
+              dir={isRtl ? 'rtl' : 'ltr'}
+              className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl overflow-hidden focus:outline-none"
             >
-              <Trash2 className="h-4 w-4 me-1.5" />
-              {t('deleteAccount')}
-            </Button>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+              <motion.div
+                key="panel"
+                initial={{ opacity: 0, scale: 0.94, y: 24 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.94, y: 16 }}
+                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <AnimatePresence mode="wait" custom={step === 'farewell' ? slideOut : slideIn}>
+
+                  {/* ═══════════════ STEP 1 — FAREWELL ═══════════════ */}
+                  {step === 'farewell' && (
+                    <motion.div
+                      key="farewell"
+                      custom={slideOut}
+                      variants={stepVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      {/* Gradient header */}
+                      <div className="relative bg-gradient-to-b from-violet-50 via-indigo-50/40 to-white px-6 pt-8 pb-6 text-center overflow-hidden">
+                        {/* Subtle radial glow */}
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(139,92,246,0.12),transparent)]" />
+
+                        {/* Close */}
+                        <button
+                          onClick={handleClose}
+                          className={`absolute top-4 ${isRtl ? 'left-4' : 'right-4'} rounded-full p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-white/80 transition-colors`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+
+                        {/* Sad emoji */}
+                        <div className="emoji-bounce text-6xl mb-3 select-none leading-none relative z-10">
+                          😢
+                        </div>
+
+                        {/* Teardrops */}
+                        <div className="flex justify-center gap-4 -mt-1 mb-3 relative z-10 select-none">
+                          <span className="tear-drop text-lg opacity-70" style={{ animationDelay: '1s' }}>💧</span>
+                          <span className="tear-drop text-lg opacity-60" style={{ animationDelay: '1.7s' }}>💧</span>
+                        </div>
+
+                        <Dialog.Title className="text-[1.3rem] font-bold text-neutral-900 mb-1.5 relative z-10">
+                          {t('sadToSeeYouGo')}
+                        </Dialog.Title>
+                        <Dialog.Description className="text-sm text-neutral-500 leading-relaxed max-w-[280px] mx-auto relative z-10">
+                          {t('sadToSeeYouGoDesc')}
+                        </Dialog.Description>
+                      </div>
+
+                      {/* What gets deleted */}
+                      <div className="px-6 pt-4 pb-3 border-t border-neutral-100">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-400 mb-3">
+                          {t('deleteWillBeDeleted')}
+                        </p>
+                        <motion.ul
+                          className="space-y-2"
+                          initial="hidden"
+                          animate="show"
+                          variants={{ show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } }}
+                        >
+                          {deleteItems.map((item, i) => (
+                            <motion.li
+                              key={i}
+                              variants={listItem}
+                              transition={{ duration: 0.22, ease: 'easeOut' }}
+                              className="flex items-start gap-2.5 text-sm text-neutral-600"
+                            >
+                              <span className="text-base leading-5 shrink-0">{item.icon}</span>
+                              <span>{item.label}</span>
+                            </motion.li>
+                          ))}
+                        </motion.ul>
+                      </div>
+
+                      {/* Active bookings warning */}
+                      {activeBookings.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mx-5 mb-1 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm"
+                        >
+                          <p className="font-semibold text-amber-800">
+                            ⚠ {t('activeBookingsWarningTitle', { count: activeBookings.length, plural: activeBookings.length > 1 ? 's' : '' })}
+                          </p>
+                          <p className="text-amber-700 mt-0.5 text-xs">{t('activeBookingsWarningDesc')}</p>
+                        </motion.div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="px-5 py-5 space-y-2">
+                        <Button type="button" variant="primary" size="md" className="w-full" onClick={handleClose}>
+                          {t('keepMyAccount')}
+                        </Button>
+                        <motion.button
+                          type="button"
+                          onClick={() => setStep('confirm')}
+                          disabled={activeBookings.length > 0}
+                          whileHover={{ scale: activeBookings.length > 0 ? 1 : 1.01 }}
+                          whileTap={{ scale: activeBookings.length > 0 ? 1 : 0.98 }}
+                          className="w-full rounded-xl px-4 py-2.5 text-sm text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {t('continueToDelete')}
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ═══════════════ STEP 2 — CONFIRM ═══════════════ */}
+                  {step === 'confirm' && (
+                    <motion.div
+                      key="confirm"
+                      custom={slideIn}
+                      variants={stepVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                      className="p-6"
+                    >
+                      {/* Header row */}
+                      <div className="flex items-center gap-2.5 mb-5">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => { setBlockingError(null); setStep('farewell'); }}
+                          className="rounded-full p-1.5 hover:bg-neutral-100 shrink-0 text-neutral-400 hover:text-neutral-600 transition-colors"
+                        >
+                          {/* RTL: back arrow flips */}
+                          {isRtl
+                            ? <ArrowRight className="h-4 w-4" />
+                            : <ArrowLeft  className="h-4 w-4" />
+                          }
+                        </motion.button>
+                        <span className="text-2xl leading-none select-none">😞</span>
+                        <div className="flex-1 min-w-0">
+                          <Dialog.Title className="text-base font-semibold text-neutral-900 leading-snug">
+                            {t('deleteAccountTitle')}
+                          </Dialog.Title>
+                          <Dialog.Description className="text-xs text-neutral-400 mt-0.5">
+                            {t('deleteAccountDesc')}
+                          </Dialog.Description>
+                        </div>
+                        <button
+                          onClick={handleClose}
+                          className="rounded-full p-1.5 hover:bg-neutral-100 shrink-0 text-neutral-400 hover:text-neutral-600 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Blocking error */}
+                      <AnimatePresence>
+                        {blockingError && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 flex items-start gap-2 overflow-hidden"
+                          >
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
+                            <p>{blockingError}</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Confirmation input */}
+                      <div className="space-y-2 mb-5">
+                        <label className="text-sm font-medium text-neutral-700">
+                          {t('typeDeleteToConfirm')}
+                        </label>
+                        <input
+                          type="text"
+                          value={confirmText}
+                          onChange={(e) => { setConfirmText(e.target.value); setBlockingError(null); }}
+                          className={`w-full rounded-xl border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${
+                            confirmText === 'DELETE'
+                              ? 'border-red-400 focus:ring-red-400 bg-red-50/40'
+                              : 'border-neutral-300 focus:ring-red-300'
+                          }`}
+                          placeholder="DELETE"
+                          autoComplete="off"
+                          dir="ltr"
+                        />
+                      </div>
+
+                      {/* Buttons */}
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="md"
+                          className="flex-1"
+                          onClick={handleClose}
+                          disabled={mutation.isPending}
+                        >
+                          {tCommon('cancel')}
+                        </Button>
+                        <motion.div
+                          className="flex-1"
+                          animate={confirmText === 'DELETE' ? { scale: [1, 1.03, 1] } : {}}
+                          transition={{ duration: 0.35 }}
+                        >
+                          <Button
+                            type="button"
+                            size="md"
+                            className="w-full !bg-red-600 hover:!bg-red-700 active:!bg-red-800"
+                            disabled={confirmText !== 'DELETE' || mutation.isPending}
+                            isLoading={mutation.isPending}
+                            onClick={() => mutation.mutate()}
+                          >
+                            <Trash2 className="h-4 w-4 me-1.5" />
+                            {t('deleteAccount')}
+                          </Button>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                </AnimatePresence>
+              </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -912,6 +1110,14 @@ function AccountPageContent() {
               {(!currentUser?.isEmailVerified || !(currentUser as any)?.isPhoneVerified || ((currentUser as any)?.idVerificationStatus ?? 'none') === 'none') && (
                 <span className="ms-auto h-2 w-2 rounded-full bg-amber-400" />
               )}
+            </Link>
+            {/* Saved Searches — standalone link */}
+            <Link
+              href={`/${locale}/account/saved-searches`}
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+            >
+              <Bookmark className="h-4 w-4" />
+              {t('savedSearches')}
             </Link>
           </div>
 

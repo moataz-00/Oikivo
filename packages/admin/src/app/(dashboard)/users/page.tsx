@@ -1,9 +1,31 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, getUploadUrl } from '@/lib/api';
+import { adminApi, getUploadUrl, apiClient } from '@/lib/api';
+
+/** Fetches a protected upload via credentialed API client and renders via blob URL */
+function AuthImg({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (!src) return;
+    let revoked = false;
+    setBlobUrl(null);
+    setFailed(false);
+    apiClient.get('/admin/secure-file', { params: { path: (() => { try { return new URL(src).pathname; } catch { return src; } })() }, responseType: 'blob' })
+      .then((res) => { if (!revoked) setBlobUrl(URL.createObjectURL(res.data)); })
+      .catch(() => { if (!revoked) setFailed(true); });
+    return () => {
+      revoked = true;
+      setBlobUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    };
+  }, [src]);
+  if (failed) return <div className={`${className ?? ''} flex items-center justify-center bg-gray-800 text-gray-500 text-xs`}>Failed to load</div>;
+  if (!blobUrl) return <div className={`${className ?? ''} bg-gray-800 animate-pulse`} />;
+  return <img src={blobUrl} alt={alt} className={className} />;
+}
 import {
   Search, ShieldCheck, ShieldOff, UserCheck, UserX,
   ChevronLeft, ChevronRight, BadgeCheck, BadgeX, FileText,
@@ -47,6 +69,9 @@ export default function UsersPage() {
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
   const [pendingBulkAction, setPendingBulkAction] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', isHost: false, isAdmin: false });
+
+  // ID document preview modal
+  const [idDocModal, setIdDocModal] = useState<{ url: string; backUrl?: string | null; type: string } | null>(null);
 
   // Reject ID modal state
   const [rejectModal, setRejectModal] = useState<{ userId: number; userName: string } | null>(null);
@@ -243,9 +268,18 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase shrink-0">
-                          {user.firstName?.[0]}{user.lastName?.[0]}
-                        </div>
+                        {user.avatarUrl ? (
+                          <img
+                            src={getUploadUrl(user.avatarUrl)}
+                            alt=""
+                            className="h-8 w-8 rounded-full object-cover shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase shrink-0">
+                            {user.firstName?.[0]}{user.lastName?.[0]}
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">{user.firstName} {user.lastName}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
@@ -271,9 +305,13 @@ export default function UsersPage() {
                           {user.idVerificationStatus ?? 'none'}
                         </Badge>
                         {user.idDocumentUrl && (
-                          <a href={getUploadUrl(user.idDocumentUrl)} target="_blank" rel="noopener noreferrer" title="View ID document" className="text-gray-500 dark:text-gray-400 hover:text-indigo-400 transition-colors">
+                          <button
+                            title="View ID documents"
+                            onClick={() => setIdDocModal({ url: user.idDocumentUrl, backUrl: user.idDocumentBackUrl, type: user.idDocumentType ?? 'national_id' })}
+                            className="text-gray-500 dark:text-gray-400 hover:text-indigo-400 transition-colors"
+                          >
                             <FileText className="h-3.5 w-3.5" />
-                          </a>
+                          </button>
                         )}
                         {user.idVerificationStatus === 'pending' && (
                           <>
@@ -306,7 +344,7 @@ export default function UsersPage() {
                         <button
                           title="View user details"
                           aria-label={`View details for ${user.firstName} ${user.lastName}`}
-                          onClick={() => router.push(`/users/${user.id}`)}
+                          onClick={() => router.push(`/users/${user.profileUuid ?? user.id}`)}
                           className="rounded-lg p-1.5 text-indigo-400 hover:bg-indigo-900/30 transition-colors"
                         >
                           <Eye className="h-4 w-4" />
@@ -357,6 +395,60 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {/* ── ID Document Preview Modal ──────────────────────────────────────── */}
+      {idDocModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setIdDocModal(null)}>
+          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-indigo-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {idDocModal.type === 'national_id' ? 'National ID' : 'Passport'}
+                </h3>
+              </div>
+              <button onClick={() => setIdDocModal(null)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
+                  {idDocModal.type === 'national_id' ? 'Front Side' : 'Photo Page'}
+                </p>
+                {idDocModal.url.match(/\.pdf$/i) ? (
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
+                    <FileText className="h-8 w-8 text-indigo-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Document.pdf</p>
+                      <a href={getUploadUrl(idDocModal.url)} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline">Open PDF ↗</a>
+                    </div>
+                  </div>
+                ) : (
+                  <AuthImg src={getUploadUrl(idDocModal.url)} alt="ID Front" className="rounded-xl border border-gray-300 dark:border-gray-700 max-h-72 w-full object-contain bg-gray-50 dark:bg-gray-800" />
+                )}
+              </div>
+              {idDocModal.type === 'national_id' && idDocModal.backUrl && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Back Side</p>
+                  {idDocModal.backUrl.match(/\.pdf$/i) ? (
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
+                      <FileText className="h-8 w-8 text-indigo-400 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Document Back.pdf</p>
+                        <a href={getUploadUrl(idDocModal.backUrl)} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline">Open PDF ↗</a>
+                      </div>
+                    </div>
+                  ) : (
+                    <AuthImg src={getUploadUrl(idDocModal.backUrl!)} alt="ID Back" className="rounded-xl border border-gray-300 dark:border-gray-700 max-h-72 w-full object-contain bg-gray-50 dark:bg-gray-800" />
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setIdDocModal(null)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm rounded-lg transition-colors">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Reject ID Modal ─────────────────────────────────────────────────── */}
       {rejectModal && (

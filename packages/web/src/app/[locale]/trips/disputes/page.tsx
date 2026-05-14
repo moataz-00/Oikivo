@@ -87,8 +87,8 @@ export default function MyDisputesPage() {
               });
               return (
                 <Link
-                  key={d.id}
-                  href={`/${locale}/trips/disputes/${d.id}`}
+                  key={d.uuid ?? d.id}
+                  href={`/${locale}/trips/disputes/${d.uuid ?? d.id}`}
                   className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="min-w-0">

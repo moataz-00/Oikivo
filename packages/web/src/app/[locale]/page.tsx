@@ -30,14 +30,18 @@ const SECTIONS = [
 ] as const;
 
 function ScrollSection({
-  label, emoji, properties, isLoading, seeAllHref, isFirst = false,
+  label, emoji, properties, isLoading, seeAllHref, isFirst = false, locale,
 }: {
-  label: string; emoji: string; properties: any[]; isLoading: boolean; seeAllHref: string; isFirst?: boolean;
+  label: string; emoji: string; properties: any[]; isLoading: boolean; seeAllHref: string; isFirst?: boolean; locale: string;
 }) {
   const t = useTranslations('home');
+  const isAr = locale === 'ar';
   const scrollRef = useRef<HTMLDivElement>(null);
-  const scroll = (dir: 'left' | 'right') =>
-    scrollRef.current?.scrollBy({ left: dir === 'left' ? -340 : 340, behavior: 'smooth' });
+  const scroll = (dir: 'prev' | 'next') => {
+    const base = 340;
+    const amount = dir === 'prev' ? (isAr ? base : -base) : (isAr ? -base : base);
+    scrollRef.current?.scrollBy({ left: amount, behavior: 'smooth' });
+  };
 
   if (!isLoading && properties.length === 0) return null;
 
@@ -52,18 +56,18 @@ function ScrollSection({
           href={seeAllHref}
           className="flex items-center gap-1 text-sm font-semibold text-neutral-700 hover:text-neutral-900 transition-colors"
         >
-          {t('seeAll')} <ArrowRight className="h-3.5 w-3.5" />
+          {t('seeAll')} <ArrowRight className={`h-3.5 w-3.5${isAr ? ' rotate-180' : ''}`} />
         </Link>
       </div>
 
       {/* Scroll container */}
       <div className="relative group">
-        {/* Left arrow */}
+        {/* Prev arrow */}
         <button
-          onClick={() => scroll('left')}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white shadow-lg border border-neutral-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-105 active:scale-95"
+          onClick={() => scroll('prev')}
+          className="absolute start-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white shadow-lg border border-neutral-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-105 active:scale-95"
         >
-          <ChevronLeft className="h-5 w-5 text-neutral-800" />
+          {isAr ? <ChevronRight className="h-5 w-5 text-neutral-800" /> : <ChevronLeft className="h-5 w-5 text-neutral-800" />}
         </button>
 
         <div
@@ -94,12 +98,12 @@ function ScrollSection({
               ))}
         </div>
 
-        {/* Right arrow */}
+        {/* Next arrow */}
         <button
-          onClick={() => scroll('right')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white shadow-lg border border-neutral-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-105 active:scale-95"
+          onClick={() => scroll('next')}
+          className="absolute end-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white shadow-lg border border-neutral-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-105 active:scale-95"
         >
-          <ChevronRight className="h-5 w-5 text-neutral-800" />
+          {isAr ? <ChevronLeft className="h-5 w-5 text-neutral-800" /> : <ChevronRight className="h-5 w-5 text-neutral-800" />}
         </button>
       </div>
     </FadeIn>
@@ -208,7 +212,7 @@ export default function HomePage() {
                 transition={{ duration: 0.5, delay: 0.35 }}
                 className="mt-6 flex items-center justify-center gap-2 flex-wrap"
               >
-                <span className="text-white/40 text-xs font-medium mr-1">{t('explore')}</span>
+                <span className="text-white/40 text-xs font-medium me-1">{t('explore')}</span>
                 {[
                   { labelKey: 'cityCairo', city: 'Cairo', emoji: '🏙️' },
                   { labelKey: 'cityAlexandria', city: 'Alexandria', emoji: '🌊' },
@@ -340,6 +344,7 @@ export default function HomePage() {
               isLoading={res.isLoading}
               seeAllHref={seeAllHref}
               isFirst={i === 0}
+              locale={locale}
             />
           );
         })}

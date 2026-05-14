@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import * as Slider from '@radix-ui/react-slider';
 import * as Checkbox from '@radix-ui/react-checkbox';
@@ -13,6 +13,19 @@ import { amenitiesApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { SearchPropertiesParams, SpaceType } from '@/types';
 
+// Map DB icon slugs → emojis (same map as AmenitiesGrid)
+const EMOJI_MAP: Record<string, string> = {
+  'wifi': '📶', 'cooking-pot': '🍳', 'square-parking': '🅿️', 'air-vent': '❄️',
+  'flame': '🔥', 'washing-machine': '🫧', 'wind': '💨', 'briefcase': '💼',
+  'tv': '📺', 'zap': '⚡', 'waves': '🏊', 'thermometer': '🌡️', 'dumbbell': '🏋️',
+  'anchor': '⚓', 'mountain': '⛷️', 'music': '🎹', 'shower-head': '🚿',
+  'bike': '🚴', 'sailboat': '⛵', 'bell-ring': '🔔', 'alert-triangle': '⚠️',
+  'fire-extinguisher': '🧯', 'cross': '🏥', 'camera': '📷', 'lock': '🔒',
+};
+function getEmoji(icon: string): string {
+  return EMOJI_MAP[icon] ?? '✨';
+}
+
 interface FilterModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,6 +36,7 @@ interface FilterModalProps {
 export function FilterModal({ open, onOpenChange, filters, onApply }: FilterModalProps) {
   const t = useTranslations('filter');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
 
   const [priceRange, setPriceRange] = useState([
     filters.minPrice ?? 0,
@@ -163,7 +177,7 @@ export function FilterModal({ open, onOpenChange, filters, onApply }: FilterModa
                 key={label}
                 onClick={() => setSpaceType(value as SpaceType | undefined)}
                 className={cn(
-                  'rounded-xl border p-4 text-sm font-medium transition-colors text-left',
+                  'rounded-xl border p-4 text-sm font-medium transition-colors text-start',
                   spaceType === value
                     ? 'border-neutral-900 bg-neutral-50'
                     : 'border-neutral-200 hover:border-neutral-400'
@@ -228,7 +242,7 @@ export function FilterModal({ open, onOpenChange, filters, onApply }: FilterModa
                       </Checkbox.Indicator>
                     </Checkbox.Root>
                     <span className="text-sm text-neutral-700 group-hover:text-neutral-900">
-                      {amenity.icon} {amenity.name}
+                      {getEmoji(amenity.icon)} {locale === 'ar' && amenity.nameAr ? amenity.nameAr : amenity.name}
                     </span>
                   </label>
                 ))}

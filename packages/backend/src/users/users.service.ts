@@ -535,8 +535,41 @@ export class UsersService {
       join(uploadsRoot, 'experiences', String(e.id)),
     );
 
-    // Delete the user — DB CASCADE removes all related rows automatically
-    await this.usersRepo.delete(userId);
+    // Soft-delete the user: anonymize PII and mark inactive.
+    // Hard-deleting fails because bookings.guest_id / host_id FK constraints
+    // have no ON DELETE CASCADE — and we must preserve financial audit history anyway.
+    const anonymousEmail = `deleted-${user.profileUuid}@deleted.invalid`;
+    await this.usersRepo.update(userId, {
+      email: anonymousEmail,
+      passwordHash: null,
+      firstName: 'Deleted',
+      lastName: 'User',
+      phone: null,
+      bio: null,
+      dateOfBirth: null,
+      avatarUrl: null,
+      idDocumentUrl: null,
+      idDocumentBackUrl: null,
+      googleId: null,
+      fcmToken: null,
+      totpSecret: null,
+      isTotpEnabled: false,
+      isActive: false,
+      isHost: false,
+      isSuperhost: false,
+      isConsultant: false,
+      isIdVerified: false,
+      idVerificationStatus: 'none' as any,
+      idRejectionReason: null,
+      autoReplyEnabled: false,
+      autoReplyMessage: null,
+      notificationPreferences: null,
+      autoPayoutAccountDetails: null,
+      deletedAt: new Date(),
+    } as any);
+
+    // Revoke refresh token so existing sessions are invalidated immediately
+    await mgr.query('UPDATE users SET refresh_token = NULL WHERE id = ?', [userId]);
 
     // Delete files after DB delete so a failed unlink can't block account removal
     for (const filePath of filesToDelete) {

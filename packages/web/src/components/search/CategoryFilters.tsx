@@ -35,9 +35,10 @@ interface CategoryFiltersProps {
 
 export function CategoryFilters({ activeCategory = '', onCategoryChange }: CategoryFiltersProps) {
   const locale = useLocale();
+  const isRtl = locale === 'ar';
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollStart, setCanScrollStart] = useState(false);
+  const [canScrollEnd, setCanScrollEnd] = useState(true);
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -50,29 +51,41 @@ export function CategoryFilters({ activeCategory = '', onCategoryChange }: Categ
     ? [{ id: 0, name: 'All', nameAr: 'الكل', icon: '🏠', slug: '' }, ...categories]
     : STATIC_CATEGORIES;
 
-  const scroll = (direction: 'left' | 'right') => {
+  const scroll = (dir: 'start' | 'end') => {
     const el = scrollRef.current;
     if (!el) return;
     const amount = 300;
-    el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
+    // RTL: start=right (positive left), end=left (negative left); LTR is reversed
+    const delta = dir === 'start'
+      ? (isRtl ? amount : -amount)
+      : (isRtl ? -amount : amount);
+    el.scrollBy({ left: delta, behavior: 'smooth' });
   };
 
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    if (isRtl) {
+      // RTL: scrollLeft is 0 at start (rightmost) and negative as scrolled left
+      setCanScrollStart(el.scrollLeft < -4);
+      setCanScrollEnd(el.scrollLeft > -(el.scrollWidth - el.clientWidth - 4));
+    } else {
+      setCanScrollStart(el.scrollLeft > 4);
+      setCanScrollEnd(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    }
   };
 
   return (
     <div className="relative flex items-center border-b border-neutral-100 bg-white">
-      {/* Left fade + scroll button */}
+      {/* Start fade + scroll button (left in LTR, right in RTL) */}
       <AnimatePresence>
-        {canScrollLeft && (
+        {canScrollStart && (
           <motion.div
-            key="left-fade"
-            className="pointer-events-none absolute left-0 top-0 h-full w-24 z-10"
-            style={{ background: 'linear-gradient(to right, white 40%, transparent)' }}
+            key="start-fade"
+            className="pointer-events-none absolute start-0 top-0 h-full w-24 z-10"
+            style={{ background: isRtl
+              ? 'linear-gradient(to left, white 40%, transparent)'
+              : 'linear-gradient(to right, white 40%, transparent)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -81,11 +94,11 @@ export function CategoryFilters({ activeCategory = '', onCategoryChange }: Categ
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {canScrollLeft && (
+        {canScrollStart && (
           <motion.button
-            key="left-btn"
-            onClick={() => scroll('left')}
-            className="absolute left-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md"
+            key="start-btn"
+            onClick={() => scroll('start')}
+            className="absolute start-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
@@ -93,7 +106,7 @@ export function CategoryFilters({ activeCategory = '', onCategoryChange }: Categ
             whileHover={{ scale: 1.1, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
             whileTap={{ scale: 0.92 }}
           >
-            <ChevronLeft className="h-4 w-4 text-neutral-700" />
+            {isRtl ? <ChevronRight className="h-4 w-4 text-neutral-700" /> : <ChevronLeft className="h-4 w-4 text-neutral-700" />}
           </motion.button>
         )}
       </AnimatePresence>
@@ -137,13 +150,15 @@ export function CategoryFilters({ activeCategory = '', onCategoryChange }: Categ
         })}
       </div>
 
-      {/* Right fade + scroll button */}
+      {/* End fade + scroll button (right in LTR, left in RTL) */}
       <AnimatePresence>
-        {canScrollRight && (
+        {canScrollEnd && (
           <motion.div
-            key="right-fade"
-            className="pointer-events-none absolute right-0 top-0 h-full w-24 z-10"
-            style={{ background: 'linear-gradient(to left, white 40%, transparent)' }}
+            key="end-fade"
+            className="pointer-events-none absolute end-0 top-0 h-full w-24 z-10"
+            style={{ background: isRtl
+              ? 'linear-gradient(to right, white 40%, transparent)'
+              : 'linear-gradient(to left, white 40%, transparent)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -152,11 +167,11 @@ export function CategoryFilters({ activeCategory = '', onCategoryChange }: Categ
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {canScrollRight && (
+        {canScrollEnd && (
           <motion.button
-            key="right-btn"
-            onClick={() => scroll('right')}
-            className="absolute right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md"
+            key="end-btn"
+            onClick={() => scroll('end')}
+            className="absolute end-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
@@ -164,7 +179,7 @@ export function CategoryFilters({ activeCategory = '', onCategoryChange }: Categ
             whileHover={{ scale: 1.1, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
             whileTap={{ scale: 0.92 }}
           >
-            <ChevronRight className="h-4 w-4 text-neutral-700" />
+            {isRtl ? <ChevronLeft className="h-4 w-4 text-neutral-700" /> : <ChevronRight className="h-4 w-4 text-neutral-700" />}
           </motion.button>
         )}
       </AnimatePresence>

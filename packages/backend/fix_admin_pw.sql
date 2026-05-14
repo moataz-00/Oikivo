@@ -1,0 +1,1 @@
+UPDATE users SET password_hash = '$2b$10$vVk/2ZUp38qHzAtAwATQFeTPixxQyD8flYi533JYV6Zh2np7a8a/a', failed_login_attempts = 0, locked_until = NULL WHERE id = 15;
